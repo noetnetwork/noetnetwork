@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-11",
+  "platform": "Linux ARM64 / Ubuntu 24.04",
+  "qt": {
+    "version": "6.4.2",
+    "suites": 14,
+    "reportedPassesIncludingSetupCleanup": 88,
+    "failures": 0,
+    "exitCode": 0
+  },
+  "valgrind": "3.22.0",
+  "network": "isolated development tests; not mainnet",
+  "walletImage": "sha256:ac3c3d0959ec77cb84d0b09aa58cd971bf08f95286f54846702846efa1b5e8e4",
+  "memory": {
+    "exitCode": 0,
+    "errors": 0,
+    "definitelyLostBytes": 0,
+    "indirectlyLostBytes": 0,
+    "possiblyLostBytes": 0,
+    "stillReachableBytes": 48123,
+    "suppressedErrors": 0,
+    "regexJit": false,
+    "fullSuite": true
+  },
+  "python": {
+    "passed": 25,
+    "skipped": 0
+  },
+  "patchSha256": {
+    "noet-wallet.patch": "e2545e21eddd29960f02227d4e4b125ca54952afd039f0d41f71b1212b6145d1",
+    "noet-miner.patch": "19b3188a5b4579fbfbf71eecbfe3897cf4416ed39d532ad777592eb6ff62bd24"
+  },
+  "limitations": [
+    "Laboratory/test data only",
+    "No GPU inference proof validation",
+    "No native Windows/macOS installers",
+    "No mobile or browser-extension release",
+    "Independent security review remains required"
+  ]
+}

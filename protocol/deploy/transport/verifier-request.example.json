@@ -1,0 +1,12 @@
+{
+  "mode": "server",
+  "listen_host": "10.42.0.20",
+  "listen_port": 16443,
+  "target_host": "127.0.0.1",
+  "target_port": 6001,
+  "ca_file": "/run/noet-tls/ca.pem",
+  "cert_file": "/run/noet-tls/verifier-request.pem",
+  "key_file": "/run/noet-tls/verifier-request.key",
+  "peer_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "server_name": "verifier-requests.noet.internal"
+}

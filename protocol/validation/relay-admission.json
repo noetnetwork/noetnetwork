@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-11",
+  "productionReady": false,
+  "protocolTestsPassed": 174,
+  "tlsTestsPassed": 18,
+  "platforms": [
+    "macOS ARM64 Python 3.14.3",
+    "Linux ARM64 Python 3.12.3"
+  ],
+  "linuxImage": "sha256:10d0fa75f50b5d37ae42e1f8d10a6fca5aa4ba71290805342479abae3b646c39",
+  "preTLSCapacity": 4,
+  "excessConnectionsRejectedBeforeTLS": 16,
+  "malformedHandshakesWithoutLeakedSlots": 12,
+  "handshakeShutdownAndRebind": true,
+  "zmqMultipartAndReconnect": true,
+  "scope": "Temporary local sockets and isolated Linux container. No GPU or multi-host/cloud acceptance.",
+  "sourceSha256": {
+    "noet/secure_transport.py": "0485fdb5ef51f99789dccbdab6c8c047aa3976cda921eb8372ce12a2260fd1d9",
+    "tests/test_secure_transport.py": "d566c9002b91cd39d1168db416fe4571da9ab82cbbfb5f8946d592c80e5dd201",
+    "tests/secure_zmq_smoke.py": "100e394516e865b9467909c513139cdf779caa6b8dc75d01a33e30f08ee149d2"
+  },
+  "logSha256": {
+    "noet-relay-full-suite.log": "bef12d496bc2ce6b40f07f86b3840494f1b911d1d47fd33ddfffd2f09f00a6c9",
+    "noet-relay-linux.log": "f3e654e15a72ea123737ae0353dd21c050ed9b65d31e68530ebfca8b737b962a",
+    "noet-relay-zmq.log": "d4f3921c6bcffa45b38599bd1d1f68e875a5c1fe15493bfb4425ba270618db5d"
+  }
+}

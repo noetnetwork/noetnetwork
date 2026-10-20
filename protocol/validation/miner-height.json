@@ -1,0 +1,238 @@
+{
+  "date": "2026-10-11",
+  "status": "cpu-height-transport-accepted-gpu-source-unit-tested",
+  "productionReady": false,
+  "nativeNodeContext": false,
+  "nativeBlockAccepted": false,
+  "gpuRuntimeAccepted": false,
+  "protocolTestsPassed": 193,
+  "sourceCommit": "48d1344106044338e6e500de7e95869de036bc55",
+  "engineCommit": "4b82726eaef1d38dd6cf4d4cb2ed2c73bc10ac26",
+  "enginePatchSha256": "cffcef857d8680434bfe475a1e726aace0fa2c8dad2a4a4d0eb97319b8902c83",
+  "minerPatchSha256": "fd01e85eb18dd17fc7f661b8dd5365cf64a78c463d015e36ed139165d90c9df5",
+  "sourceContextSha256": "ed0b0211a4a352c048385c6e645ec2bbf2bcb87e6ca79290a65d662f2e32eef0",
+  "builder": "sha256:f46a6409fc9cfa0d339ad0631d8769fb63e4d836268c0b0c9c3fee44dbc07161",
+  "modelManifestSha256": "c18e242c1f4c2273d89a27a226856ad1a6623a7a0c22839495b45371eefa3ae4",
+  "heightHarnessSha256": "21b44a408640fb2ce5a6be47b904532b4e8f93f67aabe9bb99d486aaf0e9d83e",
+  "resultSha256": "00ea638d9da67fba71739c226aeb63a1ec60f6e164d8ce3ced5855d59c4b0e38",
+  "samplerLogSha256": "7a4d08360433193f6336bb4f3816e76b1597d3dce898bd6e0a0900c11dad016e",
+  "limits": {
+    "cpus": 3,
+    "memoryGiB": 5,
+    "network": "none",
+    "readOnlyRoot": true,
+    "readOnlyModel": true,
+    "containerDeadlineSeconds": 1200
+  },
+  "cpuResult": {
+    "format": "noet-engine-height-check-v1",
+    "engineSha256": "2c714d9069472b93071f7f8f055fc3740ea9aa9eaac28e2b21d9df653208566f",
+    "cases": [
+      {
+        "envelope": "extra_sampling_params",
+        "height": null,
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": true,
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": false,
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": -1,
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": 1.5,
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": "1",
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": {},
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": [],
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": 4294967296,
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": 9223372036854775808,
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": 18446744073709551615,
+        "rejected": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": "absent",
+        "retained": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": 0,
+        "retained": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": 4294967295,
+        "retained": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": "absent",
+        "retained": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": 24150,
+        "retained": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": 1,
+        "retained": true
+      },
+      {
+        "envelope": "extra_sampling_params",
+        "height": "absent",
+        "retained": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": null,
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": true,
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": false,
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": -1,
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": 1.5,
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": "1",
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": {},
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": [],
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": 4294967296,
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": 9223372036854775808,
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": 18446744073709551615,
+        "rejected": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": "absent",
+        "retained": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": 0,
+        "retained": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": 4294967295,
+        "retained": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": "absent",
+        "retained": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": 24150,
+        "retained": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": 1,
+        "retained": true
+      },
+      {
+        "envelope": "vllm_xargs",
+        "height": "absent",
+        "retained": true
+      }
+    ],
+    "activeHeightRejections": 0,
+    "heightReachedCoordinator": true,
+    "absentHeightDidNotInherit": true,
+    "windowAttempts": {
+      "active": 1,
+      "absent": 1
+    },
+    "completionTokens": 534,
+    "productionReady": false,
+    "nativeNodeContext": false,
+    "scope": "Actual CPU engine with synthetic jobs; no block, detector or network acceptance"
+  },
+  "gpuSourceCheck": {
+    "method": "Compile and run the actual pure build_pow_snapshot function from its parsed source; no GPU imports or substituted function implementation",
+    "tests": 3,
+    "runtimeAccepted": false
+  },
+  "interpretation": "The active-height job reached v4 classification without the missing-height diagnostic; the next height-less job produced that diagnostic. Both observed raw-target hits missed the priced boundary. No anti-parrot rejection was observed, and this run does not establish anti-parrot rule acceptance.",
+  "remaining": [
+    "Trusted node-issued context through both deployed backends",
+    "Built GPU parent image containing reviewed shared sampler source and actual GPU acceptance",
+    "Supported six-view full detector replay",
+    "Native accepted blocks, rewards, reorgs and difficulty acceptance",
+    "Reviewed NOET production network identity and activation schedule"
+  ],
+  "ggufSha256": "8fa11f4d815167c4f6e3c91b25aebde25d8346a8f11228e744016592532b0700"
+}

@@ -1,0 +1,159 @@
+{
+  "date": "2026-10-11",
+  "productionReady": false,
+  "currentRulesAccepted": false,
+  "nativeBlockAccepted": false,
+  "gpuAccepted": false,
+  "protocolTestsPassed": 188,
+  "image": "sha256:f50dc999d038291034e86d41923126a0c14341b9387a2319df6ff2fdd493e25d",
+  "nativeBuilder": "sha256:f46a6409fc9cfa0d339ad0631d8769fb63e4d836268c0b0c9c3fee44dbc07161",
+  "sourceContextSha256": "db425485d98337cca6233884e5fb69ca6fcae9699afcaa67817ffb212dcb8c17",
+  "sourceCommit": "48d1344106044338e6e500de7e95869de036bc55",
+  "platform": "Linux ARM64 CPU, Python 3.12, Torch 2.8.0, Transformers 5.14.1",
+  "limits": {
+    "network": "none",
+    "readOnlyRoot": true,
+    "readOnlyModel": true,
+    "cpus": 3,
+    "memoryGiB": 12,
+    "vmMemoryGiB": 16,
+    "deadlineSeconds": 600
+  },
+  "original": {
+    "proofSha256": "75993752628d49dfadda975dbe1d0bdc6939495d50cfbb9e0cfccc629736fde0",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 2,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "mutation": null,
+    "envelopeSha256": "26732033aa4eda2246a6decffabeb21c8aa796babcaf24a304fd10dc48a42275",
+    "streamed": false,
+    "scope": "CPU legacy experimental replay; no current-rules or native block acceptance",
+    "quickVerdict": 0,
+    "fullVerdict": "GREEN",
+    "elapsedSeconds": 41.78939831900004,
+    "modelLoaded": true
+  },
+  "streamed": {
+    "proofSha256": "75993752628d49dfadda975dbe1d0bdc6939495d50cfbb9e0cfccc629736fde0",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 2,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "mutation": null,
+    "envelopeSha256": "26732033aa4eda2246a6decffabeb21c8aa796babcaf24a304fd10dc48a42275",
+    "streamed": true,
+    "scope": "CPU legacy experimental replay; no current-rules or native block acceptance",
+    "quickVerdict": 0,
+    "fullVerdict": "GREEN",
+    "elapsedSeconds": 48.37737324099999,
+    "modelLoaded": true
+  },
+  "falsifiedLogits": {
+    "proofSha256": "75993752628d49dfadda975dbe1d0bdc6939495d50cfbb9e0cfccc629736fde0",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 2,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "mutation": "corrupt-logits",
+    "envelopeSha256": "0a71c8643e241e4f62b2ba3afb0db386a55d3f6998d35e6f7d3d8d720f5c7172",
+    "streamed": true,
+    "scope": "CPU legacy experimental replay; no current-rules or native block acceptance",
+    "quickVerdict": 1,
+    "fullVerdict": "RED",
+    "elapsedSeconds": 82.496769624,
+    "modelLoaded": true
+  },
+  "runtime": {
+    "status": "passed",
+    "malformedEnvelopesRejected": 132,
+    "missingProofRejected": true,
+    "realVdfAccepted": true,
+    "invalidVdfsRejected": 202,
+    "creditKernel": "credit_v4 kernel v6 OK (/app/src/utils/libtc_credit_v4.so)",
+    "sunsetKernel": "post-sunset admission ABI v1: integer predicates OK",
+    "fullInferenceAccepted": false,
+    "scope": "Actual compiled parser, VDF and arithmetic libraries; no full inference or block acceptance"
+  },
+  "contextMutations": {
+    "status": "passed",
+    "proofSha256": "75993752628d49dfadda975dbe1d0bdc6939495d50cfbb9e0cfccc629736fde0",
+    "positiveQuickControl": true,
+    "mutations": {
+      "proof-parent": {
+        "quickVerdict": 1,
+        "fullVerdict": "RED"
+      },
+      "header-parent": {
+        "quickVerdict": 1,
+        "fullVerdict": "RED"
+      },
+      "short-header": {
+        "quickVerdict": 1,
+        "fullVerdict": "RED"
+      },
+      "outer-parent": {
+        "quickVerdict": 1,
+        "fullVerdict": "RED"
+      },
+      "corrupted-vdf": {
+        "quickVerdict": 1
+      },
+      "iterations": {
+        "quickVerdict": 1
+      }
+    },
+    "modelLoaded": false,
+    "productionReady": false,
+    "scope": "Actual verifier context/VDF rejection; no full positive or block acceptance"
+  },
+  "candidateManifestSha256": "c18e242c1f4c2273d89a27a226856ad1a6623a7a0c22839495b45371eefa3ae4",
+  "nativeLibraries": {
+    "pfunpack.so": "bb91155f169357d8a07a9512e27e892c4f4583b84eee3ee42867f951eecf6e01",
+    "chiavdf.so": "74bac45e66bfb8444cbc1a6a683d0d816f700c89f941e4c91d26c5085f9e1467",
+    "libtc_credit_v4.so": "3d87d7e0084fee673ddbcfb0fc36a2cda0ea82639900e07e219b2f1f5ce0b38f"
+  },
+  "resolvedPythonPackagesSha256": "89e1b7a83bd2ad13d2ce8fdee81f13e712ba37e07a8b9aa290d9a5ea26b4d043",
+  "incompleteAttempts": [
+    {
+      "path": "original",
+      "containerMemoryGiB": 6,
+      "vmMemoryGiB": 6,
+      "exitCode": 137,
+      "oomEventObserved": true
+    },
+    {
+      "path": "streamed",
+      "containerMemoryGiB": 5,
+      "vmMemoryGiB": 6,
+      "exitCode": 137
+    }
+  ],
+  "limitations": [
+    "Legacy proof version 2; synthetic parent/header and easy target, registered difficulty zero.",
+    "Prompt-gibberish gate is uncalibrated and reports shadow mode for this candidate.",
+    "The native packer used by this experiment omits height/ruleset fields; no current-rule acceptance.",
+    "One model and proof, limited mutations; no throughput, economic, independent security or network acceptance.",
+    "Resolved package inventory is not a hash-locked build or independently reproduced binary."
+  ],
+  "sourceSha256": {
+    "prepare_verifier_cpu.py": "06cfd439c9b7ae4545c3557f5bd94f2138659c447e71eeb04c39435500948e9d",
+    "docker/VerifierCPU.Dockerfile": "3860af086cfe3a3b655d3f666649628d73d5654ccb67473aa219419a86219c6a",
+    "cpu/exercise.py": "4181fdd4502cda680cd3aab9845a8f0c9eddcb6c1c29d219d986dbb6cb588506",
+    "cpu/bound_context.py": "315a62357c82ac87e7edb9fca147015a8cfe80c0ea011dac379e2dda980604f8",
+    "cpu/verify_full.py": "1e24a43807631d7a21ae162e3c8000aa111fb9b43c7f1eccc010221724627cc7",
+    "cpu/reject_mutations.py": "6ef7805d171423bd8a586655da575604efd6b2b3ab699896ce4938d5143143c7",
+    "cpu/runtime_check.py": "1c08ad7f6132120f862cf7b02ba0b1ca17d18208a82fecadc73e8c019a647c97",
+    "tests/test_cpu_verifier.py": "e7c5d74060acadf000244c6579e2d20925c42ce8c0818f78ea98631f0148c764"
+  },
+  "logSha256": {
+    "noet-verifier-cpu-reviewed-build-20261011.log": "839f20de84326b82a61cd2552c2ae3c534225460046bbbfd64e10ef03d3ddec2",
+    "noet-cpu-full-final-original-20261011.log": "608a12713bfdee9b8dc008cce25ef9f024aabbc87a8b91bf24947ba7f36d7910",
+    "noet-cpu-full-final-streamed-20261011.log": "fd85aa7675d9fa1938306722fab87885ebe170b6c20377f1919b77ee3f3dac19",
+    "noet-cpu-full-corrupt-logits-20261011.log": "b911b9efba2513269f14575f399f2bfb6d581f2c9206cea6d45332d0b2b9c77b",
+    "noet-cpu-runtime-reviewed-20261011.log": "017b1352e831f2014baa1a504cf635303da4d3064a3bc6e3f55d20a08070f3b9",
+    "noet-cpu-mutations-20261011.log": "8823def3a4208ab1e4381fb9de18852cc8bf9c44d104abd32c52d36cb8c6a50a",
+    "noet-protocol-tests-20261011-cpu-final.log": "ebe488cf9a7f2c00f01f0b185b6f561c09e0ef042c6c57af384c6eba39784bac",
+    "noet-cpu-final-inventory-20261011.log": "1fc313791db9da9b55664bf5b0260ce3587b6778f75326ad1f351dca070911a9"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "activated": false,
+  "policy": "100m cap; 80m mining; 15% remaining annual budget",
+  "blocksChecked": 11773440,
+  "epochsChecked": 224,
+  "crossLanguageVectors": 937,
+  "miningAtoms": "8000000000000000",
+  "supplyCapAtoms": "10000000000000000",
+  "sanitizers": [
+    "address",
+    "undefined",
+    "unsigned-integer-overflow"
+  ],
+  "sourceSha256": {
+    "policy.h": "8f0d9513b08c6e3ddfcc0cb204a23bb22a112052abae67a9e90156f6f48d8a4d",
+    "check.cpp": "19ef557224d4935b8ed8ced9dda2cb5e9b39163fcd9b29960321b9ae519f960b"
+  },
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "scope": "Candidate arithmetic only; no chain activation or enforceable vesting outputs"
+}

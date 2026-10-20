@@ -1,0 +1,19 @@
+{
+  "iterations": 10000,
+  "proofBytes": 200,
+  "validProofAccepted": true,
+  "invalidCasesRejected": 204,
+  "proofHex": "0000b853904894d6fb9364317a3a7cf4f24aecf53202cbda6bbad106df91aed48ef6a2c26aa7fe85c4c77d69913baccb7d355eb11bceea12191ff9539145b1e58700c3fbab53de32ca08ab60762e68ee430d3470bc4639c4d19d5c72682bdff960010d0803003eeff397cf0d6b84bffd0f23da1b9b5b8440840b0940e253766287a2aa5abdd740ebb07b708697a1dcaee7d847d10543ea75387a4f776496a217c20c8532cf12d9d273d09910fde194e62dc570a76421f21a5c610390b9cd53a9ad9ebd63a9150200",
+  "sourceCommit": "48d1344106044338e6e500de7e95869de036bc55",
+  "platform": "Darwin",
+  "architecture": "arm64",
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+  "binarySha256": "8e36ffd98088ab98a5bd07ea01c9643e0d11193dc9af24dc8ef7d6f24aaffef6",
+  "testSourceSha256": "356616b7711874dc599e0577c93bc74812a3e79d505f91380c0ab785b658baa8",
+  "sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "elapsedSeconds": 1.26,
+  "scope": "native VDF generation and verification; not AI inference proofs or production mining"
+}

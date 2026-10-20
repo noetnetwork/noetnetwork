@@ -1,0 +1,27 @@
+# Isolated integration laboratory only. Never expose this mock-backed network publicly.
+services:
+  node-a:
+    image: noet-core:lab
+    command: ["-server=1", "-txindex=1", "-validationapi=mock", "-useextapi=0", "-port=29441", "-rpcport=29443"]
+    volumes: ["node-a:/home/noet/.tensorcash"]
+    networks: [lab]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-chain=tensor-reg", "-rpcport=29443", "getblockchaininfo"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  node-b:
+    image: noet-core:lab
+    command: ["-server=1", "-txindex=1", "-validationapi=mock", "-useextapi=0", "-port=29441", "-rpcport=29443", "-connect=node-a:29441"]
+    volumes: ["node-b:/home/noet/.tensorcash"]
+    networks: [lab]
+    restart: unless-stopped
+    depends_on:
+      node-a: { condition: service_healthy }
+volumes:
+  node-a:
+  node-b:
+networks:
+  lab:
+    internal: true

@@ -1,0 +1,132 @@
+diff --git a/src/kernel/chainparams.cpp b/src/kernel/chainparams.cpp
+index 8ca9696..6224329 100644
+--- a/src/kernel/chainparams.cpp
++++ b/src/kernel/chainparams.cpp
+@@ -1343,16 +1343,16 @@ public:
+         consensus.nMinimumChainWork = uint256{};
+         consensus.defaultAssumeValid = uint256{};
+ 
+-        pchMessageStart[0] = 0xda;
+-        pchMessageStart[1] = 0xf1;
+-        pchMessageStart[2] = 0xc0;
+-        pchMessageStart[3] = 0xff;
+-        nDefaultPort = 19241;
++        pchMessageStart[0] = 0x4e;
++        pchMessageStart[1] = 0x4f;
++        pchMessageStart[2] = 0x45;
++        pchMessageStart[3] = 0x54;
++        nDefaultPort = 29441;
+         nPruneAfterHeight = opts.fastprune ? 100 : 1000;
+         m_assumed_blockchain_size = 0;
+         m_assumed_chain_state_size = 0;
+ 
+-        genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
++        genesis = CreateGenesisBlock(1791676800, 2, 0x207fffff, 1, 50 * COIN);
+         // Genesis must carry a valid VDF proof (vdf_spv_vdfverify_height = 0
+         // verifies every block incl. genesis during -reindex import). The
+         // challenge is the all-zero prev hash and tick=10, identical to the
+@@ -1385,29 +1385,22 @@ public:
+ 
+         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
+         vSeeds.clear();
+-        vSeeds.emplace_back("dummySeed.invalid.");
++        // NOET lab: no upstream discovery seeds.
+ 
+         fDefaultConsistencyChecks = true;
+         m_is_mockable_chain = true;
+ 
+-        m_assumeutxo_data = {
+-            {   // For use by unit tests
+-                .height = 110,
+-                .hash_serialized = AssumeutxoHash{uint256{"b952555c8ab81fec46f3d4253b7af256d766ceb39fb7752b9d18cdf4a0141327"}},
+-                .m_chain_tx_count = 111,
+-                .blockhash = consteval_ctor(uint256{"6affe030b7965ab538f820a56ef56c8149b7dc1d1c144af57113be080db7c397"}),
+-            },
+-        };
++        m_assumeutxo_data.clear(); // No snapshots from upstream networks.
+ 
+         chainTxData = ChainTxData{0, 0, 0};
+ 
+-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0x44);
+-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,0x15);
+-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,0xF2);
+-        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x72, 0x43, 0x50}; // 0x04724350  
+-        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x72, 0x43, 0x58}; // 0x04724358
++        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0x35);
++        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,0x75);
++        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,0xB5);
++        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x72, 0x4e, 0x50}; // NOET lab xpub
++        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x72, 0x4e, 0x58}; // NOET lab xprv
+ 
+-        bech32_hrp = "tcrt";
++        bech32_hrp = "nlab";
+     }
+ };
+ 
+diff --git a/src/test/cosign_tests.cpp b/src/test/cosign_tests.cpp
+index 8447f6d..9feabea 100644
+--- a/src/test/cosign_tests.cpp
++++ b/src/test/cosign_tests.cpp
+@@ -4,6 +4,7 @@
+ 
+ #include <boost/test/unit_test.hpp>
+ 
++#include <chainparams.h>
+ #include <common/args.h>
+ #include <common/system.h>
+ #include <rpc/proof_verify.h>
+@@ -1558,7 +1559,7 @@ BOOST_AUTO_TEST_CASE(discussion_rpc_rejects_bad_message_format)
+ BOOST_AUTO_TEST_CASE(discussion_rpc_rejects_wrong_network)
+ {
+     // Pick a valid network name that is different from the active fixture chain.
+-    const std::string active_network = gArgs.GetChainTypeString();
++    const std::string active_network = Params().GetChainTypeString();
+     const std::string wrong_network = active_network == "tensor" ? "main" : "tensor";
+     std::string hash64 = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+     std::string npub64 = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+diff --git a/src/test/key_io_tests.cpp b/src/test/key_io_tests.cpp
+index a88d52f..cff2dcd 100644
+--- a/src/test/key_io_tests.cpp
++++ b/src/test/key_io_tests.cpp
+@@ -286,10 +286,10 @@ BOOST_AUTO_TEST_CASE(tensor_address_prefixes)
+     {
+         SelectParams(ChainType::TENSOR_REG);
+         
+-        // Bech32 should start with "tcrt1"
++        // NOET laboratory addresses use nlab1
+         CTxDestination witness = WitnessV0KeyHash(pubkey);
+         std::string bech32_addr = EncodeDestination(witness);
+-        BOOST_CHECK(bech32_addr.substr(0, 5) == "tcrt1");
++        BOOST_CHECK(bech32_addr.substr(0, 5) == "nlab1");
+     }
+ }
+ 
+diff --git a/src/test/util/setup_common.cpp b/src/test/util/setup_common.cpp
+index a53d2cc..cca2b70 100644
+--- a/src/test/util/setup_common.cpp
++++ b/src/test/util/setup_common.cpp
+@@ -491,7 +491,8 @@ TestChain100Setup::TestChain100Setup(
+     : TestingSetup{chain_type, opts}
+ {
+     LogPrintf("TestChain100Setup: Starting initialization\n");
+-    SetMockTime(1598887952);
++    // The NOET laboratory genesis is newer than the upstream fixture clock.
++    SetMockTime(chain_type == ChainType::TENSOR_REG ? 1791676801 : 1598887952);
+     constexpr std::array<unsigned char, 32> vchKey = {
+         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}};
+     coinbaseKey.Set(vchKey.begin(), vchKey.end(), true);
+@@ -512,11 +513,10 @@ TestChain100Setup::TestChain100Setup(
+             // TESTNET4 may have different hash, keeping old one for now
+             assert(tip_hash_str == "d1041f5c24880788970d39eb76c2faabd52ed209e7f8e4bd905a68e502b70d6c");
+         } else if (chain_type == ChainType::TENSOR_REG) {
+-            // Deterministic TensorReg tip after 100 blocks (using Merkle commitment).
+-            // Changes whenever the tensor-reg genesis changes (last: genesis
+-            // gained its embedded VDF proof, mirroring regtest).
++            // Deterministic NOET lab tip after 100 blocks with the pinned lab genesis
++            // and fixture clock. Keep the exact-hash assertion when updating identity.
+             assert(m_node.chainman->ActiveChain().Height() == COINBASE_MATURITY);
+-            assert(tip_hash_str == "652ef163a07769b6ab13d423a9bdf348b25779eb56ccfee0fbc73887af3c8d3f");
++            assert(tip_hash_str == "96124b5d9809c794447c8f8d9178a7c4ac2c695bc407196cb25b0b2bdb60f6b1");
+         } else {
+             // Other chains: just ensure height
+             assert(m_node.chainman->ActiveChain().Height() == COINBASE_MATURITY);

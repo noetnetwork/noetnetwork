@@ -1,0 +1,12 @@
+{
+  "imageId": "sha256:cfcda2560fe3256f822916328aff8da96f221c5f94afdb03cf7f8da0f47f2619",
+  "checks": {
+    "readOnlyAccepted": "passed",
+    "writableRootRejected": "passed",
+    "writableNestedMountRejected": "passed",
+    "wrongManifestDigestRejected": "passed",
+    "modifiedWeightsRejected": "passed"
+  },
+  "gpuUsed": false,
+  "proofValidation": "not performed"
+}

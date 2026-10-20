@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+"""Watch the hosted NOET networks and alert by Telegram and email.
+
+Polls each network's public `/healthz/chain` (height, last block and verdict
+age, relay certificate days) and alerts when a chain stops producing blocks,
+its index goes stale, its certificates near expiry or it cannot be reached.
+With a Runpod API key it also watches the verifier's GPU pod: it alerts when
+the pod is not running or the account's credit will run out within a week.
+It only alerts; it never stops or deletes anything. A problem must persist for
+two checks before it alerts; while it lasts, a reminder follows every few
+hours (daily for credit), and recovery is announced once.
+
+Configuration (environment; secrets as Fly secrets):
+  NOET_MONITOR_TARGETS   name=url,... (default: mainnet=https://noet-mainnet.fly.dev)
+  NOET_MONITOR_STALL     seconds without a block before alerting (default 5400:
+                         at 600-second blocks a quiet gap that long happens
+                         about once in two months)
+  NOET_MONITOR_INTERVAL  seconds between checks (default 120)
+  NOET_MONITOR_POD       Runpod pod ID of the mainnet verifier (with RUNPOD_API_KEY;
+                         a read-only key is enough)
+  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, RUNPOD_API_KEY
+  SMTP_HOST, SMTP_PORT (465 = TLS, else STARTTLS), SMTP_USER, SMTP_PASSWORD,
+  ALERT_EMAIL_FROM, ALERT_EMAIL_TO
+"""
+from email.message import EmailMessage
+import json
+import os
+import smtplib
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+CERT_DAYS = 14
+REMIND_SECONDS = 3 * 3600
+CREDIT_DAYS = 7
+RUNPOD_API = 'https://api.runpod.io/graphql'
+
+
+def problems(health, stall_seconds):
+    """Problems worth waking someone for, from one /healthz/chain reply (None = unreachable)."""
+    if health is None:
+        return ['health endpoint unreachable']
+    found = []
+    age = health.get('lastBlockAgeSeconds')
+    if age is None or age > stall_seconds:
+        minutes = 'never' if age is None else f'{age // 60} min ago'
+        found.append(f'no block for over {stall_seconds // 60} min (last: {minutes}, height {health.get("height")})')
+    if 'index stale' in (health.get('problems') or []):
+        found.append('explorer index is stale')
+    days = health.get('relayCertificateDaysLeft')
+    if days is not None and days < CERT_DAYS:
+        found.append(f'relay certificates expire in {days} days (deploy/rotate.py)')
+    return found
+
+
+def pod_problems(account, pod_id):
+    """Problems with the GPU pod, from one Runpod reply (None = unreachable)."""
+    if account is None:
+        return ['Runpod API unreachable']
+    pods = {pod['id']: pod['desiredStatus'] for pod in account['pods']}
+    if pods.get(pod_id) != 'RUNNING':
+        return [f'pod {pod_id} is {pods.get(pod_id, "gone").lower()}; the verifier and miner are down']
+    return []
+
+
+def credit_problems(account, days=CREDIT_DAYS):
+    """A warning while the Runpod credit lasts less than `days` at the current spend."""
+    if account is None or account['currentSpendPerHr'] <= 0:
+        return []
+    left = account['clientBalance'] / account['currentSpendPerHr'] / 24
+    if left >= days:
+        return []
+    # Whole days, so the text (and with it an alert) changes once a day.
+    return [f'Runpod credit runs out in about {int(left)} days at ${account["currentSpendPerHr"]:.3f}/h; '
+            'add credit or the pod stops']
+
+
+class Watch:
+    """Per-target alert state: alert after two failing checks, remind, announce recovery."""
+
+    def __init__(self, name, clock=time.time, remind=REMIND_SECONDS):
+        self.name, self.clock, self.remind = name, clock, remind
+        self.failing, self.alerted_at, self.last = 0, None, []
+
+    def update(self, found):
+        now = self.clock()
+        if not found:
+            self.failing, self.last = 0, []
+            if self.alerted_at is not None:
+                self.alerted_at = None
+                return f'NOET {self.name}: recovered.'
+            return None
+        self.failing += 1
+        if self.failing < 2:
+            return None
+        changed = found != self.last
+        self.last = found
+        if self.alerted_at is None or changed or now - self.alerted_at >= self.remind:
+            first = self.alerted_at is None
+            self.alerted_at = now
+            return f'NOET {self.name}: ' + ('' if first else 'still: ') + '; '.join(found)
+        return None
+
+
+def fetch(url, timeout=20):
+    request = urllib.request.Request(url.rstrip('/') + '/healthz/chain', headers={'User-Agent': 'noet-monitor'})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return json.loads(response.read(65536))
+    except urllib.error.HTTPError as error:  # 503 still carries the health body
+        try:
+            return json.loads(error.read(65536))
+        except ValueError:
+            return None
+    except (urllib.error.URLError, TimeoutError, ConnectionError, ValueError):
+        return None
+
+
+def runpod(key, timeout=20):
+    """Account balance, spend per hour and pods (read-only query), or None."""
+    query = {'query': 'query { myself { clientBalance currentSpendPerHr pods { id desiredStatus } } }'}
+    request = urllib.request.Request(RUNPOD_API, data=json.dumps(query).encode(),
+                                     headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json',
+                                              'User-Agent': 'noet-monitor'})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            account = json.loads(response.read(1 << 20))['data']['myself']
+        return {'clientBalance': float(account['clientBalance']),
+                'currentSpendPerHr': float(account['currentSpendPerHr']),
+                'pods': [{'id': pod['id'], 'desiredStatus': pod['desiredStatus']} for pod in account['pods']]}
+    except (urllib.error.URLError, TimeoutError, ConnectionError, ValueError, KeyError, TypeError):
+        return None
+
+
+def send(text, env=os.environ):
+    sent = []
+    if env.get('TELEGRAM_BOT_TOKEN') and env.get('TELEGRAM_CHAT_ID'):
+        data = urllib.parse.urlencode({'chat_id': env['TELEGRAM_CHAT_ID'], 'text': text}).encode()
+        try:
+            urllib.request.urlopen(f'https://api.telegram.org/bot{env["TELEGRAM_BOT_TOKEN"]}/sendMessage',
+                                   data=data, timeout=20).read()
+            sent.append('telegram')
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+            log(event='telegram-failed', type=type(error).__name__)
+    if env.get('SMTP_HOST') and env.get('ALERT_EMAIL_TO'):
+        message = EmailMessage()
+        message['Subject'] = text[:120]
+        message['From'] = env.get('ALERT_EMAIL_FROM') or env.get('SMTP_USER', '')
+        message['To'] = env['ALERT_EMAIL_TO']
+        message.set_content(text + '\n\nStatus: https://www.noet.network/#status\n')
+        port = int(env.get('SMTP_PORT', '465'))
+        try:
+            if port == 465:
+                server = smtplib.SMTP_SSL(env['SMTP_HOST'], port, timeout=30)
+            else:
+                server = smtplib.SMTP(env['SMTP_HOST'], port, timeout=30)
+                server.starttls()
+            with server:
+                if env.get('SMTP_USER'):
+                    server.login(env['SMTP_USER'], env.get('SMTP_PASSWORD', ''))
+                server.send_message(message)
+            sent.append('email')
+        except (smtplib.SMTPException, OSError) as error:
+            log(event='email-failed', type=type(error).__name__)
+    return sent
+
+
+def log(**event):
+    event['at'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    print(json.dumps(event, sort_keys=True), flush=True)
+
+
+def targets(spec):
+    pairs = [item.split('=', 1) for item in spec.split(',') if item.strip()]
+    if not pairs or any(len(p) != 2 or not p[1].startswith('https://') for p in pairs):
+        raise SystemExit('NOET_MONITOR_TARGETS must be name=https://...,...')
+    return [(name.strip(), url.strip()) for name, url in pairs]
+
+
+def main():
+    watched = targets(os.environ.get('NOET_MONITOR_TARGETS', 'mainnet=https://noet-mainnet.fly.dev'))
+    stall = int(os.environ.get('NOET_MONITOR_STALL', '5400'))
+    interval = int(os.environ.get('NOET_MONITOR_INTERVAL', '120'))
+    watches = {name: Watch(name) for name, _ in watched}
+    key, pod = os.environ.get('RUNPOD_API_KEY'), os.environ.get('NOET_MONITOR_POD')
+    names = [name for name, _ in watched]
+    if key and pod:
+        pod_watch, credit_watch = Watch('GPU pod'), Watch('GPU credit', remind=86400)
+        names.append(f'GPU pod {pod}')
+        reported = False
+    log(event='monitor-started', targets=names, channels=send('NOET monitor started: watching ' + ', '.join(names)))
+    while True:
+        checks = [(watches[name], problems(fetch(url), stall)) for name, url in watched]
+        if key and pod:
+            account = runpod(key)
+            if account and not reported:
+                reported = True
+                log(event='gpu-account', pod=pod, status={p['id']: p['desiredStatus'] for p in account['pods']}.get(pod),
+                    balance=round(account['clientBalance'], 2), spendPerHr=account['currentSpendPerHr'])
+            checks += [(pod_watch, pod_problems(account, pod)), (credit_watch, credit_problems(account))]
+        for watch, found in checks:
+            alert = watch.update(found)
+            if alert:
+                log(event='alert', target=watch.name, text=alert, channels=send(alert))
+        time.sleep(interval)
+
+
+if __name__ == '__main__':
+    sys.exit(main())

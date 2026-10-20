@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-11",
+  "imageId": "sha256:10c5f28d84ad858f55abeed1c7fd2c0796f679d5c516a05c58e823ef891ed96c",
+  "architecture": "linux/arm64",
+  "filter": "validationapi_stale_verdict_guard_tests/verdict_*",
+  "exitCode": 0,
+  "testCasesPassed": 10,
+  "assertionsPassed": 732,
+  "cases": {
+    "verdict_envelope_shared_vector_roundtrip": 37,
+    "verdict_envelope_rejects_bad_key_unsigned_and_shape": 39,
+    "verdict_envelope_no_secret_accepts_bare_payload_only_consistently": 19,
+    "verdict_envelope_rejects_malformed_payload_without_state_change": 29,
+    "verdict_envelope_admission_requires_outstanding_request_and_type": 24,
+    "verdict_envelope_pending_review_requires_outstanding_model_request": 10,
+    "verdict_envelope_rejects_ruleset_mismatch_without_state_change": 20,
+    "verdict_envelope_legacy_request_accepts_ruleset_zero_only": 19,
+    "verdict_bare_payload_without_secret_is_not_ruleset_bound": 8,
+    "verdict_receive_budget_drops_and_counts_without_drain": 527
+  },
+  "logSha256": "d0dbc8c11edee73330364185751fa19408a4dd11b1d8b0b1c6004ca0bd203b88",
+  "isolation": {
+    "network": "none",
+    "readOnlyRoot": true,
+    "temporaryStorageMiB": 512,
+    "memoryMiB": 1024,
+    "cpus": 2,
+    "capabilities": "none",
+    "noNewPrivileges": true
+  },
+  "scope": "Native verdict envelope parsing, authentication, request/ruleset binding and receive budget. Includes legacy unsigned behavior tests; no real AI proof or authenticated inbound transport claim.",
+  "productionReady": false
+}

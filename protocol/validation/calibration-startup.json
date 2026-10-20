@@ -1,0 +1,158 @@
+{
+  "format": "noet-packaged-calibration-startup-v1",
+  "image": "sha256:1ac5d0f05654e4233f42c3a0f3157533528377658bc2269e42931fbc2dd2097d",
+  "cases": [
+    {
+      "settings": {},
+      "refused": true,
+      "reason": "exact model@revision:precision"
+    },
+    {
+      "settings": {
+        "POW_PROMPT_GIBBERISH_CALIBRATED": "*"
+      },
+      "refused": true,
+      "reason": "exact model@revision:precision"
+    },
+    {
+      "settings": {
+        "POW_PROMPT_GIBBERISH_CALIBRATED": "NOET/fixture@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "refused": true,
+      "reason": "exact model@revision:precision"
+    },
+    {
+      "settings": {
+        "POW_PROMPT_GIBBERISH_GATE": "shadow"
+      },
+      "refused": true,
+      "reason": "POW_PROMPT_GIBBERISH_GATE=enforce"
+    },
+    {
+      "settings": {
+        "POW_PROMPT_GIBBERISH_GATE": "off"
+      },
+      "refused": true,
+      "reason": "POW_PROMPT_GIBBERISH_GATE=enforce"
+    },
+    {
+      "settings": {
+        "POW_PROMPT_GIBBERISH_BITS": "99"
+      },
+      "refused": true,
+      "reason": "POW_PROMPT_GIBBERISH_BITS=14.0"
+    },
+    {
+      "settings": {
+        "POW_PROMPT_GIBBERISH_ACTIVATION_TIME": "3000000000"
+      },
+      "refused": true,
+      "reason": "POW_PROMPT_GIBBERISH_ACTIVATION_TIME=0"
+    },
+    {
+      "settings": {
+        "NOET_REQUIRE_PROMPT_CALIBRATION": "0"
+      },
+      "refused": true,
+      "reason": "NOET_REQUIRE_PROMPT_CALIBRATION=1"
+    }
+  ],
+  "modelMounted": false,
+  "serviceStarted": false,
+  "productionReady": false,
+  "scope": "Packaged startup refusals; no calibration or model correctness claim",
+  "sourceContextSha256": "a333790a8f0d47267b62865d3d245b6e69dd2c15bb89cd28004103cd08db7471",
+  "uncalibratedRealProofAbstention": {
+    "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+    "envelopeSha256": "68eb63daf5b13f79cb02c94dd23f77009ff8dd215da301267593296ee26c4f5b",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 4,
+    "height": 1,
+    "ruleset": 4,
+    "contextCase": "bound",
+    "streamed": false,
+    "difficulty": 60000000,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+    "detectorStartup": {
+      "ready": true,
+      "release_id": "detector-amber-red-v2",
+      "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+      "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+      "rule_tag": "det1-5ed3fbcb68788833",
+      "integration_revision": "detector-enforce-r2",
+      "startup_error": null
+    },
+    "exceptionType": "PromptGibberishScoringError",
+    "exception": "Declare reviewed prompt calibration as exact model@revision:precision entries; no wildcard or implicit defaults",
+    "elapsedSeconds": 0.5705889500000012,
+    "modelLoaded": false
+  },
+  "calibrationApproved": false,
+  "followupProjectionImageStartup": {
+    "format": "noet-packaged-calibration-startup-v1",
+    "image": "sha256:c9f2188bce465b545816d54c0aca00c720df58ed0c6960c723ceda066da5ce36",
+    "cases": [
+      {
+        "settings": {},
+        "refused": true,
+        "reason": "exact model@revision:precision"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_CALIBRATED": "*"
+        },
+        "refused": true,
+        "reason": "exact model@revision:precision"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_CALIBRATED": "NOET/fixture@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "refused": true,
+        "reason": "exact model@revision:precision"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_GATE": "shadow"
+        },
+        "refused": true,
+        "reason": "POW_PROMPT_GIBBERISH_GATE=enforce"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_GATE": "off"
+        },
+        "refused": true,
+        "reason": "POW_PROMPT_GIBBERISH_GATE=enforce"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_BITS": "99"
+        },
+        "refused": true,
+        "reason": "POW_PROMPT_GIBBERISH_BITS=14.0"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_ACTIVATION_TIME": "3000000000"
+        },
+        "refused": true,
+        "reason": "POW_PROMPT_GIBBERISH_ACTIVATION_TIME=0"
+      },
+      {
+        "settings": {
+          "NOET_REQUIRE_PROMPT_CALIBRATION": "0"
+        },
+        "refused": true,
+        "reason": "NOET_REQUIRE_PROMPT_CALIBRATION=1"
+      }
+    ],
+    "modelMounted": false,
+    "serviceStarted": false,
+    "productionReady": false,
+    "scope": "Packaged startup refusals; no calibration or model correctness claim",
+    "sourceContextSha256": "e8ae781280b3c43f5215cbbd69bc6ec8c7a9f6a0af4af293962fb3dbdc059402"
+  }
+}

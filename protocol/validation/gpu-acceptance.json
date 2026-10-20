@@ -1,0 +1,1334 @@
+{
+  "format": "noet-gpu-acceptance-v1",
+  "date": "2026-10-12",
+  "productionReady": false,
+  "scope": "Single rented A40; private research chain; unapproved prompt calibration in shadow; inherited laboratory emissions",
+  "baseImage": "runpod/pytorch@sha256:0a360022e8de4375af99430f84e8b38951acc397252163a37ceac7204d01be35",
+  "runtime": {
+    "machine": "x86_64",
+    "python": "3.12.3",
+    "torch": "2.8.0+cu128",
+    "cuda": "12.8",
+    "gpu": "NVIDIA A40",
+    "productionReady": false
+  },
+  "gpuInventory": "name, memory.total [MiB], driver_version\nNVIDIA A40, 46068 MiB, 570.211.01",
+  "nativeBinaries": [
+    "86f265f1300ae6dc268c48f3b2dbc331262a96076e373a5491c5367894affd50  native-source/node-build/bin/bitcoind",
+    "8dd800915a399aa60b716cfda62c3f9f5ee9781e25c11bcb04ce37ce6fa9638a  native-source/node-build/bin/bitcoin-cli",
+    "24dcf30616a3a39bc94ad20131d9908f7083b1fd2c55a4da3466e2b2aa2e6cd8  native-source/node-build/bin/bitcoin-wallet"
+  ],
+  "proofBinaries": [
+    "432a8a9bf4803efee1fc519f131fdf6e94e128c1f8f2ae2f4520e46176ff536d  engine/build/bin/llama-server",
+    "90d51caf28c206b6b531dc89f207346fccb09dc1b53634f2ec1753441e01742e  native/chiavdf.so",
+    "694c7b6581c5800d0e0cc3aa1bd348daec689d40765834ba71371cc6a94ca3b7  native/libtc_credit_v4.so",
+    "3719aff8134fb09e7231bede13696b0266350924357b412e68472bc6ca671b34  native/pfunpack.so"
+  ],
+  "sourceArchives": [
+    "ed0b0211a4a352c048385c6e645ec2bbf2bcb87e6ca79290a65d662f2e32eef0  engine.tar",
+    "39a5a768da22bc7935822df6236f578a7a41ed08cb22312b892ad49d36479db6  verifier.tar",
+    "b098700f2b0e3eb193522dfe64376ec0447d94bfdc3e6b7d3849e6c72330d0d8  build.sh",
+    "2cd8edff9af6680d07d4cfc113dc9b2b879cab921414ac48182c5235ea93ff3e  native.tar",
+    "a5c6b8717588a94b454d5b6d93b614769dc6fc0024ecf730bb87cccf65eec76c  private-work.tar",
+    "2bf1bd1c72e1106d7444e75d1073dd5731cce2672ce33dcb3da4e2887499e3ac  build_native.sh"
+  ],
+  "protectedModelExecution": {
+    "status": "passed",
+    "cases": [
+      "protected-loader-cannot-write-chmod-or-rename",
+      "writable-file-refused",
+      "worker-owned-file-refused",
+      "writable-ancestor-refused",
+      "symlink-refused",
+      "privilege-regain-not-disabled-refused",
+      "root-loader-refused"
+    ],
+    "productionReady": false
+  },
+  "capturedNativeReplay": {
+    "format": "noet-gpu-native-replay-v1",
+    "sourceEnvelopeSha256": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+    "envelopeSha256": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+    "case": "bound",
+    "replaySeed": 2342964126,
+    "height": 1,
+    "ruleset": 2,
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "productionReady": false,
+    "promptCalibrationApproved": false,
+    "nodeEmittedEnvelope": true,
+    "scope": "GPU replay of captured native work; no live lease, block acceptance or calibration approval",
+    "quickVerdict": 0,
+    "replayViews": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20",
+      "spda"
+    ],
+    "detectorRecordStatus": "scored",
+    "detectorSteps": {
+      "window_steps": 256,
+      "eligible_steps": 124,
+      "eligible_positions": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        14,
+        15,
+        16,
+        17,
+        19,
+        20,
+        23,
+        25,
+        27,
+        28,
+        30,
+        31,
+        33,
+        34,
+        35,
+        36,
+        39,
+        40,
+        41,
+        45,
+        46,
+        48,
+        49,
+        52,
+        54,
+        66,
+        68,
+        69,
+        73,
+        74,
+        78,
+        79,
+        80,
+        81,
+        87,
+        91,
+        92,
+        93,
+        95,
+        96,
+        98,
+        99,
+        102,
+        103,
+        106,
+        107,
+        108,
+        114,
+        115,
+        116,
+        118,
+        121,
+        122,
+        123,
+        125,
+        126,
+        127,
+        132,
+        133,
+        140,
+        148,
+        149,
+        151,
+        157,
+        158,
+        159,
+        163,
+        168,
+        169,
+        171,
+        172,
+        173,
+        175,
+        176,
+        178,
+        179,
+        180,
+        182,
+        183,
+        184,
+        186,
+        187,
+        188,
+        190,
+        196,
+        197,
+        198,
+        199,
+        201,
+        208,
+        210,
+        211,
+        214,
+        215,
+        216,
+        217,
+        222,
+        224,
+        225,
+        226,
+        231,
+        233,
+        234,
+        235,
+        238,
+        240,
+        241,
+        242,
+        248,
+        249,
+        250,
+        251,
+        252
+      ]
+    },
+    "detectorFeatureRefusals": [],
+    "fullVerdict": "GREEN",
+    "elapsedSeconds": 32.6830130238086,
+    "modelLoaded": true,
+    "modelDevices": [
+      "cuda:0"
+    ],
+    "modelDtypes": [
+      "torch.bfloat16"
+    ],
+    "peakCudaBytes": 5724018688,
+    "detector": {
+      "detector_status": "advisory",
+      "detector_decision": "NO_VIOLATION",
+      "detector_advisory_red": null,
+      "detector_advisory_amber": null,
+      "verdict_altered": false,
+      "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+      "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+      "activation": {
+        "state": "advisory",
+        "network": null,
+        "height": 1,
+        "ruleset": 2,
+        "mode": "v4",
+        "activation_height": null,
+        "reason": "bcore resolved this candidate to ruleset 2 (below its own chain's V3 sunset): the detector result is advisory and the authoritative verdict is untouched",
+        "verdict_bearing": false
+      },
+      "audit_id": "d073ab221e2a4c61a5e019cfd1acbc1a",
+      "seconds": 1.6935268230736256,
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 124,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      }
+    },
+    "promptScore": {
+      "red": false,
+      "reject": false,
+      "reason": "prompt gibberish gate not applicable: prompt has only 26 scored transitions (prompt length 27), below the minimum",
+      "mode": "shadow",
+      "calibrated": false,
+      "threshold_bits": 14.0,
+      "score": {
+        "n_prompt_tokens": 27,
+        "n_transitions": 26,
+        "applicable": false,
+        "tail_n": 26,
+        "tail_mean_bits": 3.0305192780394394,
+        "whole_mean_bits": 3.0305192780394394,
+        "tail_frac_over_16": 0.0,
+        "tail_median_bits": 1.0888634324073792,
+        "n_unpredictable": 0
+      }
+    }
+  },
+  "negativeCases": [
+    {
+      "format": "noet-gpu-native-replay-v1",
+      "sourceEnvelopeSha256": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+      "envelopeSha256": "6f69e6a81d7e0b8b1fd79fc355b32b3de77c9c30668089d1bdcdf11acb253ce1",
+      "case": "wrong-parent",
+      "replaySeed": 2342964126,
+      "height": 1,
+      "ruleset": 2,
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "productionReady": false,
+      "promptCalibrationApproved": false,
+      "nodeEmittedEnvelope": false,
+      "scope": "GPU replay of captured native work; no live lease, block acceptance or calibration approval",
+      "quickVerdict": 1,
+      "fullVerdict": "RED",
+      "elapsedSeconds": 2.7442878112196922,
+      "modelLoaded": false,
+      "peakCudaBytes": 35840,
+      "detector": null,
+      "promptScore": null
+    },
+    {
+      "format": "noet-gpu-native-replay-v1",
+      "sourceEnvelopeSha256": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+      "envelopeSha256": "f6aa80f2db6fe19df20ae0ba4dd387afda5723183adad52abbc5ba899440f170",
+      "case": "missing-height",
+      "replaySeed": 2342964126,
+      "height": null,
+      "ruleset": 2,
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "productionReady": false,
+      "promptCalibrationApproved": false,
+      "nodeEmittedEnvelope": false,
+      "scope": "GPU replay of captured native work; no live lease, block acceptance or calibration approval",
+      "exceptionType": "RulesetContextError",
+      "exception": "ruleset 2 requires height; missing => defer",
+      "elapsedSeconds": 0.04709767922759056,
+      "modelLoaded": false,
+      "peakCudaBytes": 0,
+      "detector": null,
+      "promptScore": null
+    },
+    {
+      "format": "noet-gpu-native-replay-v1",
+      "sourceEnvelopeSha256": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+      "envelopeSha256": "6d91b080a13cf09c800c7867e4f3eeba4ec5c5926171bcd13ef1bfedf8f8ede1",
+      "case": "missing-ruleset",
+      "replaySeed": 2342964126,
+      "height": 1,
+      "ruleset": null,
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "productionReady": false,
+      "promptCalibrationApproved": false,
+      "nodeEmittedEnvelope": false,
+      "scope": "GPU replay of captured native work; no live lease, block acceptance or calibration approval",
+      "exceptionType": "RulesetContextError",
+      "exception": "ruleset/height absent on a context-bound block request (pre-ruleset writer or parent not indexed); strict mode enforced => defer, not legacy replay",
+      "elapsedSeconds": 0.031958118081092834,
+      "modelLoaded": false,
+      "peakCudaBytes": 0,
+      "detector": null,
+      "promptScore": null
+    },
+    {
+      "format": "noet-gpu-native-replay-v1",
+      "sourceEnvelopeSha256": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+      "envelopeSha256": "5e040289ad5247e63902864d7c17e8b9873191413a8b82cf60e1d2b75e2b07bc",
+      "case": "different-model",
+      "replaySeed": 2342964126,
+      "height": 1,
+      "ruleset": 2,
+      "model": "NOET/unapproved@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "productionReady": false,
+      "promptCalibrationApproved": false,
+      "nodeEmittedEnvelope": false,
+      "scope": "GPU replay of captured native work; no live lease, block acceptance or calibration approval",
+      "exceptionType": "ValueError",
+      "exception": "Requested model is outside the reviewed deployment",
+      "elapsedSeconds": 0.033121541142463684,
+      "modelLoaded": false,
+      "peakCudaBytes": 0,
+      "detector": null,
+      "promptScore": null
+    },
+    {
+      "format": "noet-gpu-native-replay-v1",
+      "sourceEnvelopeSha256": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+      "envelopeSha256": "ad7e7216aa2ec319716cb9b9470950b455e09dad6299f7012b96792b66cbccd7",
+      "case": "corrupt-vdf",
+      "replaySeed": 2342964126,
+      "height": 1,
+      "ruleset": 2,
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "productionReady": false,
+      "promptCalibrationApproved": false,
+      "nodeEmittedEnvelope": false,
+      "scope": "GPU replay of captured native work; no live lease, block acceptance or calibration approval",
+      "quickVerdict": 1,
+      "fullVerdict": "RED",
+      "elapsedSeconds": 15.236856507137418,
+      "modelLoaded": true,
+      "modelDevices": [
+        "cuda:0"
+      ],
+      "modelDtypes": [
+        "torch.bfloat16"
+      ],
+      "peakCudaBytes": 1659425280,
+      "detector": null,
+      "promptScore": null
+    },
+    {
+      "format": "noet-gpu-native-replay-v1",
+      "sourceEnvelopeSha256": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+      "envelopeSha256": "341287c2574448cdd377e4fb0dc3559ee4390f7dc1f4a0b1539ae78874033a1c",
+      "case": "forged-logits",
+      "replaySeed": 2342964126,
+      "height": 1,
+      "ruleset": 2,
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "productionReady": false,
+      "promptCalibrationApproved": false,
+      "nodeEmittedEnvelope": false,
+      "scope": "GPU replay of captured native work; no live lease, block acceptance or calibration approval",
+      "quickVerdict": 1,
+      "fullVerdict": "RED",
+      "elapsedSeconds": 14.383342323824763,
+      "modelLoaded": true,
+      "modelDevices": [
+        "cuda:0"
+      ],
+      "modelDtypes": [
+        "torch.bfloat16"
+      ],
+      "peakCudaBytes": 1659425792,
+      "detector": null,
+      "promptScore": null
+    }
+  ],
+  "nativeThreeHeights": {
+    "format": "noet-gpu-native-integration-v1",
+    "productionReady": false,
+    "promptCalibrationApproved": false,
+    "requestedBlocks": 3,
+    "attempts": [
+      {
+        "attempt": 0,
+        "height": 1,
+        "producerExit": 0,
+        "submissions": [
+          {
+            "proofSha256": "32a31183e225568dcf0415c463a66155596b1c34e26ae25f2e0668cd85e6daf6",
+            "response": {
+              "block_hash": "df75a4208b2a4bceb3f0cb1d8b8ad3e26aa0b02da3c78635b18795f831be091e",
+              "accepted": false,
+              "status": "accepted_pending_connect"
+            }
+          }
+        ],
+        "nativeFullValidation": {
+          "block_hash": "df75a4208b2a4bceb3f0cb1d8b8ad3e26aa0b02da3c78635b18795f831be091e",
+          "type": "full",
+          "quick_status": "pending",
+          "smell_status": "pending",
+          "full_status": "green",
+          "timestamp": 1791757133
+        },
+        "duplicateSubmission": {
+          "block_hash": "df75a4208b2a4bceb3f0cb1d8b8ad3e26aa0b02da3c78635b18795f831be091e",
+          "accepted": true,
+          "status": "accepted"
+        },
+        "duplicateIsIdempotent": true
+      },
+      {
+        "attempt": 1,
+        "height": 2,
+        "producerExit": 0,
+        "submissions": [
+          {
+            "proofSha256": "2bfe9cc21674a0725990f0f1423ba4387576110abc9593ca4027b7c430c1aed1",
+            "response": {
+              "block_hash": "9dd9bf96abc45654cd9f1a1a08530c4eec65d12350696725ed58d21be137bbed",
+              "accepted": false,
+              "status": "accepted_pending_connect"
+            }
+          }
+        ],
+        "nativeFullValidation": {
+          "block_hash": "9dd9bf96abc45654cd9f1a1a08530c4eec65d12350696725ed58d21be137bbed",
+          "type": "full",
+          "quick_status": "pending",
+          "smell_status": "pending",
+          "full_status": "green",
+          "timestamp": 1791757173
+        },
+        "duplicateSubmission": {
+          "block_hash": "9dd9bf96abc45654cd9f1a1a08530c4eec65d12350696725ed58d21be137bbed",
+          "accepted": true,
+          "status": "accepted"
+        },
+        "duplicateIsIdempotent": true
+      },
+      {
+        "attempt": 2,
+        "height": 3,
+        "producerExit": 0,
+        "submissions": [
+          {
+            "proofSha256": "6848fe7a31247b6f059e2102f35235dcab5e562d53a1c3c75362ab209a0156eb",
+            "response": {
+              "block_hash": "ff0c5d6a5c77490dafe40a6b92db3b6df7c4a780133ddfa7b159dd2ff6d1737d",
+              "accepted": false,
+              "status": "accepted_pending_connect"
+            }
+          }
+        ],
+        "nativeFullValidation": {
+          "block_hash": "ff0c5d6a5c77490dafe40a6b92db3b6df7c4a780133ddfa7b159dd2ff6d1737d",
+          "type": "full",
+          "quick_status": "pending",
+          "smell_status": "pending",
+          "full_status": "green",
+          "timestamp": 1791757212
+        },
+        "duplicateSubmission": {
+          "block_hash": "ff0c5d6a5c77490dafe40a6b92db3b6df7c4a780133ddfa7b159dd2ff6d1737d",
+          "accepted": true,
+          "status": "accepted"
+        },
+        "duplicateIsIdempotent": true
+      }
+    ],
+    "acceptedBlocks": [
+      {
+        "height": 1,
+        "hash": "df75a4208b2a4bceb3f0cb1d8b8ad3e26aa0b02da3c78635b18795f831be091e",
+        "nativeFullValidation": {
+          "block_hash": "df75a4208b2a4bceb3f0cb1d8b8ad3e26aa0b02da3c78635b18795f831be091e",
+          "type": "full",
+          "quick_status": "pending",
+          "smell_status": "pending",
+          "full_status": "green",
+          "timestamp": 1791757133
+        },
+        "wallet": {
+          "mine": {
+            "trusted": "0.00000000",
+            "untrusted_pending": "0.00000000",
+            "immature": "715.00000000",
+            "bonded": "0.00000000"
+          },
+          "lastprocessedblock": {
+            "hash": "df75a4208b2a4bceb3f0cb1d8b8ad3e26aa0b02da3c78635b18795f831be091e",
+            "height": 1
+          }
+        }
+      },
+      {
+        "height": 2,
+        "hash": "9dd9bf96abc45654cd9f1a1a08530c4eec65d12350696725ed58d21be137bbed",
+        "nativeFullValidation": {
+          "block_hash": "9dd9bf96abc45654cd9f1a1a08530c4eec65d12350696725ed58d21be137bbed",
+          "type": "full",
+          "quick_status": "pending",
+          "smell_status": "pending",
+          "full_status": "green",
+          "timestamp": 1791757173
+        },
+        "wallet": {
+          "mine": {
+            "trusted": "0.00000000",
+            "untrusted_pending": "0.00000000",
+            "immature": "1430.00000000",
+            "bonded": "0.00000000"
+          },
+          "lastprocessedblock": {
+            "hash": "9dd9bf96abc45654cd9f1a1a08530c4eec65d12350696725ed58d21be137bbed",
+            "height": 2
+          }
+        }
+      },
+      {
+        "height": 3,
+        "hash": "ff0c5d6a5c77490dafe40a6b92db3b6df7c4a780133ddfa7b159dd2ff6d1737d",
+        "nativeFullValidation": {
+          "block_hash": "ff0c5d6a5c77490dafe40a6b92db3b6df7c4a780133ddfa7b159dd2ff6d1737d",
+          "type": "full",
+          "quick_status": "pending",
+          "smell_status": "pending",
+          "full_status": "green",
+          "timestamp": 1791757212
+        },
+        "wallet": {
+          "mine": {
+            "trusted": "0.00000000",
+            "untrusted_pending": "0.00000000",
+            "immature": "2145.00000000",
+            "bonded": "0.00000000"
+          },
+          "lastprocessedblock": {
+            "hash": "ff0c5d6a5c77490dafe40a6b92db3b6df7c4a780133ddfa7b159dd2ff6d1737d",
+            "height": 3
+          }
+        }
+      }
+    ],
+    "spendableRewardVerified": false,
+    "startedAt": 1791757080.8657658,
+    "producerAccelerator": "cuda",
+    "flashAttention": "off",
+    "scope": "Single rented host, private research chain, unapproved calibration in shadow, inherited test economics",
+    "convertedModelSha256": "8fa11f4d815167c4f6e3c91b25aebde25d8346a8f11228e744016592532b0700",
+    "genesis": "301587d540aafc312cf4606e700d9662e038e7e43ca6cca92779d6b4baa81b4e",
+    "registry": [
+      {
+        "model_hash": "43339e87175e08d1856dabd1a01713ec48cc9489a1e0196d7975627f382dd937",
+        "model_name": "Qwen/Qwen3-0.6B",
+        "model_commit": "c1899de289a04d12100db370d81485cdf75e47ca",
+        "difficulty": 1000000,
+        "status": 2,
+        "cid": "",
+        "extra": "",
+        "deposit_txid": "0000000000000000000000000000000000000000000000000000000000000000",
+        "deposit_vout": 0,
+        "deposit_amount": 0,
+        "owner_key_hash": "0000000000000000000000000000000000000000",
+        "deposit_block_hash": "301587d540aafc312cf4606e700d9662e038e7e43ca6cca92779d6b4baa81b4e",
+        "deposit_block_height": 0,
+        "commit_txid": "0000000000000000000000000000000000000000000000000000000000000000",
+        "commit_block_hash": "301587d540aafc312cf4606e700d9662e038e7e43ca6cca92779d6b4baa81b4e",
+        "commit_block_height": 0,
+        "verification_code": 0,
+        "verification_details": ""
+      }
+    ],
+    "validationInfo": {
+      "available": true,
+      "active": true,
+      "connection_healthy": true,
+      "mode": "real",
+      "desktop_mode": false,
+      "request_push_endpoint": "tcp://127.0.0.1:18555",
+      "result_pull_endpoint": "tcp://127.0.0.1:18556",
+      "request_delay_ms": 1000,
+      "max_quick_attempts": 10,
+      "max_full_attempts": 20,
+      "max_model_attempts": 15,
+      "stale_verdict_guard": {
+        "advisory_verdicts": 0,
+        "transitions_rejected": 0,
+        "operator_overrides": 0,
+        "demotions_blocked": 0,
+        "index_hits": 0,
+        "requests_dropped_stale": 0,
+        "full_requests_open": 0,
+        "db_records_full": 0,
+        "db_records_quick": 0,
+        "db_max_records": 4000,
+        "db_evictions_full": 0,
+        "db_evictions_quick": 0
+      },
+      "advisory_full_verdicts": []
+    },
+    "rewardAddress": "nwrk1qg4x74ejfrszfumzkylknj46n4fmrr9vw4fyy6l",
+    "finalHeight": 3,
+    "peerCount": 0,
+    "wallet": {
+      "mine": {
+        "trusted": "0.00000000",
+        "untrusted_pending": "0.00000000",
+        "immature": "2145.00000000",
+        "bonded": "0.00000000"
+      },
+      "lastprocessedblock": {
+        "hash": "ff0c5d6a5c77490dafe40a6b92db3b6df7c4a780133ddfa7b159dd2ff6d1737d",
+        "height": 3
+      }
+    },
+    "passed": true,
+    "finishedAt": 1791757214.5777586,
+    "computedFullVerdicts": [
+      {
+        "envelopeSha256": "00a757861045ae2ef4f6a443e9616addd8f2647ebc49117b36bf94c3a197da4d",
+        "nodeEmittedEnvelope": true,
+        "productionReady": false,
+        "promptCalibrationApproved": false,
+        "height": 1,
+        "ruleset": 2,
+        "requestType": 2,
+        "difficulty": 1000000,
+        "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+        "replaySeed": 619502925,
+        "fullVerdict": "GREEN",
+        "promptScore": {
+          "red": false,
+          "reject": false,
+          "reason": "prompt gibberish gate passed: tail mean 2.23 bits/token < 14.00 over 256 transitions (prompt length 292)",
+          "mode": "shadow",
+          "calibrated": false,
+          "threshold_bits": 14.0,
+          "score": {
+            "n_prompt_tokens": 292,
+            "n_transitions": 291,
+            "applicable": true,
+            "tail_n": 256,
+            "tail_mean_bits": 2.226031808697911,
+            "whole_mean_bits": 2.7619341894448124,
+            "tail_frac_over_16": 0.0,
+            "tail_median_bits": 1.1620386242866516,
+            "n_unpredictable": 0
+          }
+        },
+        "detector": {
+          "detector_status": "advisory",
+          "detector_decision": "NO_VIOLATION",
+          "detector_advisory_red": null,
+          "detector_advisory_amber": null,
+          "verdict_altered": false,
+          "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+          "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+          "activation": {
+            "state": "advisory",
+            "network": null,
+            "height": 1,
+            "ruleset": 2,
+            "mode": "v4",
+            "activation_height": null,
+            "reason": "bcore resolved this candidate to ruleset 2 (below its own chain's V3 sunset): the detector result is advisory and the authoritative verdict is untouched",
+            "verdict_bearing": false
+          },
+          "audit_id": "940d30171ce044f9b720049e91fcfeef",
+          "seconds": 0.8288742210716009,
+          "joint": {
+            "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+            "decision": "NO_VIOLATION",
+            "reason": null,
+            "bands_violated": [],
+            "bands_amber": [],
+            "counted_positions": [],
+            "counted_total": 0,
+            "eligible_total": 89,
+            "single_model_only_total": 0,
+            "models": {
+              "U1": {
+                "flagged_eligible_positions": [],
+                "threshold": 5.813099384307861,
+                "independent_decision": "NO_VIOLATION"
+              },
+              "F3": {
+                "flagged_eligible_positions": [],
+                "threshold": 6.169895648956299,
+                "independent_decision": "NO_VIOLATION"
+              }
+            }
+          }
+        },
+        "modelDevices": [
+          "cuda:0"
+        ],
+        "modelDtypes": [
+          "torch.bfloat16"
+        ],
+        "peakCudaBytes": 6832573440,
+        "responseCode": 6,
+        "responseSent": true,
+        "elapsedSeconds": 22.957191178575158
+      },
+      {
+        "envelopeSha256": "f6558d41237b91ab2938e362805c79d1c1b7f3fced517aec60fc3a367b6dbe73",
+        "nodeEmittedEnvelope": true,
+        "productionReady": false,
+        "promptCalibrationApproved": false,
+        "height": 2,
+        "ruleset": 3,
+        "requestType": 2,
+        "difficulty": 1000000,
+        "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+        "replaySeed": 2131694973,
+        "fullVerdict": "GREEN",
+        "promptScore": {
+          "red": false,
+          "reject": false,
+          "reason": "prompt gibberish gate passed: tail mean 6.79 bits/token < 14.00 over 35 transitions (prompt length 36)",
+          "mode": "shadow",
+          "calibrated": false,
+          "threshold_bits": 14.0,
+          "score": {
+            "n_prompt_tokens": 36,
+            "n_transitions": 35,
+            "applicable": true,
+            "tail_n": 35,
+            "tail_mean_bits": 6.7904316527502875,
+            "whole_mean_bits": 6.7904316527502875,
+            "tail_frac_over_16": 0.02857142857142857,
+            "tail_median_bits": 6.282870292663574,
+            "n_unpredictable": 0
+          }
+        },
+        "detector": {
+          "detector_status": "advisory",
+          "detector_decision": "NO_VIOLATION",
+          "detector_advisory_red": null,
+          "detector_advisory_amber": null,
+          "verdict_altered": false,
+          "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+          "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+          "activation": {
+            "state": "advisory",
+            "network": null,
+            "height": 2,
+            "ruleset": 3,
+            "mode": "v4",
+            "activation_height": null,
+            "reason": "bcore resolved this candidate to ruleset 3 (below its own chain's V3 sunset): the detector result is advisory and the authoritative verdict is untouched",
+            "verdict_bearing": false
+          },
+          "audit_id": "c4bf56aec0c6422b85efa048492f41df",
+          "seconds": 1.5396320018917322,
+          "joint": {
+            "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+            "decision": "NO_VIOLATION",
+            "reason": null,
+            "bands_violated": [],
+            "bands_amber": [],
+            "counted_positions": [],
+            "counted_total": 0,
+            "eligible_total": 150,
+            "single_model_only_total": 0,
+            "models": {
+              "U1": {
+                "flagged_eligible_positions": [],
+                "threshold": 5.813099384307861,
+                "independent_decision": "NO_VIOLATION"
+              },
+              "F3": {
+                "flagged_eligible_positions": [],
+                "threshold": 6.169895648956299,
+                "independent_decision": "NO_VIOLATION"
+              }
+            }
+          }
+        },
+        "modelDevices": [
+          "cuda:0"
+        ],
+        "modelDtypes": [
+          "torch.bfloat16"
+        ],
+        "peakCudaBytes": 5745357824,
+        "responseCode": 6,
+        "responseSent": true,
+        "elapsedSeconds": 20.4431962184608
+      },
+      {
+        "envelopeSha256": "4d838b5e511b21abfaaed67c1a230f2ca015441bdc7b1a4256e6f3fdabb72199",
+        "nodeEmittedEnvelope": true,
+        "productionReady": false,
+        "promptCalibrationApproved": false,
+        "height": 3,
+        "ruleset": 4,
+        "requestType": 2,
+        "difficulty": 1000000,
+        "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+        "replaySeed": 2637358864,
+        "fullVerdict": "GREEN",
+        "promptScore": {
+          "red": false,
+          "reject": false,
+          "reason": "prompt gibberish gate passed: tail mean 6.82 bits/token < 14.00 over 35 transitions (prompt length 36)",
+          "mode": "shadow",
+          "calibrated": false,
+          "threshold_bits": 14.0,
+          "score": {
+            "n_prompt_tokens": 36,
+            "n_transitions": 35,
+            "applicable": true,
+            "tail_n": 35,
+            "tail_mean_bits": 6.821268508689744,
+            "whole_mean_bits": 6.821268508689744,
+            "tail_frac_over_16": 0.02857142857142857,
+            "tail_median_bits": 6.328969955444336,
+            "n_unpredictable": 0
+          }
+        },
+        "detector": {
+          "detector_status": "required",
+          "detector_decision": "NO_VIOLATION",
+          "detector_advisory_red": null,
+          "detector_advisory_amber": null,
+          "verdict_altered": false,
+          "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+          "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+          "activation": {
+            "state": "required",
+            "network": null,
+            "height": 3,
+            "ruleset": 4,
+            "mode": "v4",
+            "activation_height": null,
+            "reason": "bcore resolved this candidate to ruleset 4 (at/after its own chain's V3 sunset): the detector is a required check",
+            "verdict_bearing": true
+          },
+          "audit_id": "47cb897038e24a94b49e08f50095c5cb",
+          "seconds": 1.7319401111453772,
+          "joint": {
+            "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+            "decision": "NO_VIOLATION",
+            "reason": null,
+            "bands_violated": [],
+            "bands_amber": [],
+            "counted_positions": [],
+            "counted_total": 0,
+            "eligible_total": 159,
+            "single_model_only_total": 0,
+            "models": {
+              "U1": {
+                "flagged_eligible_positions": [],
+                "threshold": 5.813099384307861,
+                "independent_decision": "NO_VIOLATION"
+              },
+              "F3": {
+                "flagged_eligible_positions": [],
+                "threshold": 6.169895648956299,
+                "independent_decision": "NO_VIOLATION"
+              }
+            }
+          }
+        },
+        "modelDevices": [
+          "cuda:0"
+        ],
+        "modelDtypes": [
+          "torch.bfloat16"
+        ],
+        "peakCudaBytes": 5745084416,
+        "responseCode": 6,
+        "responseSent": true,
+        "elapsedSeconds": 20.512712370604277
+      }
+    ]
+  },
+  "failedDefaultAttention": {
+    "flashAttention": "auto (enabled by runtime)",
+    "generatedProofFullVerdict": "RED",
+    "failedSupportSteps": [
+      15,
+      10,
+      16
+    ],
+    "reason": "Candidate support integrity; all three observed generated proofs rejected",
+    "firstFailure": {
+      "envelopeSha256": "c94ce47983bfb5afe792c42c66c32668e1bd710f05f65fcb76c35c91a2835699",
+      "nodeEmittedEnvelope": true,
+      "productionReady": false,
+      "promptCalibrationApproved": false,
+      "height": 1,
+      "ruleset": 2,
+      "requestType": 2,
+      "difficulty": 1000000,
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "replaySeed": 209869669,
+      "fullVerdict": "RED",
+      "promptScore": {
+        "red": false,
+        "reject": false,
+        "reason": "prompt gibberish gate passed: tail mean 6.69 bits/token < 14.00 over 35 transitions (prompt length 36)",
+        "mode": "shadow",
+        "calibrated": false,
+        "threshold_bits": 14.0,
+        "score": {
+          "n_prompt_tokens": 36,
+          "n_transitions": 35,
+          "applicable": true,
+          "tail_n": 35,
+          "tail_mean_bits": 6.685469408120428,
+          "whole_mean_bits": 6.685469408120428,
+          "tail_frac_over_16": 0.02857142857142857,
+          "tail_median_bits": 6.1044816970825195,
+          "n_unpredictable": 0
+        }
+      },
+      "detector": null,
+      "responseCode": 8,
+      "responseSent": true,
+      "elapsedSeconds": 21.672925194725394
+    },
+    "referenceNumericalComparison": [
+      {
+        "dtype": "torch.bfloat16",
+        "max": 9.9609375,
+        "mean": 0.4342801868915558,
+        "firstStepTop10": [
+          760,
+          7281,
+          22406,
+          4710,
+          576,
+          5443,
+          1096,
+          320,
+          758,
+          481
+        ],
+        "reportedRow0": [
+          17.75,
+          16.5,
+          14.6875,
+          14.5625,
+          14.4375,
+          14.125,
+          14.0,
+          14.0,
+          13.875,
+          13.875
+        ],
+        "actualRow0": [
+          17.125,
+          16.0,
+          13.75,
+          13.9375,
+          15.375,
+          14.5625,
+          16.25,
+          12.375,
+          10.75,
+          12.625
+        ]
+      },
+      {
+        "dtype": "torch.float32",
+        "max": 10.051779747009277,
+        "mean": 0.43031033873558044,
+        "firstStepTop10": [
+          760,
+          7281,
+          22406,
+          576,
+          4710,
+          1096,
+          5443,
+          320,
+          758,
+          481
+        ],
+        "reportedRow0": [
+          17.75,
+          16.5,
+          14.6875,
+          14.5625,
+          14.4375,
+          14.125,
+          14.0,
+          14.0,
+          13.875,
+          13.875
+        ],
+        "actualRow0": [
+          17.273595809936523,
+          16.15793228149414,
+          13.843606948852539,
+          14.042957305908203,
+          15.502994537353516,
+          14.601030349731445,
+          16.394886016845703,
+          12.536818504333496,
+          10.762611389160156,
+          12.67380142211914
+        ]
+      }
+    ],
+    "remedyObserved": "Explicit flash attention off passed three consecutive native heights, then a longer run failed at height 35 on logit severity. No dependable remedy is established.",
+    "rootCauseScope": "Operational kernel-path diagnosis; no CUDA kernel fix or universal cross-hardware compatibility claimed"
+  },
+  "initialSetupFailures": [
+    "Python system package protection: used an isolated virtual environment",
+    "CUDA compiler discovery: set explicit compiler path",
+    "Native wallet target disabled with test builds: enabled wallet tool",
+    "Verifier relative config path: set explicit working directory",
+    "Root setup umask hid engine directory and GGUF: made root-owned artifacts readable/executable without granting worker write access",
+    "VDF mutation harness assumed text rather than bytes: fixed and reran negative case"
+  ],
+  "localCpuFollowup": {
+    "acceptedHeight": 1,
+    "requestedHeight": 3,
+    "completed": false,
+    "reason": "Superseded after duplicate Full replays delayed the next height; added bounded exact-envelope cache for subsequent research runs",
+    "containersRemoved": true,
+    "temporaryVmStopped": true
+  },
+  "extendedRewardAcceptance": {
+    "status": "failed",
+    "acceptedBlocks": 34,
+    "attempts": 61,
+    "requestedBlocks": 101,
+    "confirmationTarget": 102,
+    "spendableRewardVerified": false,
+    "failedHeight": 35,
+    "reason": "v4 Full hard gate RED: best-p candidate logit severity 15.78 sigma at step 54 exceeds the hard cap 12",
+    "failedEnvelopeSha256": "6888826db6faa9cdf383fcffc31bee30854ef209366e531a09311b73e93b7a49",
+    "record": "output/reward-maturity-3/verifier/188/result.json",
+    "rawResultSha256": "70049225f1c4022a19455c38d6764fc2f6b2a45926ec40e583715d388f1f619a",
+    "laterStagesReached": false,
+    "scope": "Private real-work chain only. Reward maturity, confirmed payment, explorer comparison and clean restart were not reached.",
+    "earlierAttempts": [
+      {
+        "directory": "reward-maturity-1",
+        "status": "failed",
+        "acceptedBlocks": 4,
+        "reason": "Plain completion incorrectly routed through chat parser after proof generation; HTTP 500"
+      },
+      {
+        "directory": "reward-maturity-2",
+        "status": "interrupted",
+        "acceptedBlocks": 1,
+        "reason": "New detector-capture helper was unreadable by the restricted worker; corrected file permissions and separated diagnostic errors from scorer verdicts"
+      }
+    ]
+  },
+  "cleanup": {
+    "status": "deleted-and-absence-verified",
+    "podId": "0rgwsjlc3qn8e1",
+    "deleteResponse": 204,
+    "podListAfterDelete": [],
+    "absenceVerifiedByUtc": "2026-10-12T05:28:08Z",
+    "temporaryClientPrivateKeysRemoved": true,
+    "registeredAccountSshKeys": 0,
+    "networkVolumeCreated": false
+  },
+  "budget": {
+    "approvedTotalUsd": 10,
+    "quotedComputeUsdPerHour": 0.59,
+    "billableDiskGb": 40,
+    "networkVolume": false,
+    "usageFinal": false,
+    "postedUsageUsd": 4.0075598731637,
+    "usageNote": "Provider hourly billing was delayed at deletion; latest posted amount is not the final invoice. Console balance before deletion was $5.45 from $10 funded. No Pods remained after deletion."
+  },
+  "limitations": [
+    "The progress run reached height 102 and reported a confirmed reward spend, but rejected proofs remain unresolved and final detailed evidence was lost",
+    "No approved prompt calibration",
+    "The fresh peer passed 34 blocks on the same host; the separate 102-block peer run failed with an unrecovered cause",
+    "No independent operators or multi-host acceptance",
+    "No production tokenomics activation",
+    "No public mining release",
+    "No signed consumer wallet release"
+  ],
+  "plainCompletionFix": {
+    "scope": "Skip chat parsing only for native and OpenAI plain completions, including partial updates; chat response types still parse.",
+    "regressionCases": 9,
+    "beforePassed": false,
+    "afterPassed": true,
+    "patchSha256": "c0bf39d3311b974dcce4dec0b97d35b755f401fcd3cb4fcc64d1bd8f5ec78982",
+    "sourceArchiveSha256": "1cf2de9a066ebbddab94c3923e4f117960a61926d19873dfcf9358d8f8b88ac1",
+    "executionDigests": [
+      "d9e7bdce7c98d9bb708f3a20d2c477d6f23bc739cd646dbd943252e220af179c  /workspace/noet-gpu/engine/build/bin/llama-server",
+      "29be2ea92e0fd5086ec52dc2eae116fe4606216eeb7f76d9026c7b0ed8badb3c  /workspace/noet-gpu/engine/llama/tools/server/server-task.cpp",
+      "82e97a5466761c50ec103c1b892bc49c00a667bacbb44f0e54ec280b184cb37e  /workspace/noet-gpu/engine/llama/tools/server/server-task.h",
+      "3d89b7ba3d145477c1b7fa4dd99241653f67a5c9ce56047140f04b682f78180e  /workspace/noet-gpu/checks/compare_logits.py",
+      "89f77d17fe4a5c29cd59e16307a75463349e606ceeb1d55552fd6b59f877f497  /workspace/noet-gpu/checks/exercise.py",
+      "7c3ba03925a153f7de93e63860e9003ab6839c4dd5456b8128942c37e6315c8c  /workspace/noet-gpu/checks/fix_object_bindings.py",
+      "1d6e0e1b3d2b77a3330f35fa7d625c54712bf516ae8f27b4af4fc0ed263ce272  /workspace/noet-gpu/checks/generate.py",
+      "d4960f88427e510ea6f952062834b6f8bcc4d5d54d2c62b0fd0bf9c12d5aad46  /workspace/noet-gpu/checks/native.py",
+      "6704babf894485e09719701c65c1f9f3f93035d1ad565983c776141d535eb135  /workspace/noet-gpu/checks/replay.py",
+      "1c08ad7f6132120f862cf7b02ba0b1ca17d18208a82fecadc73e8c019a647c97  /workspace/noet-gpu/checks/runtime_check.py",
+      "5663f7009e716866d980040d6c1399a54f3991e2aa58ad989d8139fd827a5104  /workspace/noet-gpu/checks/test_response.py",
+      "0642a948925947e29b4f1910f110a3d6a7eaa67a55818339e875afa68f156a1e  /workspace/noet-gpu/checks/verify.py",
+      "17a643e73a9e83c451825ecb4bea4f656aba30c4b1182859e9d4bbb713848f11  /workspace/noet-gpu/checks/verify_current.py"
+    ]
+  },
+  "freshPeerAcceptance": {
+    "status": "passed",
+    "height": 34,
+    "tip": "d8e2051a018c682c839d734c921ef66239a4161dddf3fdac537ba47df1a16c6a",
+    "independentFullRequests": 34,
+    "allFullGreen": true,
+    "explorer": {
+      "nodeHeight": 34,
+      "nodeTip": "d8e2051a018c682c839d734c921ef66239a4161dddf3fdac537ba47df1a16c6a",
+      "initialSync": false,
+      "peers": 1,
+      "mempoolTransactions": 0,
+      "checkedAt": 1791761261,
+      "error": false,
+      "network": "noet-lab",
+      "currency": "test NOET",
+      "genesis": "301587d540aafc312cf4606e700d9662e038e7e43ca6cca92779d6b4baa81b4e",
+      "height": 34,
+      "tip": "d8e2051a018c682c839d734c921ef66239a4161dddf3fdac537ba47df1a16c6a",
+      "indexed": true,
+      "stale": false,
+      "lag": 0,
+      "validation": "laboratory\u2014not production UPoW"
+    },
+    "elapsedSeconds": 1019.4158933162689,
+    "resultSha256": "dba4c2413b625448bdae20f3b76144bf294737dfbda830874082cf8d260d1b24",
+    "scope": "Two native processes on one host, actual P2P transfer and separate Full verification; no independent operators",
+    "productionReady": false
+  },
+  "proofBinariesScope": "Initial build before the plain-completion patch; the fixed engine and execution-helper identities are recorded in plainCompletionFix.executionDigests.",
+  "continued102BlockTest": {
+    "status": "completed-with-rejections-and-incomplete-evidence",
+    "directory": "reward-maturity-4",
+    "confirmationTarget": 102,
+    "observedFinalHeight": 102,
+    "observedSpendableRewardVerified": true,
+    "continueAfterRejection": true,
+    "overallAcceptancePassed": false,
+    "evidenceBasis": "Completion fields printed by the local SSH follow-up sequencer after reading the remote result; final detailed JSON and raw proof captures were not downloaded.",
+    "observedComputedRedLowerBound": 5,
+    "observedRejectedHeights": [
+      7,
+      13,
+      25,
+      27,
+      30
+    ],
+    "observedLogitSeveritySigma": [
+      17.84,
+      20.53,
+      14.08,
+      12.07,
+      19.54
+    ],
+    "unchangedHardCapSigma": 12,
+    "finalRejectedCount": null,
+    "finalAuditCompleted": false,
+    "scope": "Private test coins only. New leases continued after rejected proofs; no thresholds or seeds were selected to obtain acceptance. Height 102 and a confirmed payment do not establish reliable mining."
+  },
+  "nativeWalletAcceptance": {
+    "status": "successful-process-exit-only",
+    "observedExitCode": 0,
+    "detailedReportRecovered": false,
+    "candidateBundleSha256": "32300ce7e5076b5bcff7c64e0c37a1a362c65a94bf38bd64f7d54e88b5ac7c92",
+    "checksInExecutedHarness": [
+      "pinned network and canonical height",
+      "upgraded explorer balances and 101-confirmation coinbase maturity",
+      "transaction pagination and spend links",
+      "cancel without broadcast",
+      "sign-only without broadcast",
+      "explicit 0.25-unit send and relocking",
+      "spent draft refused",
+      "wallet activity",
+      "encrypted backup restoration and restored passphrase"
+    ],
+    "scope": "Native bridge against the mined private chain, using test approval callbacks. The additional 0.25-unit transaction was only tested in the mempool. This is not installed UI acceptance or a recovered detailed acceptance report."
+  },
+  "continuedPeerAcceptance": {
+    "status": "failed",
+    "observedExitCode": 2,
+    "targetHeight": 102,
+    "detailedReportRecovered": false,
+    "failureCause": "Unknown; the detailed report could not be recovered. Do not infer that all 102 blocks passed a fresh peer."
+  },
+  "localCompletionObservations": [
+    {
+      "maturityFinished": true,
+      "paymentComplete": true,
+      "height": 102
+    },
+    {
+      "finished": "native-wallet-acceptance",
+      "exit": 0
+    },
+    {
+      "finished": "peer-2",
+      "exit": 2
+    }
+  ],
+  "evidenceRecovery": {
+    "status": "partial",
+    "fullArchiveRecovered": false,
+    "incident": "A download on the operator's machine stalled for 18,389 seconds. During that delay the six-hour SSH service timeout expired. Automatic container restarts then failed because the startup script tried to regenerate an existing host key without an idempotency guard.",
+    "recovery": "Direct SSH refused connections and the provider web terminal could not start. No reset or edit was attempted because it would wipe the ephemeral disk. The temporary Pod was deleted to stop charges.",
+    "lost": "Final run4, native-wallet and peer2 detailed reports and the full proof capture archive. Earlier downloaded result files, source/binary identities, peer1 result and observed completion output remain available.",
+    "futureRunRequirements": [
+      "Idempotent SSH startup with existing host keys",
+      "Continuously collect results and captures to durable private storage before cleanup",
+      "Control-plane budget watchdog independent of the operator's machine",
+      "A clean repeat of maturity, wallet, peer and evidence audit before release acceptance"
+    ]
+  },
+  "fp32ReplayAcceptance": {
+    "date": "2026-10-12",
+    "status": "passed-with-setup-abstentions",
+    "productionReady": false,
+    "host": {
+      "gpu": "NVIDIA RTX A5000 (24 GiB, secure cloud)",
+      "driver": "570.211.01",
+      "cuda": "12.8",
+      "torch": "2.8.0+cu128",
+      "image": "runpod/pytorch@sha256:0a360022e8de4375af99430f84e8b38951acc397252163a37ceac7204d01be35"
+    },
+    "change": "Verifier computes bf16 replays with an fp32 reference forward pass (_replay_compute_dtype); grids, ULP sigma and every gate constant unchanged. See replay-precision.json.",
+    "maturity": {
+      "requestedBlocks": 101,
+      "acceptedBlocks": 102,
+      "attempts": 162,
+      "rejectedProofs": 0,
+      "fullVerdicts": {
+        "GREEN": 405,
+        "RED": 0,
+        "AMBER": 0
+      },
+      "replayDtypes": [
+        "torch.float32"
+      ],
+      "flashAttention": "off",
+      "spendableRewardVerified": true,
+      "miningAndPaymentComplete": true,
+      "resultSha256": "b0c759b4b410d5c4d2fae2c5b52ad83b8ad884a0095d56934d1332f465feafe5",
+      "harnessResultPassed": false,
+      "harnessFailure": "Final explorer comparison could not import noet.indexer: the staged host package lacked it. Fixed in stage.py/session.sh; the fresh-peer run below compares the explorer at height 102."
+    },
+    "setupAbstentions": {
+      "count": 26,
+      "full": 8,
+      "quick": 18,
+      "cause": "Model loader protection refused /workspace/noet-gpu owned by the uploading UID; the guard abstained (no verdict) until ownership was corrected minutes into the run. Recorded by the evidence audit as failures; no RED or AMBER resulted."
+    },
+    "audit": {
+      "sha256": "0776059d5216d6790dd65c87a511960ad470c26e2b92459f4eb9a4fc14ca8196",
+      "passed": false,
+      "computedFullRequests": 110,
+      "failures": "Setup abstentions above and the harness failure; no rejected proof."
+    },
+    "performance": {
+      "summarySha256": "dbecd78c20783b52ac351a88dca2b5df41ed34dc36193307e2f3be812b266573",
+      "harnessBlocksPerHour": 58.66,
+      "generationTokensPerSecondMedian": 45.9,
+      "fullVerificationSecondsMedian": 22.8,
+      "peakCudaBytes": 13705211392
+    },
+    "walletAcceptance": {
+      "status": "passed",
+      "height": 102,
+      "walletRelocked": true,
+      "spentDraftRefused": true,
+      "resultSha256": "54aaa9c6e501294b5c9a6c819bb45658cdee246ac19de105f804c1c3e789eb5c"
+    },
+    "freshPeer": {
+      "status": "passed",
+      "height": 102,
+      "tip": "fd1d32fb1c26db29a628f7131505e87f8d065c8be97881871b83211172fc698f",
+      "independentFullVerification": true,
+      "explorerAgreement": true,
+      "resultSha256": "ba1844b38f89d973bec2c230daf19169d154d833160ca9a0e5344804ccaf6db7",
+      "scope": "Two native processes on one host; no independent operators"
+    },
+    "earlierPeerFailureExplained": "The 102-block peer run on the A40 exited 2. peer.py rejects --seconds above 7200 with an argparse error (exit 2); the session passed a larger bound. With a valid bound the 102-block peer passes.",
+    "binaries": {
+      "llama-server": "e7b411b6f6083d1b5ae3113b3ce1ea909015adbad13d0d3f5d70caefe826bfe0"
+    },
+    "stageSha256": "66970ed9641ae161de125c14d170a5223ce5046d158aabbb7d070c7a24bf6387",
+    "controlPlane": "gpu/control.py: spending cap, deadline, detached watchdog and evidence sync; pods 1 (CUDA unavailable on host) and 2 (network volume blocked chown) deleted with verified absence",
+    "liveService": "After acceptance the same host runs gpu/live.py: mutual-TLS relays to the hosted node, the research verifier and the continuous miner. The hosted chain accepted its first blocks at 2026-10-12T11:56Z local."
+  }
+}

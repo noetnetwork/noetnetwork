@@ -1,0 +1,233 @@
+diff --git a/src/qt/bitcoin.cpp b/src/qt/bitcoin.cpp
+index 85f52a8..58780fc 100644
+--- a/src/qt/bitcoin.cpp
++++ b/src/qt/bitcoin.cpp
+@@ -345,7 +345,7 @@ static void BitcoinTerminateHandler() noexcept
+     std::_Exit(EXIT_FAILURE);
+ }
+ 
+-BitcoinApplication::BitcoinApplication()
++BitcoinApplication::BitcoinApplication(bool enable_watchdog)
+     : QApplication(qt_argc, const_cast<char**>(&qt_argv))
+ {
+     // Install the terminate handler as the FIRST thing in BitcoinApplication
+@@ -411,6 +411,9 @@ BitcoinApplication::BitcoinApplication()
+                       recovered_context.c_str());
+         }
+     });
++    // Native tests perform synchronous block generation, especially under memory tools.
++    // The production application keeps the watchdog enabled by default.
++    if (!enable_watchdog) return;
+     m_ui_heartbeat_timer->start();
+ 
+     m_ui_watchdog_thread = std::thread([this] {
+@@ -545,6 +548,9 @@ BitcoinApplication::~BitcoinApplication()
+         LogPrintf("BitcoinApplication: unknown exception during window teardown (non-dtor)\n");
+     }
+     window = nullptr;
++    // Destroy widgets while notify() can still access the watchdog mutex and
++    // context. Implicit member destruction frees that state before this window.
++    shutdownWindow.reset();
+     delete platformStyle;
+     platformStyle = nullptr;
+ }
+@@ -723,46 +729,50 @@ void BitcoinApplication::initializeResult(bool success, interfaces::BlockAndHead
+                 paymentServer->setOptionsModel(optionsModel);
+             }
+ 
+-            // Initialize Tor daemon for cosign bridge sessions.
+-            // Default the instance ID from the chain so the separately-shipped
+-            // mainnet and testnet apps don't BOTH default to instance 0 and
+-            // fight over the same Tor SOCKS/control/service ports (TorManager
+-            // derives 9150/9151/9735 + instanceId offsets). -guiinstance still
+-            // overrides for explicit multi-instance deployments.
+-            int default_instance = 0;
+-            switch (Params().GetChainType()) {
+-            case ChainType::TENSOR_MAIN: default_instance = 0; break;
+-            case ChainType::TENSOR_TEST: default_instance = 1; break;
+-            case ChainType::TENSOR_REG:  default_instance = 2; break;
+-            default:                     default_instance = 3; break;
+-            }
+-            int instanceId = gArgs.GetIntArg("-guiinstance", default_instance);
+-            QString dataDir = GUIUtil::PathToQString(gArgs.GetDataDirNet());
+-
+-            TorManager* torManager = TorManager::instance();
+-
+-            // Connect BEFORE start(): a failed initial start can recover via
+-            // the monitor's auto-restart, and that later ready() must still
+-            // export the bridge env — a listener wired only on first-start
+-            // success would leave the bridge without Tor forever.
+-            QObject::connect(torManager, &TorManager::ready, [torManager]() {
+-                torManager->setEnvironmentForBridge();
+-                LogPrintf("TorManager: Environment variables set for cosign-bridge (Tor is ready)\n");
+-            });
++            // Isolated laboratory wallets do not start external bridge transports.
++            if (Params().GetChainType() != ChainType::TENSOR_REG &&
++                Params().GetChainType() != ChainType::REGTEST) {
++                // Initialize Tor daemon for cosign bridge sessions.
++                // Default the instance ID from the chain so the separately-shipped
++                // mainnet and testnet apps don't BOTH default to instance 0 and
++                // fight over the same Tor SOCKS/control/service ports (TorManager
++                // derives 9150/9151/9735 + instanceId offsets). -guiinstance still
++                // overrides for explicit multi-instance deployments.
++                int default_instance = 0;
++                switch (Params().GetChainType()) {
++                case ChainType::TENSOR_MAIN: default_instance = 0; break;
++                case ChainType::TENSOR_TEST: default_instance = 1; break;
++                case ChainType::TENSOR_REG:  default_instance = 2; break;
++                default:                     default_instance = 3; break;
++                }
++                int instanceId = gArgs.GetIntArg("-guiinstance", default_instance);
++                QString dataDir = GUIUtil::PathToQString(gArgs.GetDataDirNet());
+ 
+-            if (torManager->start(dataDir, instanceId)) {
+-                LogPrintf("TorManager: Started Tor daemon for instance %d\n", instanceId);
++                TorManager* torManager = TorManager::instance();
+ 
+-                // If Tor is already ready, set env vars now
+-                if (torManager->isReady()) {
++                // Connect BEFORE start(): a failed initial start can recover via
++                // the monitor's auto-restart, and that later ready() must still
++                // export the bridge env — a listener wired only on first-start
++                // success would leave the bridge without Tor forever.
++                QObject::connect(torManager, &TorManager::ready, [torManager]() {
+                     torManager->setEnvironmentForBridge();
+-                    LogPrintf("TorManager: Environment variables set for cosign-bridge (Tor already ready)\n");
++                    LogPrintf("TorManager: Environment variables set for cosign-bridge (Tor is ready)\n");
++                });
++
++                if (torManager->start(dataDir, instanceId)) {
++                    LogPrintf("TorManager: Started Tor daemon for instance %d\n", instanceId);
++
++                    // If Tor is already ready, set env vars now
++                    if (torManager->isReady()) {
++                        torManager->setEnvironmentForBridge();
++                        LogPrintf("TorManager: Environment variables set for cosign-bridge (Tor already ready)\n");
++                    }
++                } else {
++                    LogPrintf("TorManager: Failed to start (status: %s, error: %s)\n",
++                             torManager->statusString().toStdString(),
++                             torManager->lastError().toStdString());
++                    // Non-fatal: user can still use relay transport
+                 }
+-            } else {
+-                LogPrintf("TorManager: Failed to start (status: %s, error: %s)\n",
+-                         torManager->statusString().toStdString(),
+-                         torManager->lastError().toStdString());
+-                // Non-fatal: user can still use relay transport
+             }
+         }
+ #endif // ENABLE_WALLET
+diff --git a/src/qt/bitcoin.h b/src/qt/bitcoin.h
+index 1ff01d6..a8f4a4a 100644
+--- a/src/qt/bitcoin.h
++++ b/src/qt/bitcoin.h
+@@ -40,7 +40,7 @@ class BitcoinApplication: public QApplication
+ {
+     Q_OBJECT
+ public:
+-    explicit BitcoinApplication();
++    explicit BitcoinApplication(bool enable_watchdog = true);
+     ~BitcoinApplication();
+ 
+ #ifdef ENABLE_WALLET
+diff --git a/src/qt/sendcoinsdialog.cpp b/src/qt/sendcoinsdialog.cpp
+index 0eb3fde..50bdd16 100644
+--- a/src/qt/sendcoinsdialog.cpp
++++ b/src/qt/sendcoinsdialog.cpp
+@@ -573,7 +573,9 @@ void SendCoinsDialog::clear()
+     // Remove entries until only one left
+     while(ui->entries->count())
+     {
+-        ui->entries->takeAt(0)->widget()->deleteLater();
++        QLayoutItem* item = ui->entries->takeAt(0);
++        item->widget()->deleteLater();
++        delete item;
+     }
+     addEntry();
+ 
+diff --git a/src/qt/test/receivedialogtests.cpp b/src/qt/test/receivedialogtests.cpp
+index d70bd3b..f6a41a4 100644
+--- a/src/qt/test/receivedialogtests.cpp
++++ b/src/qt/test/receivedialogtests.cpp
+@@ -190,7 +190,7 @@ void ReceiveDialogTests::testAssetSelectionUpdatesLabels()
+     // Clearing the dialog should reset to BTC defaults.
+     m_receiveDialog->clear();
+     QCOMPARE(assetCombo->currentIndex(), 0);
+-    QCOMPARE(amountLabel->text(), QString("&Amount (BTC):"));
++    QCOMPARE(amountLabel->text(), QString("&Amount:"));
+ }
+ 
+ void ReceiveDialogTests::testAssetRequestDialogUri()
+@@ -322,7 +322,7 @@ void ReceiveDialogTests::testRecentRequestsFiltering()
+     QCOMPARE(proxyModel->rowCount(), 1);
+ 
+     // Filter BTC-only entries.
+-    const int btcFilterIndex = filterCombo->findData(QStringLiteral("BTC"));
++    const int btcFilterIndex = filterCombo->findData(QStringLiteral("TSC"));
+     QVERIFY(btcFilterIndex >= 0);
+     filterCombo->setCurrentIndex(btcFilterIndex);
+     QApplication::processEvents();
+diff --git a/src/qt/test/test_main.cpp b/src/qt/test/test_main.cpp
+index d5a8ebb..0225a25 100644
+--- a/src/qt/test/test_main.cpp
++++ b/src/qt/test/test_main.cpp
+@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
+     int num_test_failures{0};
+ 
+     {
+-        BitcoinApplication app;
++        BitcoinApplication app(/*enable_watchdog=*/false);
+         app.createNode(*init);
+ 
+         AppTests app_tests(app);
+diff --git a/src/qt/test/wallettests.cpp b/src/qt/test/wallettests.cpp
+index 9490b68..541beba 100644
+--- a/src/qt/test/wallettests.cpp
++++ b/src/qt/test/wallettests.cpp
+@@ -40,6 +40,7 @@
+ #include <QCheckBox>
+ #include <QClipboard>
+ #include <QObject>
++#include <QMenu>
+ #include <QPushButton>
+ #include <QTimer>
+ #include <QVBoxLayout>
+@@ -121,9 +122,21 @@ void BumpFee(TransactionView& view, const Txid& txid, bool expectDisabled, std::
+     // Select row in table, invoke context menu, and make sure bumpfee action is
+     // enabled or disabled as expected.
+     QAction* action = view.findChild<QAction*>("bumpFeeAction");
++    // Right-clicking another transaction must replace the previous row selection.
++    table->resize(640, 480);
++    table->scrollTo(index);
++    const QModelIndex other = table->model()->index(index.row() == 0 ? 1 : 0, 0);
++    table->selectionModel()->select(other, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
++    const QPoint clicked = table->visualRect(index).center();
++    QCOMPARE(table->indexAt(clicked).row(), index.row());
++    table->customContextMenuRequested(clicked);
++    QCOMPARE(table->selectionModel()->selectedRows(0).size(), 1);
++    QCOMPARE(table->selectionModel()->selectedRows(0).front().row(), index.row());
++    view.findChild<QMenu*>()->hide();
+     table->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+     action->setEnabled(expectDisabled);
+-    table->customContextMenuRequested({});
++    // A keyboard-style context request must not select an unrelated row at (0, 0).
++    table->customContextMenuRequested(QPoint(-1, -1));
+     QCOMPARE(action->isEnabled(), !expectDisabled);
+ 
+     action->setEnabled(true);
+diff --git a/src/qt/transactionview.cpp b/src/qt/transactionview.cpp
+index 9e44098..5e32e91 100644
+--- a/src/qt/transactionview.cpp
++++ b/src/qt/transactionview.cpp
+@@ -437,8 +437,8 @@ void TransactionView::contextualMenu(const QPoint &point)
+     QModelIndex index = transactionView->indexAt(point);
+ 
+     // If user right-clicked on a row, select it first
+-    if (index.isValid()) {
+-        transactionView->selectionModel()->setCurrentIndex(index, QItemSelectionModel::SelectCurrent | QItemSelectionModel::Rows);
++    if (index.isValid() && !transactionView->selectionModel()->isRowSelected(index.row(), index.parent())) {
++        transactionView->selectionModel()->setCurrentIndex(index, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+     }
+ 
+     QModelIndexList selection = transactionView->selectionModel()->selectedRows(0);

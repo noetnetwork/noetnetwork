@@ -1,0 +1,20 @@
+{
+  "imageId": "sha256:10c5f28d84ad858f55abeed1c7fd2c0796f679d5c516a05c58e823ef891ed96c",
+  "partitionRecovery": "passed",
+  "crashRecovery": "passed",
+  "encryptedBackupRestore": "passed",
+  "restoredSpendAuthority": "passed",
+  "nativeBridgeSigning": "passed (approval callback, not desktop UI)",
+  "wrongPassphraseRejected": "passed",
+  "corruptedBackupRejected": "passed",
+  "reindex": "passed",
+  "restart": "passed",
+  "network": "noet-lab",
+  "genesis": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+  "nodes": 2,
+  "height": 105,
+  "transfer": "1.25 test NOET",
+  "addressPrefix": "nlab1",
+  "indexerRollback": "passed",
+  "validation": "mock\u2014NOT useful-work mining"
+}

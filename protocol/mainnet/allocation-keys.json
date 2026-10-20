@@ -1,0 +1,21 @@
+{
+  "network": "noet-mainnet-1",
+  "note": "Allocation signer public keys (wallet cosigner keys). Private keys stay with each signer.",
+  "classes": {
+    "team": [
+      "0342ca26ba0810b392b1e83a47aec1ed1deb3715133aa20a657d15b9459431f76d",
+      "039774799bdce03e03b71fc949bba00e3a6dd1ef02295293386bea0d7440b9699b",
+      "025737442cc222deb0894ffe4ffdbded58435a3c9111e567058426598df931657a"
+    ],
+    "treasury": [
+      "0342ca26ba0810b392b1e83a47aec1ed1deb3715133aa20a657d15b9459431f76d",
+      "039774799bdce03e03b71fc949bba00e3a6dd1ef02295293386bea0d7440b9699b",
+      "025737442cc222deb0894ffe4ffdbded58435a3c9111e567058426598df931657a"
+    ],
+    "ecosystem": [
+      "0342ca26ba0810b392b1e83a47aec1ed1deb3715133aa20a657d15b9459431f76d",
+      "039774799bdce03e03b71fc949bba00e3a6dd1ef02295293386bea0d7440b9699b",
+      "025737442cc222deb0894ffe4ffdbded58435a3c9111e567058426598df931657a"
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "imageId": "sha256:10c5f28d84ad858f55abeed1c7fd2c0796f679d5c516a05c58e823ef891ed96c",
+  "sourceCommit": "c1c69178c715d760cc9dc61bbf7c235aa32501a9",
+  "genesis": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+  "network": "NOET laboratory",
+  "testCoinsOnly": true,
+  "locktime": 110,
+  "firstEligibleBlock": 111,
+  "rejections": {
+    "before_lock_height": "non-final",
+    "one_block_before_admission": "non-final",
+    "lower_transaction_locktime": "mandatory-script-verify-flag-failed (Locktime requirement not satisfied)",
+    "final_input_sequence": "mandatory-script-verify-flag-failed (Locktime requirement not satisfied)",
+    "one_signature_only": "mandatory-script-verify-flag-failed (Operation not valid with the current stack size)",
+    "no_signatures": "mandatory-script-verify-flag-failed (Operation not valid with the current stack size)",
+    "wrong_beneficiary": "mandatory-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)",
+    "duplicate_signer": "mandatory-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)",
+    "reversed_signatures": "mandatory-script-verify-flag-failed (Script evaluated without error but finished with a false/empty top stack element)",
+    "removed_script_lock": "mandatory-script-verify-flag-failed (Witness program hash mismatch)",
+    "reorg_before_admission": "non-final"
+  },
+  "boundaryAccepted": true,
+  "validSignerPairs": 3,
+  "reorgChecked": true,
+  "restartChecked": true,
+  "reindexChecked": true,
+  "witnessScript": "016eb17552210279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f817982102c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee52102f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f953ae",
+  "scope": "CLTV plus 2-of-3 P2WSH script primitive; no production allocations, cancellation rule, consensus upgrade or useful-work proof",
+  "date": "2026-10-11",
+  "sourceSha256": {
+    "protocol/tests/vesting_smoke.py": "3d47a90d5d15b0c483bb11d84f7cf07ac772886685b1a04dd7a27b6db8d2db3a",
+    "protocol/economics/monthly_vesting.py": "a69980a87a6b2d7a19766e7a8ae4dcd40b9ee8fd949561dbcbd9e5541594ba5e",
+    "protocol/economics/test_monthly_vesting.py": "a09d9c1d70eb660253a831db33bfb81e106794083b839074c982042e95e0c3c8"
+  },
+  "economicsTests": 10
+}

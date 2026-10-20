@@ -1,0 +1,25 @@
+{
+  "profile": "noet-mainnet-1",
+  "hrp": "noet",
+  "p2pPort": 33440,
+  "seeds": [
+    "noet-mainnet.fly.dev"
+  ],
+  "magic": [
+    "4d",
+    "4e",
+    "31"
+  ],
+  "base58": [
+    "3C",
+    "7C",
+    "BC"
+  ],
+  "bip32": "4d",
+  "releasePercent": 12.5,
+  "asertHeight": 2,
+  "genesisTime": 1791849600,
+  "genesisNonce": 1,
+  "genesisHash": "fc3e73901e2831df8457ea56f56cf92cd23018453439a0c1d402cbab61f45a54",
+  "allocationKeys": "mainnet/allocation-keys.json"
+}

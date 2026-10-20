@@ -1,0 +1,787 @@
+{
+  "format": "noet-detector-diagnostics-v1",
+  "date": "2026-10-11",
+  "productionReady": false,
+  "sourceCommit": "48d1344106044338e6e500de7e95869de036bc55",
+  "files": {
+    "cpu/verify_current.py": "17a643e73a9e83c451825ecb4bea4f656aba30c4b1182859e9d4bbb713848f11",
+    "cpu/detector_diagnostics.py": "dfabf4afbcf7c8268d9331fd9eb912c763f0ff85c6b123dd646061ba5eb3bc42",
+    "cpu/detector_width_probe.py": "339e841bef7453d84bb9616b366b5f8ec0dbc116cf4eedb002eb263b151a3da5",
+    "cpu/capture_check.py": "3fd7abb89fbe27c795bb8b409885d415d63b77a344b374fe530103e18ae2b7c1",
+    "prepare_verifier.py": "220e27eba07356829dbab2ab8555a1e192d654d4c78ba4f1ed0f36063a1b4c55",
+    "patches/noet-miner.patch": "1426303a887599c0f2da313c5dc13b27b2e2227ee15e6531bd4b46f11326bb57",
+    "tests/test_detector_archive.py": "a61315634ee58e8b21dbf809476393ae69c776a427c5b2157fe50fd70765d67f",
+    "tests/test_detector_failure_details.py": "3d0e7ecccd1ee49d183a89fbd8acd05acb94fef826e9b5720fb4c9c92d7ae98d"
+  },
+  "controlImage": "sha256:c9f2188bce465b545816d54c0aca00c720df58ed0c6960c723ceda066da5ce36",
+  "diagnosticsImage": "sha256:38c102270dd7e2daad2e65e56f53ea71db4bcdc771bcbd19f5e84187f6d31267",
+  "guardedContextSha256": "b62f9758464f7eee790cde5b1ce93d1c1cf8ab811a0d5724c71e7abd41517c8d",
+  "researchContextSha256": "e623f14dfe2aa8a03b9d6ac4da27dc954d4e3bb34db53077417fb14407c6f626",
+  "localParentTagCheckedBeforeAndAfterBuild": true,
+  "sealedBundleChanged": false,
+  "ruleDigestChanged": false,
+  "checkpointChanged": false,
+  "replayPlan": "Seeds 0 through 6, bounded in advance; every run retained. No natural failure occurred.",
+  "naturalReplays": [
+    {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "quickVerdict": 0,
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 89.34318300999999,
+      "replaySeed": 0,
+      "torchInitialSeed": 0,
+      "detectorRecordStatus": "scored",
+      "detectorFeatureRefusals": [],
+      "detectorCapture": {
+        "sha256": "92fde87e8291dcd21b77aeff94e619ff20ab12aba74d6ee505b52e9ade41ea9f",
+        "bytes": 7828049
+      },
+      "detectorStatus": "required",
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 105,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      },
+      "eligiblePositions": 105,
+      "maxEligibleUnionTokens": 126,
+      "refusals": [],
+      "rawReportSha256": "c42215bec132f5ec910523f37151ffa9a7e7330ba64de7c83ad755f3589a50df",
+      "featureReportSha256": "ad9cf34c99c4ac7a190a0046ba76b7d46fc2db58ca17a1a91b058f472630844d"
+    },
+    {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "quickVerdict": 0,
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 87.88065895700001,
+      "replaySeed": 1,
+      "torchInitialSeed": 1,
+      "detectorRecordStatus": "scored",
+      "detectorFeatureRefusals": [],
+      "detectorCapture": {
+        "sha256": "1d04d0928cc32eb06ee732da6f92853ed816cf283111f33bd8642d1ce969d0a7",
+        "bytes": 7829037
+      },
+      "detectorStatus": "required",
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 106,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      },
+      "eligiblePositions": 106,
+      "maxEligibleUnionTokens": 128,
+      "refusals": [],
+      "rawReportSha256": "4fbd0521ad1fa4da30c61ebf2a10ad1f053ca97bd475380b9d8eb05df0785d85",
+      "featureReportSha256": "c6a9dc3fac28fa1d5c42726b3e15e9e3e227f7f4b6b548dd066ac60c875786cc"
+    },
+    {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "quickVerdict": 0,
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 89.53086733400002,
+      "replaySeed": 2,
+      "torchInitialSeed": 2,
+      "detectorRecordStatus": "scored",
+      "detectorFeatureRefusals": [],
+      "detectorCapture": {
+        "sha256": "0314c042770bfcb71801fd2cefecd74624d009d6df5bcc2ba73e1858acc1d02c",
+        "bytes": 7827392
+      },
+      "detectorStatus": "required",
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 105,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      },
+      "eligiblePositions": 105,
+      "maxEligibleUnionTokens": 127,
+      "refusals": [],
+      "rawReportSha256": "2a3fdfe686bd04d611d64a5d13b744b86ac72407a65a48ddb5ae0b43ef49e112",
+      "featureReportSha256": "08e0399e58da623860d01b324153f340bae5fab9f155ce3a9530d67e90a3a8ab"
+    },
+    {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "quickVerdict": 0,
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 89.172553929,
+      "replaySeed": 3,
+      "torchInitialSeed": 3,
+      "detectorRecordStatus": "scored",
+      "detectorFeatureRefusals": [],
+      "detectorCapture": {
+        "sha256": "d661cc5ac4fb4ae9b22d5013f0f9e2c7abb7e6f8e655345aae215b90b7e5f813",
+        "bytes": 7828250
+      },
+      "detectorStatus": "required",
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 106,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      },
+      "eligiblePositions": 106,
+      "maxEligibleUnionTokens": 126,
+      "refusals": [],
+      "rawReportSha256": "33a3dfb9144a05e4252d9138d42645ed184c31874a3c2c3e41559949b6161894",
+      "featureReportSha256": "deefbde77861eff66080d67e3188782a8d0644510a0578fc5c21bda6926d8825"
+    },
+    {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "quickVerdict": 0,
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 88.096465174,
+      "replaySeed": 4,
+      "torchInitialSeed": 4,
+      "detectorRecordStatus": "scored",
+      "detectorFeatureRefusals": [],
+      "detectorCapture": {
+        "sha256": "85857c8fc4dce14c7f9ab81f653ffe49a97d143a169b0e91f40182b5aa354d08",
+        "bytes": 7829921
+      },
+      "detectorStatus": "required",
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 105,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      },
+      "eligiblePositions": 105,
+      "maxEligibleUnionTokens": 127,
+      "refusals": [],
+      "rawReportSha256": "3075b4ce1fd989b115949774c9db0c3e0e2c8ac0a00090c5ce0c02ff32fd9fcb",
+      "featureReportSha256": "f9a462d755c2575446a175c56b142530033d1b3882aa84afc828f23189822ea5"
+    },
+    {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "quickVerdict": 0,
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 90.633224487,
+      "replaySeed": 5,
+      "torchInitialSeed": 5,
+      "detectorRecordStatus": "scored",
+      "detectorFeatureRefusals": [],
+      "detectorCapture": {
+        "sha256": "0dd69ce62876c1ad842dddf017ca5a1fd181ff713007aa8aa068845e3c49fcf0",
+        "bytes": 7830063
+      },
+      "detectorStatus": "required",
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 106,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      },
+      "eligiblePositions": 106,
+      "maxEligibleUnionTokens": 125,
+      "refusals": [],
+      "rawReportSha256": "8b40b7fc2c4213024def854643e14db85414507695eb172e238ed2e869116d04",
+      "featureReportSha256": "c7fd0e92082dd43c86a7ce5c12454969390afbe09f7692c87069870a72ae8323"
+    },
+    {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "quickVerdict": 0,
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 90.34963943399998,
+      "replaySeed": 6,
+      "torchInitialSeed": 6,
+      "detectorRecordStatus": "scored",
+      "detectorFeatureRefusals": [],
+      "detectorCapture": {
+        "sha256": "fc17f34f855c3e00eb0203d6d53c93d570e86118133d2eb7de7913e1ef36f701",
+        "bytes": 7828512
+      },
+      "detectorStatus": "required",
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 106,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      },
+      "eligiblePositions": 106,
+      "maxEligibleUnionTokens": 119,
+      "refusals": [],
+      "rawReportSha256": "f262b10db565abea9d82bb82191f6d1dc83ef175a391ca9146cf58c9586754a6",
+      "featureReportSha256": "526bd27850b696da4eb2c8902395d028a51f080854fad61bfd43cac13d930c40"
+    }
+  ],
+  "constructedWidthStress": {
+    "format": "noet-detector-width-stress-v1",
+    "position": 233,
+    "unionTokens": 142,
+    "fixedTokenWidth": 128,
+    "sourceSeedByView": [
+      0,
+      2,
+      3,
+      3,
+      0,
+      4
+    ],
+    "featureRefusal": {
+      "step": 232,
+      "reason": "ContractRefused('union size 142 exceeds the fixed token width 128. Refused rather than truncated: truncation would silently drop observed tokens.')",
+      "state": "NOT_SCORED_REFUSED"
+    },
+    "exceptionType": "DetectorEvidenceIncomplete",
+    "exception": "unscored eligible positions [233]; feature refusals [{\"position\": 233, \"reason\": \"ContractRefused('union size 142 exceeds the fixed token width 128. Refused rather than truncated: truncation would silently drop observed tokens.')\"}]; the joint rule could not be evaluated: 'eligible_step_unscored' ('1 eligible step(s) were not scored by every required model, so a clean count cannot be established; the missing scores could only have ADDED counted positions. This proof is UNAVAILABLE, not clean.')",
+    "manifestSha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+    "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+    "sourceCaptureSha256": [
+      "92fde87e8291dcd21b77aeff94e619ff20ab12aba74d6ee505b52e9ade41ea9f",
+      "1d04d0928cc32eb06ee732da6f92853ed816cf283111f33bd8642d1ce969d0a7",
+      "0314c042770bfcb71801fd2cefecd74624d009d6df5bcc2ba73e1858acc1d02c",
+      "d661cc5ac4fb4ae9b22d5013f0f9e2c7abb7e6f8e655345aae215b90b7e5f813",
+      "85857c8fc4dce14c7f9ab81f653ffe49a97d143a169b0e91f40182b5aa354d08",
+      "0dd69ce62876c1ad842dddf017ca5a1fd181ff713007aa8aa068845e3c49fcf0"
+    ],
+    "naturalReplay": false,
+    "productionReady": false,
+    "scope": "Cross-audit adversarial fixture, real sealed feature/model scoring and gate; constructed identity-sampling metadata/context and stubbed IPC readiness. Not a native proof or a reproduction of the lost unseeded inputs."
+  },
+  "diagnosticsImageValidProof": {
+    "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+    "envelopeSha256": "68eb63daf5b13f79cb02c94dd23f77009ff8dd215da301267593296ee26c4f5b",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 4,
+    "height": 1,
+    "ruleset": 4,
+    "contextCase": "bound",
+    "streamed": true,
+    "difficulty": 60000000,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+    "replaySeed": 0,
+    "replaySeedSource": "explicit",
+    "torchInitialSeed": 0,
+    "cpuFullLogitsRequested": false,
+    "detectorStartup": {
+      "ready": true,
+      "release_id": "detector-amber-red-v2",
+      "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+      "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+      "rule_tag": "det1-5ed3fbcb68788833",
+      "integration_revision": "detector-enforce-r2",
+      "startup_error": null
+    },
+    "quickVerdict": 0,
+    "replayViews": [
+      "1",
+      "2",
+      "5",
+      "10",
+      "20",
+      "spda"
+    ],
+    "detectorRecordStatus": "scored",
+    "detectorSupport": {
+      "observation_contract": {
+        "status": "evaluated",
+        "observed": "poi-live-value-rank-full-v1",
+        "expected": "poi-live-value-rank-full-v1"
+      },
+      "vocabulary_supported": {
+        "status": "evaluated",
+        "observed": 151936,
+        "expected": [
+          151936
+        ]
+      },
+      "head_supported": {
+        "status": "evaluated",
+        "observed": "h0",
+        "expected": [
+          "h0"
+        ]
+      },
+      "verifier_head_matches_declaration": {
+        "status": "evaluated",
+        "observed": {
+          "declared": "h0",
+          "verifier": "h0"
+        },
+        "expected": "equal"
+      },
+      "window_size_supported": {
+        "status": "evaluated",
+        "observed": 256,
+        "expected": [
+          256
+        ]
+      },
+      "declared_width_supported": {
+        "status": "evaluated",
+        "observed": 70,
+        "expected": 70
+      },
+      "six_view_cloud_present": {
+        "status": "evaluated",
+        "observed": [
+          "1",
+          "2",
+          "5",
+          "10",
+          "20",
+          "spda"
+        ],
+        "expected": 6
+      },
+      "model_identifier_supported": {
+        "status": "not_evaluated",
+        "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+        "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+      },
+      "identity_temperature_and_repetition": {
+        "status": "evaluated",
+        "observed": {
+          "temperature": 1.0,
+          "repetition_penalty": 1.0
+        },
+        "expected": {
+          "temperature": 1.0,
+          "repetition_penalty": 1.0
+        }
+      },
+      "array_present.declared_scores0": {
+        "status": "evaluated",
+        "observed": true,
+        "expected": true
+      },
+      "array_present.declared_values": {
+        "status": "evaluated",
+        "observed": true,
+        "expected": true
+      },
+      "array_present.declared_weights": {
+        "status": "evaluated",
+        "observed": true,
+        "expected": true
+      },
+      "array_present.chosen": {
+        "status": "evaluated",
+        "observed": true,
+        "expected": true
+      },
+      "array_present.step_index": {
+        "status": "evaluated",
+        "observed": true,
+        "expected": true
+      },
+      "array_present.declared_summary_stats": {
+        "status": "evaluated",
+        "observed": true,
+        "expected": true
+      },
+      "array_present.cand_top50_ids": {
+        "status": "evaluated",
+        "observed": true,
+        "expected": true
+      },
+      "array_present.cand_top50_values": {
+        "status": "evaluated",
+        "observed": true,
+        "expected": true
+      }
+    },
+    "detectorFeatureRefusals": [],
+    "detectorSteps": {
+      "window_steps": 256,
+      "eligible_steps": 105,
+      "eligible_positions": [
+        2,
+        5,
+        6,
+        7,
+        8,
+        9,
+        11,
+        12,
+        13,
+        14,
+        15,
+        17,
+        18,
+        19,
+        20,
+        21,
+        24,
+        26,
+        28,
+        29,
+        32,
+        37,
+        42,
+        44,
+        45,
+        47,
+        49,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        58,
+        60,
+        61,
+        63,
+        64,
+        67,
+        74,
+        77,
+        81,
+        84,
+        96,
+        100,
+        102,
+        105,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        124,
+        127,
+        131,
+        132,
+        134,
+        138,
+        139,
+        144,
+        157,
+        158,
+        159,
+        160,
+        161,
+        162,
+        164,
+        166,
+        167,
+        194,
+        195,
+        197,
+        199,
+        201,
+        202,
+        204,
+        209,
+        214,
+        215,
+        217,
+        219,
+        222,
+        223,
+        224,
+        225,
+        227,
+        230,
+        231,
+        232,
+        233,
+        234,
+        236,
+        237,
+        238,
+        240,
+        241,
+        243,
+        244,
+        248,
+        250,
+        253,
+        254
+      ]
+    },
+    "fullVerdict": "GREEN",
+    "elapsedSeconds": 91.61395301699997,
+    "modelLoaded": true,
+    "detector": {
+      "detector_status": "required",
+      "detector_decision": "NO_VIOLATION",
+      "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+      "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+      "seconds": 0.47285245800003395,
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 105,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      },
+      "activation": {
+        "state": "required",
+        "network": null,
+        "height": 1,
+        "ruleset": 4,
+        "mode": "v4",
+        "activation_height": null,
+        "reason": "bcore resolved this candidate to ruleset 4 (at/after its own chain's V3 sunset): the detector is a required check",
+        "verdict_bearing": true
+      },
+      "verdict_altered": false
+    }
+  },
+  "diagnosticsImageInvalidCandidate": {
+    "proofSha256": "89a5198407f9604d2501aa13300a684f55fbb351910a2397f24fe3294c35bca7",
+    "envelopeSha256": "455e4e47ca88223eb00558d1fdb33633c772bc64f4edb4a2ac4b499d4ce56952",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 4,
+    "height": 1,
+    "ruleset": 4,
+    "contextCase": "bound",
+    "streamed": true,
+    "difficulty": 60000000,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+    "replaySeed": 4057866469,
+    "replaySeedSource": "random-diagnostic",
+    "torchInitialSeed": 4057866469,
+    "cpuFullLogitsRequested": false,
+    "detectorStartup": {
+      "ready": true,
+      "release_id": "detector-amber-red-v2",
+      "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+      "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+      "rule_tag": "det1-5ed3fbcb68788833",
+      "integration_revision": "detector-enforce-r2",
+      "startup_error": null
+    },
+    "quickVerdict": 1,
+    "fullVerdict": "RED",
+    "elapsedSeconds": 8.757090777999906,
+    "modelLoaded": true
+  },
+  "calibrationStartup": {
+    "format": "noet-packaged-calibration-startup-v1",
+    "image": "sha256:38c102270dd7e2daad2e65e56f53ea71db4bcdc771bcbd19f5e84187f6d31267",
+    "cases": [
+      {
+        "settings": {},
+        "refused": true,
+        "reason": "exact model@revision:precision"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_CALIBRATED": "*"
+        },
+        "refused": true,
+        "reason": "exact model@revision:precision"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_CALIBRATED": "NOET/fixture@aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "refused": true,
+        "reason": "exact model@revision:precision"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_GATE": "shadow"
+        },
+        "refused": true,
+        "reason": "POW_PROMPT_GIBBERISH_GATE=enforce"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_GATE": "off"
+        },
+        "refused": true,
+        "reason": "POW_PROMPT_GIBBERISH_GATE=enforce"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_BITS": "99"
+        },
+        "refused": true,
+        "reason": "POW_PROMPT_GIBBERISH_BITS=14.0"
+      },
+      {
+        "settings": {
+          "POW_PROMPT_GIBBERISH_ACTIVATION_TIME": "3000000000"
+        },
+        "refused": true,
+        "reason": "POW_PROMPT_GIBBERISH_ACTIVATION_TIME=0"
+      },
+      {
+        "settings": {
+          "NOET_REQUIRE_PROMPT_CALIBRATION": "0"
+        },
+        "refused": true,
+        "reason": "NOET_REQUIRE_PROMPT_CALIBRATION=1"
+      }
+    ],
+    "modelMounted": false,
+    "serviceStarted": false,
+    "productionReady": false,
+    "scope": "Packaged startup refusals; no calibration or model correctness claim"
+  },
+  "captureChecks": {
+    "format": "noet-detector-capture-check-v1",
+    "cases": [
+      "numeric-and-metadata-roundtrip",
+      "exclusive-output-preserved",
+      "object-refused-before-write",
+      "oversized-refused-before-write",
+      "verified-sha256"
+    ],
+    "passed": true,
+    "scope": "Actual numeric diagnostic capture safety; no detector accuracy or inference claim"
+  },
+  "protocolTestsPassed": 219,
+  "originalUnseededFailure": {
+    "record": "node-work-cpu.json",
+    "recordSha256": "c1502c33a5c947367dcd023fa59764ce4f6d81e14b800e760af0c5908ffb42bc",
+    "stillUnresolved": true,
+    "exactInputsLost": true,
+    "naturalReproduction": false,
+    "interpretation": "The width stress demonstrates a plausible coverage failure mechanism at the same position, not proof of the original cause."
+  },
+  "limits": [
+    "One model, one proof, one host and CPU only.",
+    "No empirical model calibration or coverage approval.",
+    "Stress inputs deliberately combine different audits and construct sampling metadata/context; IPC readiness is stubbed.",
+    "No live node validation, native block, reward or public mining acceptance.",
+    "No serving-contract width change, token truncation, threshold change or favorable-seed production policy."
+  ]
+}

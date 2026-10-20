@@ -1,0 +1,18 @@
+# Alerts by Telegram and email when a hosted NOET network stalls, and when the
+# verifier's GPU pod stops or its credit runs low (never stops anything).
+# Secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, SMTP_HOST, SMTP_PORT,
+# SMTP_USER, SMTP_PASSWORD, ALERT_EMAIL_FROM, ALERT_EMAIL_TO,
+# RUNPOD_API_KEY (read-only is enough), NOET_MONITOR_POD.
+app = "noet-monitor"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NOET_MONITOR_TARGETS = "mainnet=https://noet-mainnet.fly.dev"
+  NOET_MONITOR_STALL = "5400"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

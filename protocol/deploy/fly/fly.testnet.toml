@@ -1,0 +1,107 @@
+# Hosted NOET public testnet node (noet-testnet-1). Secrets are set with `fly secrets`.
+app = "noet-testnet"
+primary_region = "yyz"
+kill_signal = "SIGTERM"
+kill_timeout = 300
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NOET_PUBLIC_MINING = "1"
+
+[[mounts]]
+  source = "noet_testnet_data"
+  destination = "/data"
+  initial_size = "10gb"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "2gb"
+
+# Authenticated read-only explorer API; Fly terminates TLS.
+[[services]]
+  internal_port = 8788
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 50
+    soft_limit = 40
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "60s"
+    method = "get"
+    path = "/healthz"
+
+# Faucet for no-value test coins; called only by the website server.
+[[services]]
+  internal_port = 8790
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  [[services.ports]]
+    port = 8443
+    handlers = ["tls", "http"]
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 20
+    soft_limit = 10
+
+# Public mining gateway: anyone may lease work paying their own address.
+[[services]]
+  internal_port = 8791
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  [[services.ports]]
+    port = 9443
+    handlers = ["tls", "http"]
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 100
+    soft_limit = 80
+
+# Mutual-TLS relays (verifier verdicts and miner RPC). Raw TCP, no Fly TLS.
+[[services]]
+  internal_port = 17443
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  [[services.ports]]
+    port = 17443
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 8
+    soft_limit = 4
+
+[[services]]
+  internal_port = 18443
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  [[services.ports]]
+    port = 18443
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 8
+    soft_limit = 4
+
+# Peer-to-peer port: anyone may run a node and connect.
+[[services]]
+  internal_port = 33441
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  [[services.ports]]
+    port = 33441
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 64
+    soft_limit = 48

@@ -1,0 +1,19 @@
+{
+  "description": "NOET economics (Tokenomics working draft 1, 12 October 2026). Edit this file, then run: python3 protocol/economics/tokenomics.py --write",
+  "coinAtoms": 100000000,
+  "capCoins": 100000000,
+  "blockSeconds": 600,
+  "mining": {
+    "coins": 80000000,
+    "epochBlocks": 52560,
+    "releasePercent": 15
+  },
+  "vesting": {
+    "monthBlocks": 4380
+  },
+  "allocations": [
+    {"name": "team", "coins": 8000000, "initialCoins": 2000000, "cliffMonths": 0, "months": 150},
+    {"name": "treasury", "coins": 8000000, "initialCoins": 1000000, "cliffMonths": 0, "months": 150},
+    {"name": "ecosystem", "coins": 4000000, "initialCoins": 2000000, "cliffMonths": 0, "months": 150}
+  ]
+}

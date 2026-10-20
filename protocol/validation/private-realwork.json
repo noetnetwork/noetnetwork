@@ -1,0 +1,157 @@
+{
+  "format": "noet-native-realwork-acceptance-v1",
+  "date": "2026-10-11",
+  "scope": "Isolated native integration, not guarded-service or public mining acceptance",
+  "productionReady": false,
+  "images": {
+    "node": "sha256:ec8f507b2075fd20673fe3dd505c3f893568a7b68f5e6c79fe624e1ec891275b",
+    "producer": "sha256:4a9a62863e6efc466a9ab6db7774e006ca86df80190c2cbad012d8de6146edcd",
+    "verifier": "sha256:38c102270dd7e2daad2e65e56f53ea71db4bcdc771bcbd19f5e84187f6d31267"
+  },
+  "genesis": "301587d540aafc312cf4606e700d9662e038e7e43ca6cca92779d6b4baa81b4e",
+  "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+  "registeredDifficulty": 1000000,
+  "attempts": [
+    {
+      "attempt": 0,
+      "producerExit": 1,
+      "submissions": []
+    },
+    {
+      "attempt": 1,
+      "producerExit": 1,
+      "submissions": []
+    },
+    {
+      "attempt": 2,
+      "producerExit": 0,
+      "submissions": [
+        {
+          "proofSha256": "f2aad827c7155363ee448fc1d5b6ea9df6ef16c889652f35034f5817517affb5",
+          "response": {
+            "block_hash": "e690d130d5e04c886ad7d912af449f5ef46bcd6c4acecdaec5f1be446995788a",
+            "accepted": false,
+            "status": "accepted_pending_connect"
+          }
+        }
+      ],
+      "duplicateSubmission": {
+        "block_hash": "e690d130d5e04c886ad7d912af449f5ef46bcd6c4acecdaec5f1be446995788a",
+        "accepted": true,
+        "status": "accepted"
+      }
+    }
+  ],
+  "acceptedBlock": {
+    "height": 1,
+    "hash": "e690d130d5e04c886ad7d912af449f5ef46bcd6c4acecdaec5f1be446995788a",
+    "wallet": {
+      "mine": {
+        "trusted": "0.00000000",
+        "untrusted_pending": "0.00000000",
+        "immature": "715.00000000",
+        "bonded": "0.00000000"
+      },
+      "lastprocessedblock": {
+        "hash": "e690d130d5e04c886ad7d912af449f5ef46bcd6c4acecdaec5f1be446995788a",
+        "height": 1
+      }
+    }
+  },
+  "nativeFullVerification": {
+    "envelopeSha256": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+    "nodeEmittedEnvelope": true,
+    "productionReady": false,
+    "promptCalibrationApproved": false,
+    "height": 1,
+    "ruleset": 2,
+    "requestType": 2,
+    "difficulty": 1000000,
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "replaySeed": 2342964126,
+    "fullVerdict": "GREEN",
+    "promptScore": {
+      "red": false,
+      "reject": false,
+      "reason": "prompt gibberish gate not applicable: prompt has only 26 scored transitions (prompt length 27), below the minimum",
+      "mode": "shadow",
+      "calibrated": false,
+      "threshold_bits": 14.0,
+      "score": {
+        "n_prompt_tokens": 27,
+        "n_transitions": 26,
+        "applicable": false,
+        "tail_n": 26,
+        "tail_mean_bits": 3.0073366150474894,
+        "whole_mean_bits": 3.0073366150474894,
+        "tail_frac_over_16": 0.038461538461538464,
+        "tail_median_bits": 1.0497023165225983,
+        "n_unpredictable": 0
+      }
+    },
+    "detector": {
+      "detector_status": "advisory",
+      "detector_decision": "NO_VIOLATION",
+      "detector_advisory_red": null,
+      "detector_advisory_amber": null,
+      "verdict_altered": false,
+      "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+      "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+      "activation": {
+        "state": "advisory",
+        "network": null,
+        "height": 1,
+        "ruleset": 2,
+        "mode": "v4",
+        "activation_height": null,
+        "reason": "bcore resolved this candidate to ruleset 2 (below its own chain's V3 sunset): the detector result is advisory and the authoritative verdict is untouched",
+        "verdict_bearing": false
+      },
+      "audit_id": "5484fa673d0d407cbe7f5da4931fc734",
+      "seconds": 0.6167722300001515,
+      "joint": {
+        "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+        "decision": "NO_VIOLATION",
+        "reason": null,
+        "bands_violated": [],
+        "bands_amber": [],
+        "counted_positions": [],
+        "counted_total": 0,
+        "eligible_total": 126,
+        "single_model_only_total": 0,
+        "models": {
+          "U1": {
+            "flagged_eligible_positions": [],
+            "threshold": 5.813099384307861,
+            "independent_decision": "NO_VIOLATION"
+          },
+          "F3": {
+            "flagged_eligible_positions": [],
+            "threshold": 6.169895648956299,
+            "independent_decision": "NO_VIOLATION"
+          }
+        }
+      }
+    },
+    "responseCode": 6,
+    "responseSent": true,
+    "elapsedSeconds": 92.84410692300003
+  },
+  "peerCount": 0,
+  "spendableRewardVerified": false,
+  "refusedValidationModes": [
+    "mock",
+    "desktop"
+  ],
+  "limitations": [
+    "Prompt calibration is unapproved and explicitly in research shadow mode.",
+    "Height 1 uses ruleset 2, where detector scoring is advisory.",
+    "Test reward and monetary rules are inherited, not proposed mainnet tokenomics.",
+    "The reward is immature; spending, additional peers and mandatory-ruleset heights are not accepted by this run."
+  ],
+  "evidence": {
+    "result.json": "0fcfb8071ce19b62824e5f9918cae682642a147b520c01e26682b4e4b79d79c9",
+    "verifier/9/request.bin": "59175468c3d3828e2df644019ba486853f53ada7ef1fbd212cc26af411b98b05",
+    "verifier/9/result.json": "d774a88140142584fd34a272490f3b6778b6f67b85c165c68681c58874cdfa3b"
+  }
+}

@@ -1,0 +1,429 @@
+{
+  "date": "2026-10-11",
+  "status": "single-v4-proof-six-view-cpu-acceptance",
+  "productionReady": false,
+  "nativeBlockAccepted": false,
+  "nativeNodeContext": false,
+  "gpuAccepted": false,
+  "independentWorkerAcceptance": false,
+  "protocolTestsPassed": 193,
+  "image": "sha256:201c167c98f2c2e93b7a15bf5a5499e2aef6aa40b879a597ba710d123c1f89e5",
+  "sourceContextSha256": "eae83a1c9c925152ab5917cfdab2f0ae0bee1f1a934281ce594940c4d979c680",
+  "sourceCommit": "48d1344106044338e6e500de7e95869de036bc55",
+  "minerPatchSha256": "759ec256b5548153970cb436ceccbe989ca06f2dc49c23feedadfedd41d2b256",
+  "nativeBuilder": "sha256:f46a6409fc9cfa0d339ad0631d8769fb63e4d836268c0b0c9c3fee44dbc07161",
+  "modelManifestSha256": "c18e242c1f4c2273d89a27a226856ad1a6623a7a0c22839495b45371eefa3ae4",
+  "v4Limits": {
+    "cpus": 3,
+    "memoryGiB": 20,
+    "temporaryVmMemoryGiB": 24,
+    "network": "none",
+    "readOnlyModel": true,
+    "readOnlyRoot": true,
+    "deadlineSeconds": 900
+  },
+  "unchangedRules": [
+    "CPU MCA noise remains 12.0",
+    "Sealed detector code, weights, thresholds and rule digest",
+    "V4 strict context enforcement",
+    "Real VDF challenge binding",
+    "Candidate concentration and priced target checks"
+  ],
+  "positiveReplays": {
+    "original": {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "envelopeSha256": "68eb63daf5b13f79cb02c94dd23f77009ff8dd215da301267593296ee26c4f5b",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": 1,
+      "ruleset": 4,
+      "contextCase": "bound",
+      "streamed": false,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "detectorStartup": {
+        "ready": true,
+        "release_id": "detector-amber-red-v2",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "rule_tag": "det1-5ed3fbcb68788833",
+        "integration_revision": "detector-enforce-r2",
+        "startup_error": null
+      },
+      "quickVerdict": 0,
+      "replayViews": [
+        "1",
+        "2",
+        "5",
+        "10",
+        "20",
+        "spda"
+      ],
+      "detectorRecordStatus": "scored",
+      "detectorSupport": {
+        "six_view_cloud_present": {
+          "status": "evaluated",
+          "observed": [
+            "1",
+            "2",
+            "5",
+            "10",
+            "20",
+            "spda"
+          ],
+          "expected": 6
+        },
+        "model_identifier_supported": {
+          "status": "not_evaluated",
+          "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+          "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+        },
+        "observation_contract": {
+          "status": "evaluated",
+          "observed": "poi-live-value-rank-full-v1",
+          "expected": "poi-live-value-rank-full-v1"
+        }
+      },
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 102.130712996,
+      "modelLoaded": true,
+      "detector": {
+        "detector_status": "required",
+        "detector_decision": "NO_VIOLATION",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "seconds": 0.48830134199999975,
+        "joint": {
+          "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+          "decision": "NO_VIOLATION",
+          "reason": null,
+          "bands_violated": [],
+          "bands_amber": [],
+          "counted_positions": [],
+          "counted_total": 0,
+          "eligible_total": 105,
+          "single_model_only_total": 0,
+          "models": {
+            "U1": {
+              "flagged_eligible_positions": [],
+              "threshold": 5.813099384307861,
+              "independent_decision": "NO_VIOLATION"
+            },
+            "F3": {
+              "flagged_eligible_positions": [],
+              "threshold": 6.169895648956299,
+              "independent_decision": "NO_VIOLATION"
+            }
+          }
+        },
+        "activation": {
+          "state": "required",
+          "network": null,
+          "height": 1,
+          "ruleset": 4,
+          "mode": "v4",
+          "activation_height": null,
+          "reason": "bcore resolved this candidate to ruleset 4 (at/after its own chain's V3 sunset): the detector is a required check",
+          "verdict_bearing": true
+        },
+        "verdict_altered": false
+      }
+    },
+    "streamed": {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "envelopeSha256": "68eb63daf5b13f79cb02c94dd23f77009ff8dd215da301267593296ee26c4f5b",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": 1,
+      "ruleset": 4,
+      "contextCase": "bound",
+      "streamed": true,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "detectorStartup": {
+        "ready": true,
+        "release_id": "detector-amber-red-v2",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "rule_tag": "det1-5ed3fbcb68788833",
+        "integration_revision": "detector-enforce-r2",
+        "startup_error": null
+      },
+      "quickVerdict": 0,
+      "replayViews": [
+        "1",
+        "2",
+        "5",
+        "10",
+        "20",
+        "spda"
+      ],
+      "detectorRecordStatus": "scored",
+      "detectorSupport": {
+        "six_view_cloud_present": {
+          "status": "evaluated",
+          "observed": [
+            "1",
+            "2",
+            "5",
+            "10",
+            "20",
+            "spda"
+          ],
+          "expected": 6
+        },
+        "model_identifier_supported": {
+          "status": "not_evaluated",
+          "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+          "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+        },
+        "observation_contract": {
+          "status": "evaluated",
+          "observed": "poi-live-value-rank-full-v1",
+          "expected": "poi-live-value-rank-full-v1"
+        }
+      },
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 94.20387826400001,
+      "modelLoaded": true,
+      "detector": {
+        "detector_status": "required",
+        "detector_decision": "NO_VIOLATION",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "seconds": 0.501047729000021,
+        "joint": {
+          "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+          "decision": "NO_VIOLATION",
+          "reason": null,
+          "bands_violated": [],
+          "bands_amber": [],
+          "counted_positions": [],
+          "counted_total": 0,
+          "eligible_total": 105,
+          "single_model_only_total": 0,
+          "models": {
+            "U1": {
+              "flagged_eligible_positions": [],
+              "threshold": 5.813099384307861,
+              "independent_decision": "NO_VIOLATION"
+            },
+            "F3": {
+              "flagged_eligible_positions": [],
+              "threshold": 6.169895648956299,
+              "independent_decision": "NO_VIOLATION"
+            }
+          }
+        },
+        "activation": {
+          "state": "required",
+          "network": null,
+          "height": 1,
+          "ruleset": 4,
+          "mode": "v4",
+          "activation_height": null,
+          "reason": "bcore resolved this candidate to ruleset 4 (at/after its own chain's V3 sunset): the detector is a required check",
+          "verdict_bearing": true
+        },
+        "verdict_altered": false
+      }
+    }
+  },
+  "invalidV4Candidate": {
+    "proofSha256": "89a5198407f9604d2501aa13300a684f55fbb351910a2397f24fe3294c35bca7",
+    "envelopeSha256": "455e4e47ca88223eb00558d1fdb33633c772bc64f4edb4a2ac4b499d4ce56952",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 4,
+    "height": 1,
+    "ruleset": 4,
+    "contextCase": "bound",
+    "streamed": true,
+    "difficulty": 60000000,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+    "detectorStartup": {
+      "ready": true,
+      "release_id": "detector-amber-red-v2",
+      "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+      "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+      "rule_tag": "det1-5ed3fbcb68788833",
+      "integration_revision": "detector-enforce-r2",
+      "startup_error": null
+    },
+    "quickVerdict": 1,
+    "fullVerdict": "RED",
+    "elapsedSeconds": 8.870346993999988,
+    "modelLoaded": true
+  },
+  "contextChecks": {
+    "wrong-parent": {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "envelopeSha256": "a5f0bcf255fe30b50b9ab9388bb4c5d658758e673f7a53213c777bf5c456747d",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": 1,
+      "ruleset": 4,
+      "contextCase": "wrong-parent",
+      "streamed": true,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "quickVerdict": 1,
+      "fullVerdict": "RED",
+      "elapsedSeconds": 0.9189303640000048,
+      "modelLoaded": false
+    },
+    "missing-height": {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "envelopeSha256": "1a4a8aceae33aabab08d1e1278c347521b3ad7a349755b8ddba86ea07cd8cc05",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": null,
+      "ruleset": 4,
+      "contextCase": "missing-height",
+      "streamed": true,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "exceptionType": "RulesetContextError",
+      "exception": "ruleset 4 requires height; missing => defer",
+      "elapsedSeconds": 0.003929275000018606,
+      "modelLoaded": false
+    },
+    "missing-ruleset": {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "envelopeSha256": "3ddded2718f897dd7792b2ba78b4f825a544cc8f3dbf952537057359b79a6a22",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": 1,
+      "ruleset": null,
+      "contextCase": "missing-ruleset",
+      "streamed": true,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "exceptionType": "RulesetContextError",
+      "exception": "ruleset/height absent on a context-bound block request (pre-ruleset writer or parent not indexed); strict mode enforced => defer, not legacy replay",
+      "elapsedSeconds": 0.004972770999984277,
+      "modelLoaded": false
+    },
+    "unsupported-ruleset": {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "envelopeSha256": "6a547c2a6cfe1dfbdd8e60c70174b5e8f8eb0fd7e694379c7710d23b965415c5",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": 1,
+      "ruleset": 5,
+      "contextCase": "unsupported-ruleset",
+      "streamed": true,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "exceptionType": "UnsupportedRulesetError",
+      "exception": "ruleset 5 is not implemented by this verifier (max 4); refusing, no verdict",
+      "elapsedSeconds": 0.009063879000024144,
+      "modelLoaded": false
+    }
+  },
+  "legacyCompatibility": {
+    "proofSha256": "75993752628d49dfadda975dbe1d0bdc6939495d50cfbb9e0cfccc629736fde0",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 2,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "mutation": null,
+    "envelopeSha256": "26732033aa4eda2246a6decffabeb21c8aa796babcaf24a304fd10dc48a42275",
+    "streamed": true,
+    "scope": "CPU legacy experimental replay; no current-rules or native block acceptance",
+    "quickVerdict": 0,
+    "fullVerdict": "GREEN",
+    "elapsedSeconds": 33.77482140699999,
+    "modelLoaded": true
+  },
+  "falsifiedLegacyOutputs": {
+    "proofSha256": "75993752628d49dfadda975dbe1d0bdc6939495d50cfbb9e0cfccc629736fde0",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 2,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "mutation": "corrupt-logits",
+    "envelopeSha256": "0a71c8643e241e4f62b2ba3afb0db386a55d3f6998d35e6f7d3d8d720f5c7172",
+    "streamed": true,
+    "scope": "CPU legacy experimental replay; no current-rules or native block acceptance",
+    "quickVerdict": 1,
+    "fullVerdict": "RED",
+    "elapsedSeconds": 80.39620941599998,
+    "modelLoaded": true
+  },
+  "legacyStrictContextRefusal": {
+    "proofSha256": "75993752628d49dfadda975dbe1d0bdc6939495d50cfbb9e0cfccc629736fde0",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "proofVersion": 2,
+    "realVdfVerified": true,
+    "productionReady": false,
+    "mutation": null,
+    "envelopeSha256": "26732033aa4eda2246a6decffabeb21c8aa796babcaf24a304fd10dc48a42275",
+    "streamed": true,
+    "scope": "CPU legacy experimental replay; no current-rules or native block acceptance",
+    "exceptionType": "RulesetContextError",
+    "exception": "ruleset/height absent on a context-bound block request (pre-ruleset writer or parent not indexed); strict mode enforced => defer, not legacy replay",
+    "elapsedSeconds": 0.004944606999970347,
+    "modelLoaded": false
+  },
+  "legacyProfileNote": "Legacy compatibility uses its prior default research profile. Strict v4 mode correctly refuses its missing height/ruleset; no strict v4 test was relaxed.",
+  "runtimeChecks": {
+    "status": "passed",
+    "malformedEnvelopesRejected": 132,
+    "missingProofRejected": true,
+    "realVdfAccepted": true,
+    "invalidVdfsRejected": 202,
+    "creditKernel": "credit_v4 kernel v6 OK (/app/src/utils/libtc_credit_v4.so)",
+    "sunsetKernel": "post-sunset admission ABI v1: integer predicates OK",
+    "fullInferenceAccepted": false,
+    "scope": "Actual compiled parser, VDF and arithmetic libraries; no full inference or block acceptance"
+  },
+  "detectorIntegrity": {
+    "status": "passed",
+    "validBundleAccepted": true,
+    "manifestSha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+    "rejected": [
+      "changed-weight",
+      "unresolved-pointer",
+      "changed-code",
+      "changed-threshold",
+      "extra-code"
+    ],
+    "changedCodeOrWeightsExecuted": false,
+    "scope": "Actual sealed-detector integrity/policy validation; no detection-accuracy claim"
+  },
+  "rawReportSha256": {
+    "six-original.json": "4fe248980745117abfa2683295b5a9fe98d22eb370798ec20b203da312edd747",
+    "six-streamed.json": "49b297db38f0d1c6c8ba002d42d9361e3911db1be0ce549e498776ceaf92b25b",
+    "six-candidate-reject.json": "d97d78eaac8aeb71fa93af203f67c9b60d3a9a63a2c30ba668c255d6a9ae750b",
+    "six-legacy-compat.json": "88664ac869b75ae64197ac9c01cb09abd74d2c8ce7f079ac4fd3bcc1b8c26e95",
+    "six-corrupt-logits.json": "26e13f2096163c3787924ce93a98a7e3c001a47427b5f5204675de4749c6905f",
+    "six-legacy.json": "1e36aaf93798b51e47eea9169001e530e8de77c4b6c88ec834ea7f3d1e8d56de",
+    "six-runtime.json": "017b1352e831f2014baa1a504cf635303da4d3064a3bc6e3f55d20a08070f3b9",
+    "six-detector-integrity.json": "a977fc88744420db7aec973d96ed750d13cc0ea46f2266107bc7eb17a262b727",
+    "six-wrong-parent.json": "11f803a4a223da4d346b722d3a43674244a8f801039c791e632e1cc4ea482670",
+    "six-missing-height.json": "d079094836c28883049adeab0d9d875d129abc5d25989ac81eb437b2c94a6b9c",
+    "six-missing-ruleset.json": "245a2c07184b04459825a153ae3a22c002ce8773efc8e042bbf05472b0dec82f",
+    "six-unsupported-ruleset.json": "6b885cdf4e40b830fe2570f73229dc3bffa07e52c2744658c7aa678b52b581fa"
+  },
+  "limits": [
+    "One proof and one candidate model, with synthetic height 1/ruleset 4/difficulty 60000000/header context",
+    "Model-version detector coverage is explicitly unmeasured, not universal",
+    "Candidate prompt-gibberish calibration is absent; its original shadow mode remains and is not claimed as calibrated enforcement",
+    "Both implementations ran on the same host; not independent-worker confirmation",
+    "No GPU, native block, reward, reorg, network activation or production throughput acceptance"
+  ]
+}

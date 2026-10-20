@@ -1,0 +1,70 @@
+name: NOET acceptance
+
+# On demand only. A push does not allocate hosted build minutes or cloud GPUs.
+on:
+  workflow_dispatch:
+    inputs:
+      native:
+        description: Build and test the isolated native laboratory (longer CPU run)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noet-acceptance-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Prepare pinned source and web dependencies
+        run: |
+          git lfs version
+          python3 protocol/bootstrap.py
+          npm ci --prefix web
+      - name: Fetch disposable database image
+        run: docker pull mysql@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
+      - name: Protocol, wallet, economics and complete website acceptance
+        run: python3 protocol/validate.py --mysql
+      - name: Native VDF cryptographic acceptance
+        if: ${{ inputs.native }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libgmp-dev
+          python3 protocol/tests/native_vdf_smoke.py --out /tmp/noet-vdf-acceptance.json
+          python3 protocol/economics/check_candidate.py --out /tmp/noet-policy-acceptance.json
+      - name: Build native laboratory from reviewed sources
+        if: ${{ inputs.native }}
+        run: |
+          python3 protocol/source_bundle.py --out /tmp/noet-node-context.tar
+          docker build -t noet-core:lab - < /tmp/noet-node-context.tar
+          python3 protocol/release_inventory.py --image noet-core:lab --out /tmp/noet-node-image.json
+          docker build -f protocol/docker/NativeHostCheck.Dockerfile -t noet-native-prompt:check protocol
+          docker run --rm --network none --read-only --tmpfs /tmp:rw,nosuid,size=64m --cap-drop ALL --security-opt no-new-privileges noet-native-prompt:check
+      - name: Native signing, recovery and competing-chain acceptance
+        if: ${{ inputs.native }}
+        env:
+          PYTHONPATH: protocol
+        run: |
+          python3 protocol/tests/node_smoke.py --reindex --partition
+          python3 protocol/tests/vesting_smoke.py
+          python3 protocol/tests/model_mount_smoke.py

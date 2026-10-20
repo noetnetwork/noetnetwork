@@ -1,0 +1,8 @@
+test_cancel (__main__.ApprovalWindowTests.test_cancel) ... ok
+test_close_window (__main__.ApprovalWindowTests.test_close_window) ... ok
+test_explicit_approval (__main__.ApprovalWindowTests.test_explicit_approval) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.339s
+
+OK

@@ -1,0 +1,12 @@
+{
+  "date": "2026-10-11",
+  "status": "passed",
+  "protocolTests": 182,
+  "focusedTests": 4,
+  "sourceSha256": {
+    "protocol/noet/verifier_entry.py": "3b21d08e5508b552bfe8b201e29b9f039f5727f58d27f631419e9e0b8293880e",
+    "protocol/tests/test_verifier_binding.py": "8aa45bd9f42eaad1b216984e39596c867b46cf80f40612843fac072e79c871ec"
+  },
+  "fullModelReplay": false,
+  "scope": "Guarded startup and extracted verifier challenge-binding rejection with fixture parser/context; no complete proof or block acceptance"
+}

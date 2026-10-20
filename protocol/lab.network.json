@@ -1,0 +1,13 @@
+{
+  "name": "noet-lab",
+  "chainArgument": "tensor-reg",
+  "genesis": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+  "p2pMagicHex": "4e4f4554",
+  "p2pPort": 29441,
+  "rpcPort": 29443,
+  "segwitHrp": "nlab",
+  "currencyLabel": "test NOET",
+  "decimals": 8,
+  "validation": "mock laboratory only",
+  "publicLaunch": false
+}

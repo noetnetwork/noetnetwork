@@ -1,0 +1,9 @@
+.upstream/
+data/
+*.cookie
+*.psbt
+*.wallet
+*.backup
+*.conf
+!*.example.conf
+__pycache__/

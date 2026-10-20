@@ -1,0 +1,33 @@
+{
+  "imageId": "sha256:10c5f28d84ad858f55abeed1c7fd2c0796f679d5c516a05c58e823ef891ed96c",
+  "partitionRecovery": "passed",
+  "crashRecovery": "passed",
+  "encryptedBackupRestore": "passed",
+  "restoredSpendAuthority": "passed",
+  "nativeBridgeSigning": "passed (approval callback, not desktop UI)",
+  "nativeBridgePreparation": "passed without unlocking",
+  "wrongPassphraseRejected": "passed",
+  "corruptedBackupRejected": "passed",
+  "reindex": "passed",
+  "restart": "passed",
+  "network": "noet-lab",
+  "genesis": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+  "nodes": 2,
+  "height": 105,
+  "transfer": "1.25 test NOET",
+  "addressPrefix": "nlab1",
+  "indexerRollback": "passed",
+  "validation": "mock laboratory proofs, not useful-work mining",
+  "protocolTests": 171,
+  "walletTests": 20,
+  "installedChromeAcceptance": false,
+  "date": "2026-10-11",
+  "sourceSha256": {
+    "protocol/noet/wallet_prepare.py": "f15b9a9e18af5535bffc5c886926464478973d8c9087b3f76f7d0c508a676205",
+    "protocol/noet/native_host.py": "52aafbd739b3852dd81ce9ea32f7d854bf1157a0250e6ba608142e0ed6ae36d9",
+    "protocol/tests/node_smoke.py": "57d45db7d1e08c11c4b5bb536f9fd6a49b2fc856cb0508298777c8fac6954532",
+    "wallets/native/extension/client.mjs": "149c32b7b0d7c436740695c8832ebf54c7d3e957f5b21a63163586095b7d31cc",
+    "wallets/native/extension/wallet.mjs": "e1f0b42c5c63d0cae88d9834ef531b6780450b3fe823853aca3b84664b8556c2",
+    "wallets/tests/native-ui.test.mjs": "7cbb827b52d2055d037f2163390c75e3b193eba1848a961637a2e6213ce7f3c4"
+  }
+}

@@ -1,0 +1,30 @@
+:8080 {
+	root * /srv
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	@builds path /wallet/*
+	header @builds Cache-Control "public, max-age=3600"
+	# Installers always download, with the right type for each platform.
+	@installers path_regexp installer ^/wallet/[0-9.]+/(NOET-Wallet-[A-Za-z0-9._-]+)$
+	header @installers Content-Disposition "attachment; filename=\"{re.installer.1}\""
+	@dmg path *.dmg
+	header @dmg Content-Type application/x-apple-diskimage
+	@exe path *.exe
+	header @exe Content-Type application/vnd.microsoft.portable-executable
+	@appimage path *.AppImage
+	header @appimage Content-Type application/vnd.appimage
+	@zip path *.zip
+	header @zip Content-Type application/zip
+	@tgz path *.tar.gz
+	header @tgz Content-Type application/gzip
+	# The website reads checksums and the version feed.
+	@public path /wallet/latest.json /wallet/*/SHA256SUMS /wallet/*/release.json
+	header @public Access-Control-Allow-Origin "https://www.noet.network"
+	@root path /
+	redir @root https://www.noet.network/#download 302
+	file_server browse
+}

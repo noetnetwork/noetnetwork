@@ -1,0 +1,12 @@
+{
+  "mode": "client",
+  "listen_host": "127.0.0.1",
+  "listen_port": 17001,
+  "target_host": "10.42.0.10",
+  "target_port": 17443,
+  "ca_file": "/run/noet-tls/ca.pem",
+  "cert_file": "/run/noet-tls/verifier-verdict.pem",
+  "key_file": "/run/noet-tls/verifier-verdict.key",
+  "peer_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "server_name": "node-verdicts.noet.internal"
+}

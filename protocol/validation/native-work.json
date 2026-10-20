@@ -1,0 +1,148 @@
+{
+  "format": "noet-native-work-issuance-v1",
+  "nodeImage": "sha256:10c5f28d84ad858f55abeed1c7fd2c0796f679d5c516a05c58e823ef891ed96c",
+  "genesis": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+  "validationMode": "real",
+  "externalValidationEnabled": true,
+  "verifierConnected": false,
+  "cases": [
+    {
+      "activeV4": false,
+      "rejected": [
+        "wrong-network",
+        "empty-payout",
+        "malformed-payout",
+        "unknown-parent",
+        "oversized-extranonce",
+        "invalid-batch-0",
+        "invalid-batch--1",
+        "invalid-batch-1000000",
+        "capacity-exhausted"
+      ],
+      "workUnits": [
+        {
+          "req_id": 1,
+          "header_prefix": "0000002059f32d3eb8a14be1ffa4d060e4c512096548ec54fde6801740b2ade805c10afc179f38803590e952a916a620c998c4ad28d03b5c288b7f5fd6ab706ea1655c4ba8efcb6affff7f20",
+          "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+          "expires_at": 1791750656,
+          "height": 1,
+          "network": "tensor-reg",
+          "tip_hash": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359"
+        },
+        {
+          "req_id": 2,
+          "header_prefix": "0000002059f32d3eb8a14be1ffa4d060e4c512096548ec54fde6801740b2ade805c10afc1bc94950cea0739b6b2225612cfb02b679698d189d13b90a71e2af9a1a09d3b3a8efcb6affff7f20",
+          "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+          "expires_at": 1791750656,
+          "height": 1,
+          "network": "tensor-reg",
+          "tip_hash": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359"
+        },
+        {
+          "height": 1,
+          "network": "tensor-reg",
+          "tip_hash": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+          "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+          "expires_at": 1791750656,
+          "template_id": 2,
+          "issued_count": 2,
+          "units_truncated": 1,
+          "capacity_reason": "tracker_full",
+          "req_id": 3,
+          "header_prefix": "0000002059f32d3eb8a14be1ffa4d060e4c512096548ec54fde6801740b2ade805c10afc448d6e31fa56034bc398589dfddbd363717250713b5a712a0daadf775e622125a8efcb6affff7f20"
+        },
+        {
+          "height": 1,
+          "network": "tensor-reg",
+          "tip_hash": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+          "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+          "expires_at": 1791750656,
+          "template_id": 2,
+          "issued_count": 2,
+          "units_truncated": 1,
+          "capacity_reason": "tracker_full",
+          "req_id": 4,
+          "header_prefix": "0000002059f32d3eb8a14be1ffa4d060e4c512096548ec54fde6801740b2ade805c10afc70315754228702c87a087d27c4d5763f7a02e616f7c77d1a100ea1d776ce2db8a8efcb6affff7f20"
+        }
+      ],
+      "distinctCoinbaseRoots": 4,
+      "heightAfter": 0,
+      "peerCount": 0
+    },
+    {
+      "activeV4": true,
+      "rejected": [
+        "wrong-network",
+        "empty-payout",
+        "malformed-payout",
+        "unknown-parent",
+        "oversized-extranonce",
+        "invalid-batch-0",
+        "invalid-batch--1",
+        "invalid-batch-1000000",
+        "capacity-exhausted"
+      ],
+      "workUnits": [
+        {
+          "req_id": 1,
+          "header_prefix": "0000002059f32d3eb8a14be1ffa4d060e4c512096548ec54fde6801740b2ade805c10afc179f38803590e952a916a620c998c4ad28d03b5c288b7f5fd6ab706ea1655c4ba9efcb6affff7f20",
+          "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+          "expires_at": 1791750657,
+          "height": 1,
+          "network": "tensor-reg",
+          "tip_hash": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+          "stepbind": 1,
+          "v4": 1
+        },
+        {
+          "req_id": 2,
+          "header_prefix": "0000002059f32d3eb8a14be1ffa4d060e4c512096548ec54fde6801740b2ade805c10afc1bc94950cea0739b6b2225612cfb02b679698d189d13b90a71e2af9a1a09d3b3a9efcb6affff7f20",
+          "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+          "expires_at": 1791750657,
+          "height": 1,
+          "network": "tensor-reg",
+          "tip_hash": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+          "stepbind": 1,
+          "v4": 1
+        },
+        {
+          "height": 1,
+          "network": "tensor-reg",
+          "tip_hash": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+          "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+          "expires_at": 1791750657,
+          "template_id": 2,
+          "issued_count": 2,
+          "units_truncated": 1,
+          "capacity_reason": "tracker_full",
+          "stepbind": 1,
+          "v4": 1,
+          "req_id": 3,
+          "header_prefix": "0000002059f32d3eb8a14be1ffa4d060e4c512096548ec54fde6801740b2ade805c10afc448d6e31fa56034bc398589dfddbd363717250713b5a712a0daadf775e622125a9efcb6affff7f20"
+        },
+        {
+          "height": 1,
+          "network": "tensor-reg",
+          "tip_hash": "fc0ac105e8adb2401780e6fd54ec48650912c5e460d0a4ffe14ba1b83e2df359",
+          "target": "7fffff0000000000000000000000000000000000000000000000000000000000",
+          "expires_at": 1791750657,
+          "template_id": 2,
+          "issued_count": 2,
+          "units_truncated": 1,
+          "capacity_reason": "tracker_full",
+          "stepbind": 1,
+          "v4": 1,
+          "req_id": 4,
+          "header_prefix": "0000002059f32d3eb8a14be1ffa4d060e4c512096548ec54fde6801740b2ade805c10afc70315754228702c87a087d27c4d5763f7a02e616f7c77d1a100ea1d776ce2db8a9efcb6affff7f20"
+        }
+      ],
+      "distinctCoinbaseRoots": 4,
+      "heightAfter": 0,
+      "peerCount": 0
+    }
+  ],
+  "blocksAccepted": 0,
+  "rewardsEarned": 0,
+  "productionReady": false,
+  "scope": "Node-issued work on disposable lab identities, not real-work block acceptance"
+}

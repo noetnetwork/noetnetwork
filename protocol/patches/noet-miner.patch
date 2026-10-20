@@ -1,0 +1,1546 @@
+diff --git a/services/miner-api/src/components/constants.py b/services/miner-api/src/components/constants.py
+index d1312cd..ca51a24 100644
+--- a/services/miner-api/src/components/constants.py
++++ b/services/miner-api/src/components/constants.py
+@@ -2,6 +2,7 @@
+ Configuration constants for the mining proxy service
+ """
+ import os
++import re
+ import json
+ import logging
+ from dataclasses import dataclass, field
+@@ -52,7 +53,11 @@ MODEL_HASH = (os.getenv("MODEL_HASH") or os.getenv("MODEL_COMMIT") or "").strip(
+ # ZMQ Configuration
+ ZMQ_PULL_PORT = int(os.getenv("ZMQ_PULL_PORT", "6000"))
+ ZMQ_RECV_TIMEOUT_MS = int(os.getenv("ZMQ_RECV_TIMEOUT_MS", "6000000"))
+-TEST_MODE = bool(os.getenv("TEST_MODE", True))
++# Synthetic jobs must be explicitly requested; bool("false") is True in Python.
++_test_mode = os.getenv("TEST_MODE", "false").strip().lower()
++if _test_mode not in ("true", "1", "yes", "false", "0", "no"):
++    raise RuntimeError("TEST_MODE must be true/false, 1/0 or yes/no")
++TEST_MODE = _test_mode in ("true", "1", "yes")
+ ZMQ_RETRY_ATTEMPTS   = int(os.getenv("ZMQ_RETRY_ATTEMPTS",   "10"))
+ ZMQ_RETRY_BACKOFF    = float(os.getenv("ZMQ_RETRY_BACKOFF",    "1.0"))
+ 
+@@ -61,26 +66,22 @@ VDF_DISCRIMINANT_SIZE = int(os.getenv("VDF_DISCRIMINANT_SIZE", "1024"))
+ VDF_CHECKPOINT_SIZE = int(os.getenv("VDF_CHECKPOINT_SIZE", "32768"))
+ VDF_UPDATE_INTERVAL = float(os.getenv("VDF_UPDATE_INTERVAL", "0.1"))
+ 
+-# Global VDF fallback (standard): the explorer runs a StreamingProver per
+-# parent hash and publishes its latest (tick, proof) checkpoint at
+-# /api/v1/vdf/{hashPrevBlock}. Consensus verifies a block's VDF purely
+-# against hashPrevBlock (no miner-specific input), so that pair is valid in
+-# any block on that parent. The proxy polls it, VERIFIES it locally with
+-# chiavdf.verify_from_hash (never trusted blindly) and adopts it whenever it
+-# is ahead of the local prover — or is the only source when no local prover
+-# runs. The local prover keeps running; whichever tick is higher wins
+-# (per-block monotonic, see LockFreeContext.update_vdf).
+-VDF_FALLBACK_ENABLED = os.getenv("VDF_FALLBACK_ENABLED", "true").lower() in ("true", "1", "yes")
+-VDF_FALLBACK_URL = os.getenv("VDF_FALLBACK_URL", "https://mempool.tensorcash.org/api/v1/vdf").rstrip("/")
++# NOET must generate its own VDF proofs. Remote proof fallback and
++# unverified proof adoption are not supported by this reviewed build.
++for _setting in ("VDF_FALLBACK_ENABLED", "VDF_FALLBACK_ALLOW_UNVERIFIED"):
++    _value = os.getenv(_setting, "false").strip().lower()
++    if _value not in ("false", "0", "no"):
++        raise RuntimeError(_setting + " must remain disabled in NOET")
++if os.getenv("VDF_FALLBACK_URL", "").strip():
++    raise RuntimeError("VDF_FALLBACK_URL is not supported in NOET")
++VDF_FALLBACK_ENABLED = False
++VDF_FALLBACK_URL = ""
+ VDF_FALLBACK_POLL_INTERVAL = float(os.getenv("VDF_FALLBACK_POLL_INTERVAL", "2.0"))
+ VDF_FALLBACK_TIMEOUT = float(os.getenv("VDF_FALLBACK_TIMEOUT", "3.0"))
+ # Only re-verify (and adopt) a remote proof when it leads the tick we already
+ # hold by at least this many iterations — verification is cheap but not free.
+ VDF_FALLBACK_MIN_LEAD = int(os.getenv("VDF_FALLBACK_MIN_LEAD", "32768"))
+-# Without chiavdf there is nothing to verify with. Adopting an unverified
+-# remote proof risks a bad-vdf-proof orphan; opt in explicitly (desktop /
+-# standalone mode where mining is otherwise impossible).
+-VDF_FALLBACK_ALLOW_UNVERIFIED = os.getenv("VDF_FALLBACK_ALLOW_UNVERIFIED", "false").lower() in ("true", "1", "yes")
++VDF_FALLBACK_ALLOW_UNVERIFIED = False
+ 
+ # Request Manager Configuration
+ MIN_ACTIVE_REQUESTS = int(os.getenv("MIN_ACTIVE_REQUESTS", "32"))
+@@ -445,76 +446,71 @@ FALLBACK_MODEL_CONFIGS: Dict[str, ModelConfig] = {
+ DEFAULT_MODEL_CONFIG = FALLBACK_MODEL_CONFIGS["Qwen/Qwen3-8B"]
+ 
+ 
++def _registered_model(model_data: dict) -> ModelConfig:
++    """Build a configuration only from a complete registry identity."""
++    if not isinstance(model_data, dict):
++        raise RuntimeError("Registered model identity must be an object")
++    for key in ("model_hash", "model_name", "model_commit"):
++        if not isinstance(model_data.get(key), str) or not model_data[key].strip():
++            raise RuntimeError("Registered model identity is incomplete")
++    if not re.fullmatch(r"[a-f0-9]{40}", model_data["model_commit"]):
++        raise RuntimeError("Registered model revision must be a full immutable commit")
++    if not re.fullmatch(r"[a-f0-9]{64}", model_data["model_hash"]):
++        raise RuntimeError("Registered model hash must be a complete digest")
++    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", model_data["model_name"]):
++        raise RuntimeError("Registered model needs an organization/model identifier")
++    return ModelConfig(
++        model_hash=model_data["model_hash"],
++        model_name=model_data["model_name"],
++        model_commit=model_data["model_commit"],
++        difficulty=model_data.get("difficulty", DEFAULT_DIFFICULTY),
++        ipfs_cid=model_data.get("cid"),
++        target_adj=None,
++        txid=model_data.get("txid"),
++        block_hash=model_data.get("block_hash"),
++        block_height=model_data.get("block_height"),
++    )
++
++
+ def get_model_config(model_name: str, model_client=None) -> ModelConfig:
+-    """
+-    Get model configuration by name.
+-    First tries the model client if provided, then falls back to static config.
+-
+-    Auto-select callers (no MODEL_COMMIT pin) pass through here. When a
+-    name maps to multiple registered commits on chain (e.g. Qwen/Qwen3-0.6B
+-    with two simultaneous registrations), pick deterministically — the
+-    record with the highest block_height — so every miner converges on
+-    the same commit without needing operator intervention.
+-    """
+-    if model_client:
+-        records = model_client.get_models_by_name(model_name)
+-        if records:
+-            if len(records) > 1:
+-                records = sorted(
+-                    records,
+-                    key=lambda r: (r.get("block_height") or 0, r.get("model_commit") or ""),
+-                    reverse=True,
+-                )
+-                logger.info(
+-                    "[get_model_config] %d commits for %s; auto-picking %s (block_height=%s)",
+-                    len(records),
+-                    model_name,
+-                    (records[0].get("model_commit") or "")[:12],
+-                    records[0].get("block_height"),
+-                )
+-            model_data = records[0]
+-            return ModelConfig(
+-                model_hash=model_data.get("model_hash", ""),
+-                model_name=model_data.get("model_name", model_name),
+-                model_commit=model_data.get("model_commit", ""),
+-                difficulty=model_data.get("difficulty", DEFAULT_DIFFICULTY),
+-                ipfs_cid=model_data.get("cid"),
+-                target_adj=None,
+-                txid=model_data.get("txid"),
+-                block_hash=model_data.get("block_hash"),
+-                block_height=model_data.get("block_height")
+-            )
+-        return FALLBACK_MODEL_CONFIGS.get(model_name, DEFAULT_MODEL_CONFIG)
+-    return FALLBACK_MODEL_CONFIGS.get(model_name, DEFAULT_MODEL_CONFIG)
++    """Require one registered revision; never substitute a fallback model."""
++    if model_client is None:
++        raise RuntimeError("Model registry is required for mining")
++    records = model_client.get_models_by_name(model_name)
++    if not records:
++        raise RuntimeError("Requested model is not registered")
++    if len(records) != 1:
++        raise RuntimeError("Multiple model revisions are registered; pin MODEL_COMMIT")
++    model = _registered_model(records[0])
++    if model.model_name != model_name:
++        raise RuntimeError("Registry model does not match the requested model")
++    return model
++
++
++def get_pinned_model_config(model_name: str, model_commit: str, model_client) -> ModelConfig:
++    """Require the registry to return the exact configured name and revision."""
++    if model_client is None or not model_name or not model_commit:
++        raise RuntimeError("A complete model pin and registry are required")
++    record = model_client.get_model_by_name_and_commit(model_name, model_commit)
++    if not record:
++        raise RuntimeError("Pinned model is not registered")
++    model = _registered_model(record)
++    if model.model_name != model_name or model.model_commit != model_commit:
++        raise RuntimeError("Registry identity does not match the model pin")
++    return model
+ 
+ 
+ def get_model_config_by_hash(model_hash: str, model_client=None) -> Optional[ModelConfig]:
+-    """
+-    Get model configuration by hash.
+-    First tries the model client if provided, then checks fallback configs.
+-    """
+-    # Try to get from model client if available
+-    if model_client:
+-        model_data = model_client.get_model_by_hash(model_hash)
+-        if model_data:
+-            return ModelConfig(
+-                model_hash=model_data.get("model_hash", model_hash),
+-                model_name=model_data.get("model_name", ""),
+-                model_commit=model_data.get("model_commit", ""),
+-                difficulty=model_data.get("difficulty", DEFAULT_DIFFICULTY),
+-                ipfs_cid=model_data.get("cid"),
+-                target_adj=None,
+-                txid=model_data.get("txid"),
+-                block_hash=model_data.get("block_hash"),
+-                block_height=model_data.get("block_height")
+-            )
+-
+-    # Check fallback configs
+-    for config in FALLBACK_MODEL_CONFIGS.values():
+-        if config.model_hash == model_hash:
+-            return config
+-
+-    return None
++    """Return only a matching registered identity, with no static fallback."""
++    if model_client is None:
++        return None
++    record = model_client.get_model_by_hash(model_hash)
++    if not record:
++        return None
++    model = _registered_model(record)
++    if model.model_hash != model_hash:
++        raise RuntimeError("Registry model hash does not match the requested hash")
++    return model
+ 
+ 
+ @dataclass
+diff --git a/services/miner-api/src/components/context.py b/services/miner-api/src/components/context.py
+index 7045cc7..bc238de 100644
+--- a/services/miner-api/src/components/context.py
++++ b/services/miner-api/src/components/context.py
+@@ -1,7 +1,8 @@
+ """
+-Lock-free context management for mining state
++Immutable snapshots with serialized updates for mining state
+ """
+ import time
++import threading
+ import logging
+ from dataclasses import dataclass
+ from typing import Optional
+@@ -45,13 +46,15 @@ class MiningSnapshot:
+ 
+ class LockFreeContext:
+     """
+-    Thread-safe context using atomic reference swapping.
+-    
+-    This relies on Python's GIL making reference assignment atomic.
+-    No additional locking needed for the simple read/write pattern.
++    Immutable snapshots with serialized read-modify-write updates.
++
++    The public name is retained for source compatibility. An atomic reference
++    assignment alone cannot prevent competing writers from using stale state.
++    Readers still take the current immutable snapshot without blocking.
+     """
+     
+     def __init__(self, default_block_hash: str, target: str):
++        self._update_lock = threading.Lock()
+         self._snapshot = MiningSnapshot(
+             block_hash=default_block_hash,
+             header_prefix="0" * 152,
+@@ -79,42 +82,43 @@ class LockFreeContext:
+         ``stepbind`` and ``height`` describe THIS job as issued by bcore and
+         are never inherited from the previous snapshot.
+ 
+-        Thread-safe: Creates new immutable object, then atomically assigns reference.
++        Thread-safe: Serializes each read-modify-write update.
+         """
+-        if v4 and not stepbind:
+-            # Fail closed: v4 is verified on the StepBind replay path; a job
+-            # claiming v4 without stepbind can never produce a valid proof.
+-            raise ValueError("mining job marks v4 without stepbind")
+-        old = self._snapshot
+-        block_changed = block_hash != old.block_hash
+-        # Reset VDF state on new block to avoid mixing proofs across challenges.
+-        vdf_proof = None if block_changed else old.vdf_proof
+-        vdf_tick = 0 if block_changed else old.vdf_tick
+-        if block_changed:
+-            self.vdf_initialised = False
+-        self._snapshot = MiningSnapshot(
+-            block_hash=block_hash,
+-            header_prefix=header_prefix,
+-            target=target,
+-            request_id=request_id,
+-            vdf_proof=vdf_proof,
+-            vdf_tick=vdf_tick,
+-            timestamp=time.time(),
+-            stepbind=bool(stepbind),
+-            v4=bool(v4),
+-            height=int(height) if height is not None else None,
+-            # Always taken from THIS job, never carried over: a job
+-            # without a share target (zmq path) must not inherit a
+-            # stale one from a previous broker job.
+-            base_share_target=base_share_target,
+-        )
+-
+-        if block_changed:
+-            logger.info(f"Block hash changed: {old.block_hash[:16]}... -> {block_hash[:16]}...")
++        with self._update_lock:
++            if v4 and not stepbind:
++                # Fail closed: v4 is verified on the StepBind replay path; a job
++                # claiming v4 without stepbind can never produce a valid proof.
++                raise ValueError("mining job marks v4 without stepbind")
++            old = self._snapshot
++            block_changed = block_hash != old.block_hash
++            # Reset VDF state on new block to avoid mixing proofs across challenges.
++            vdf_proof = None if block_changed else old.vdf_proof
++            vdf_tick = 0 if block_changed else old.vdf_tick
++            if block_changed:
++                self.vdf_initialised = False
++            self._snapshot = MiningSnapshot(
++                block_hash=block_hash,
++                header_prefix=header_prefix,
++                target=target,
++                request_id=request_id,
++                vdf_proof=vdf_proof,
++                vdf_tick=vdf_tick,
++                timestamp=time.time(),
++                stepbind=bool(stepbind),
++                v4=bool(v4),
++                height=int(height) if height is not None else None,
++                # Always taken from THIS job, never carried over: a job
++                # without a share target (zmq path) must not inherit a
++                # stale one from a previous broker job.
++                base_share_target=base_share_target,
++            )
++
++            if block_changed:
++                logger.info(f"Block hash changed: {old.block_hash[:16]}... -> {block_hash[:16]}...")
+         
+-        if not self.miner_initialised:
+-            self.miner_initialised = True
+-        return block_changed
++            if not self.miner_initialised:
++                self.miner_initialised = True
++            return block_changed
+     
+     def update_vdf(self, vdf_proof: str, vdf_tick: int,
+                    block_hash: Optional[str] = None,
+@@ -131,36 +135,37 @@ class LockFreeContext:
+         `block_hash`, when given, must match the snapshot's block: a remote
+         fetch that completes after a block change is stale and is dropped.
+ 
+-        Thread-safe: Creates new immutable object, then atomically assigns reference.
++        Thread-safe: Serializes each read-modify-write update.
+         """
+-        old = self._snapshot
+-        if block_hash is not None and block_hash != old.block_hash:
+-            logger.debug(f"VDF update dropped: stale block ({source}, tick={vdf_tick})")
+-            return False
+-        if old.vdf_proof is not None and vdf_tick <= old.vdf_tick:
+-            return False
+-        self._snapshot = MiningSnapshot(
+-            block_hash=old.block_hash,
+-            header_prefix=old.header_prefix,
+-            target=old.target,
+-            request_id=old.request_id,
+-            vdf_proof=vdf_proof,
+-            vdf_tick=vdf_tick,
+-            timestamp=old.timestamp,
+-            stepbind=old.stepbind,
+-            v4=old.v4,
+-            height=old.height,
+-            base_share_target=old.base_share_target,
+-            vdf_source=source,
+-        )
+-        if not self.vdf_initialised:
+-            self.vdf_initialised = True
+-
+-        if source != old.vdf_source or old.vdf_proof is None:
+-            logger.info(f"VDF source now {source} (tick={vdf_tick})")
+-        else:
+-            logger.debug(f"VDF updated: tick={vdf_tick} ({source})")
+-        return True
++        with self._update_lock:
++            old = self._snapshot
++            if block_hash is not None and block_hash != old.block_hash:
++                logger.debug(f"VDF update dropped: stale block ({source}, tick={vdf_tick})")
++                return False
++            if old.vdf_proof is not None and vdf_tick <= old.vdf_tick:
++                return False
++            self._snapshot = MiningSnapshot(
++                block_hash=old.block_hash,
++                header_prefix=old.header_prefix,
++                target=old.target,
++                request_id=old.request_id,
++                vdf_proof=vdf_proof,
++                vdf_tick=vdf_tick,
++                timestamp=old.timestamp,
++                stepbind=old.stepbind,
++                v4=old.v4,
++                height=old.height,
++                base_share_target=old.base_share_target,
++                vdf_source=source,
++            )
++            if not self.vdf_initialised:
++                self.vdf_initialised = True
++
++            if source != old.vdf_source or old.vdf_proof is None:
++                logger.info(f"VDF source now {source} (tick={vdf_tick})")
++            else:
++                logger.debug(f"VDF updated: tick={vdf_tick} ({source})")
++            return True
+ 
+     def activate_solution_cooldown(self, duration_seconds: float, reason: str = "solution_found") -> float:
+         """
+diff --git a/services/miner-api/src/components/proxy.py b/services/miner-api/src/components/proxy.py
+index 024eb42..8608e76 100644
+--- a/services/miner-api/src/components/proxy.py
++++ b/services/miner-api/src/components/proxy.py
+@@ -779,21 +779,8 @@ class RequestManager:
+             elif not self.model_client:
+                 raise RuntimeError("Model client not initialized")
+             elif model_pinned:
+-                selected_model = self.model_client.get_model_by_name_and_commit(configured_name, configured_commit)
+-                if not selected_model:
+-                    raise RuntimeError(
+-                        f"Pinned model '{configured_name}@{configured_commit}' is not available in blockchain registry"
+-                    )
+-                model_config = constants.ModelConfig(
+-                    model_hash=selected_model.get("model_hash", ""),
+-                    model_name=selected_model.get("model_name", configured_name),
+-                    model_commit=selected_model.get("model_commit", configured_commit),
+-                    difficulty=selected_model.get("difficulty", constants.DEFAULT_DIFFICULTY),
+-                    ipfs_cid=selected_model.get("cid"),
+-                    target_adj=None,
+-                    txid=selected_model.get("txid"),
+-                    block_hash=selected_model.get("block_hash"),
+-                    block_height=selected_model.get("block_height")
++                model_config = constants.get_pinned_model_config(
++                    configured_name, configured_commit, self.model_client
+                 )
+             else:
+                 # Get model config using name-based helper in auto-select / legacy mode
+@@ -807,8 +794,7 @@ class RequestManager:
+                     raise RuntimeError("Model not found in blockchain registry")
+ 
+             if model_name != model_config.model_name:
+-                logger.error(f"[RequestManager] Model name mismatch: {model_name} != {model_config.model_name} - Defaulting to {model_config.model_name}")
+-                data['model'] = model_config.model_name
++                raise RuntimeError("Registry model does not match the requested mining model")
+ 
+             # Get current mining context
+             snapshot = self.context.read()
+diff --git a/services/miner-api/src/components/vdf_service.py b/services/miner-api/src/components/vdf_service.py
+index 748aeca..5dcf56d 100644
+--- a/services/miner-api/src/components/vdf_service.py
++++ b/services/miner-api/src/components/vdf_service.py
+@@ -56,15 +56,7 @@ class VDFService:
+     def start(self):
+         """Start VDF service in background thread"""
+         if not CHIAVDF_AVAILABLE:
+-            logger.warning("VDF service not started - chiavdf not available")
+-            if constants.VDF_FALLBACK_ENABLED and constants.VDF_FALLBACK_ALLOW_UNVERIFIED:
+-                self.running = True
+-                self._running = True
+-                self._start_remote()
+-            elif constants.VDF_FALLBACK_ENABLED:
+-                logger.warning("Remote VDF fallback NOT started: chiavdf missing so proofs "
+-                               "cannot be verified (set VDF_FALLBACK_ALLOW_UNVERIFIED=true to opt in)")
+-            return
++            raise RuntimeError("Local VDF support is required; NOET will not use remote or unverified proofs")
+ 
+         if self.running:
+             logger.warning("VDF service already running")
+diff --git a/services/miner-api/vllm_supervisor.py b/services/miner-api/vllm_supervisor.py
+index 6f1e745..479f475 100644
+--- a/services/miner-api/vllm_supervisor.py
++++ b/services/miner-api/vllm_supervisor.py
+@@ -1,5 +1,8 @@
+ #!/usr/bin/env python3
+ import json
++import hmac
++from noet.model_runtime import checked_model_directory, backend_environment, required_key
++from noet.rpc import NoRedirect
+ import os
+ import signal
+ import subprocess
+@@ -16,10 +19,10 @@ class VllmSupervisor:
+         self.max_model_len = os.getenv("MAX_MODEL_LEN", "10000").strip()
+         self.device = os.getenv("DEVICE", "auto").strip()
+         self.gpu_mem_util = os.getenv("GPU_MEM_UTIL", "0.8").strip()
+-        self.api_key = (os.getenv("API_KEY", "dev-secret") or "dev-secret").strip()
++        self.api_key = required_key("API_KEY")
+         self.download_dir = os.getenv("HF_HUB_CACHE", "/models/hub").strip() or "/models/hub"
+ 
+-        self.vllm_host = os.getenv("VLLM_HOST", "0.0.0.0").strip() or "0.0.0.0"
++        self.vllm_host = os.getenv("VLLM_HOST", "127.0.0.1").strip() or "127.0.0.1"
+         self.vllm_port = int(os.getenv("VLLM_PORT", "8000"))
+         # Tool-calling parity with the retired llama-server backend (--jinja +
+         # hermes template): without a parser vLLM 400s any request carrying
+@@ -27,70 +30,30 @@ class VllmSupervisor:
+         # override per-deployment if a non-hermes model is assigned.
+         self.tool_call_parser = os.getenv("VLLM_TOOL_CALL_PARSER", "hermes").strip()
+ 
+-        self.control_host = os.getenv("VLLM_CONTROL_HOST", "0.0.0.0").strip() or "0.0.0.0"
++        self.control_host = os.getenv("VLLM_CONTROL_HOST", "127.0.0.1").strip() or "127.0.0.1"
+         self.control_port = int(os.getenv("VLLM_CONTROL_PORT", "8001"))
+-        self.admin_key = (os.getenv("VLLM_ADMIN_KEY", "").strip() or self.api_key)
++        self.admin_key = required_key("VLLM_ADMIN_KEY")
++        if hmac.compare_digest(self.api_key, self.admin_key):
++            raise ValueError("Use distinct inference and administrative credentials")
+         self.switch_timeout_sec = int(os.getenv("VLLM_SWITCH_TIMEOUT_SEC", "120"))
+-        self.runtime_model_state_path = (
+-            os.getenv("MINER_RUNTIME_MODEL_STATE_PATH", "/data/miner_runtime_model_state.json").strip()
+-            or "/data/miner_runtime_model_state.json"
+-        )
+-        self.model_source = "env"
++        self.model_source = "approved-local"
++        self.health_opener = urlrequest.build_opener(urlrequest.ProxyHandler({}), NoRedirect)
+ 
+         self.proc = None
+         self.lock = threading.RLock()
+         self.stopping = False
+-        self._load_runtime_model_state()
+-
+-    def _load_runtime_model_state(self) -> None:
+-        path = self.runtime_model_state_path
+-        try:
+-            if not path or not os.path.exists(path):
+-                return
+-            with open(path, "r", encoding="utf-8") as f:
+-                state = json.load(f)
+-            if not isinstance(state, dict):
+-                return
+-            model_name = (state.get("model_name") or "").strip()
+-            model_commit = (state.get("model_commit") or "").strip()
+-            # Accept only fully pinned state to avoid partial corruption.
+-            if not model_name or not model_commit:
+-                return
+-            self.model_name = model_name
+-            self.model_commit = model_commit
+-            self.model_source = "persisted"
+-        except Exception:
+-            # Keep startup resilient; proxy will perform startup sync as fallback.
+-            return
+-
+-    def _save_runtime_model_state(self) -> None:
+-        path = self.runtime_model_state_path
+-        if not path:
+-            return
+-        payload = {
+-            "model_name": self.model_name,
+-            "model_commit": self.model_commit,
+-            "source": "runtime",
+-            "updated_at": int(time.time()),
+-        }
+-        try:
+-            parent = os.path.dirname(path)
+-            if parent:
+-                os.makedirs(parent, exist_ok=True)
+-            tmp = f"{path}.tmp"
+-            with open(tmp, "w", encoding="utf-8") as f:
+-                json.dump(payload, f, ensure_ascii=True)
+-            os.replace(tmp, path)
+-        except Exception:
+-            # Non-fatal persistence failure.
+-            return
++        # A saved runtime preference cannot override the reviewed deployment.
+ 
+     def _server_args(self, model_name: str, model_commit: str) -> list[str]:
++        local_model = checked_model_directory(model_name, model_commit)
+         args = [
+             "vllm",
+             "serve",
++            local_model,
++            "--tokenizer",
++            local_model,
++            "--served-model-name",
+             model_name,
+-            "--trust-remote-code",
+             "--tensor-parallel-size",
+             "1",
+             "--max-num-seqs",
+@@ -99,8 +62,6 @@ class VllmSupervisor:
+             self.vllm_host,
+             "--port",
+             str(self.vllm_port),
+-            "--api-key",
+-            self.api_key,
+             "--download-dir",
+             self.download_dir,
+             "--load-format",
+@@ -117,8 +78,6 @@ class VllmSupervisor:
+                 "--tool-call-parser",
+                 self.tool_call_parser,
+             ]
+-        if model_commit:
+-            args += ["--revision", model_commit]
+         if self.device and self.device != "cpu":
+             args += ["--gpu-memory-utilization", self.gpu_mem_util]
+         return args
+@@ -127,9 +86,11 @@ class VllmSupervisor:
+         deadline = time.time() + timeout_sec
+         url = f"http://127.0.0.1:{self.vllm_port}/health"
+         while time.time() < deadline:
++            if self.proc is None or self.proc.poll() is not None:
++                return False
+             try:
+                 req = urlrequest.Request(url, headers={"Authorization": f"Bearer {self.api_key}"})
+-                with urlrequest.urlopen(req, timeout=2) as resp:
++                with self.health_opener.open(req, timeout=2) as resp:
+                     if 200 <= resp.status < 300:
+                         return True
+             except Exception:
+@@ -139,28 +100,30 @@ class VllmSupervisor:
+ 
+     def start_backend(self, model_name: str, model_commit: str) -> None:
+         args = self._server_args(model_name, model_commit)
+-        self.proc = subprocess.Popen(args)
++        self.proc = subprocess.Popen(args, env=backend_environment(self.api_key))
+         if not self._wait_backend_ready(self.switch_timeout_sec):
+             self.stop_backend(force=True)
+             raise RuntimeError("vllm backend did not become healthy in time")
+ 
+     def stop_backend(self, force: bool = False) -> None:
+-        if not self.proc:
++        proc = self.proc
++        if proc is None:
+             return
+-        if self.proc.poll() is not None:
++        if proc.poll() is not None:
+             self.proc = None
+             return
+         try:
+-            self.proc.terminate()
+-            self.proc.wait(timeout=20)
+-        except Exception:
+-            if force:
+-                try:
+-                    self.proc.kill()
+-                except Exception:
+-                    pass
++            proc.terminate()
++            try:
++                proc.wait(timeout=20)
++            except subprocess.TimeoutExpired:
++                proc.kill()
++                proc.wait(timeout=5)
+         finally:
+-            self.proc = None
++            # Keep ownership of a child that could not be stopped. Never lose
++            # track of a process still holding GPU memory.
++            if proc.poll() is not None:
++                self.proc = None
+ 
+     def switch_model(self, model_name: str, model_commit: str) -> dict:
+         model_name = (model_name or "").strip()
+@@ -168,29 +131,11 @@ class VllmSupervisor:
+         if not model_name:
+             raise RuntimeError("model_name is required")
+ 
+-        with self.lock:
+-            old_name = self.model_name
+-            old_commit = self.model_commit
+-            if old_name == model_name and old_commit == model_commit:
+-                return {"ok": True, "switched": False, "active_model": self.active_model()}
+-
+-            self.stop_backend(force=True)
+-            try:
+-                self.start_backend(model_name, model_commit)
+-            except Exception as e:
+-                try:
+-                    self.start_backend(old_name, old_commit)
+-                    self.model_name = old_name
+-                    self.model_commit = old_commit
+-                except Exception:
+-                    pass
+-                raise RuntimeError(f"failed to switch backend model: {e}")
++        if (model_name, model_commit) != (self.model_name, self.model_commit):
++            raise RuntimeError("Model changes require a reviewed deployment restart")
+ 
+-            self.model_name = model_name
+-            self.model_commit = model_commit
+-            self.model_source = "runtime"
+-            self._save_runtime_model_state()
+-            return {"ok": True, "switched": True, "active_model": self.active_model()}
++        with self.lock:
++            return {"ok": True, "switched": False, "active_model": self.active_model()}
+ 
+     def active_model(self) -> dict:
+         return {
+@@ -216,11 +161,15 @@ SUP = VllmSupervisor()
+ class Handler(BaseHTTPRequestHandler):
+     server_version = "vllm-supervisor/1.0"
+ 
++    def setup(self):
++        super().setup()
++        self.connection.settimeout(10)
++
+     def _auth_ok(self) -> bool:
+         if not SUP.admin_key:
+-            return True
++            return False
+         auth = self.headers.get("Authorization", "")
+-        return auth == f"Bearer {SUP.admin_key}"
++        return hmac.compare_digest(auth.encode("utf-8"), f"Bearer {SUP.admin_key}".encode("utf-8"))
+ 
+     def _write_json(self, status: int, payload: dict):
+         body = json.dumps(payload).encode("utf-8")
+@@ -232,7 +181,8 @@ class Handler(BaseHTTPRequestHandler):
+ 
+     def do_GET(self):
+         if self.path == "/health":
+-            self._write_json(200, SUP.health())
++            health = SUP.health()
++            self._write_json(200 if health["backend_up"] else 503, health)
+             return
+         if self.path == "/admin/active-model":
+             if not self._auth_ok():
+@@ -250,7 +200,14 @@ class Handler(BaseHTTPRequestHandler):
+             self._write_json(401, {"error": "unauthorized"})
+             return
+         try:
+-            length = int(self.headers.get("Content-Length", "0"))
++            lengths = self.headers.get_all("Content-Length", [])
++            if len(lengths) != 1 or self.headers.get("Transfer-Encoding"):
++                self._write_json(400, {"error": "invalid_framing"})
++                return
++            length = int(lengths[0])
++            if not 1 <= length <= 4096:
++                self._write_json(413, {"error": "request_too_large"})
++                return
+             raw = self.rfile.read(length) if length > 0 else b"{}"
+             payload = json.loads(raw.decode("utf-8"))
+             result = SUP.switch_model(
+@@ -259,7 +216,7 @@ class Handler(BaseHTTPRequestHandler):
+             )
+             self._write_json(200, result)
+         except Exception as e:
+-            self._write_json(500, {"ok": False, "error": str(e)})
++            self._write_json(400, {"ok": False, "error": "model_change_rejected"})
+ 
+     def log_message(self, fmt, *args):
+         pass
+diff --git a/services/verification-api/src/detector_gate.py b/services/verification-api/src/detector_gate.py
+index b6afa4d..2fbb61d 100644
+--- a/services/verification-api/src/detector_gate.py
++++ b/services/verification-api/src/detector_gate.py
+@@ -921,6 +921,25 @@ def cache_tag(activation: Optional[_policy.Activation]) -> str:
+ # --------------------------------------------------------------------------- #
+ # the gate
+ # --------------------------------------------------------------------------- #
++def incomplete_feature_details(record, positions):
++    """Bounded diagnostics only; never change eligibility, scores or severity."""
++    wanted = {p for p in positions if type(p) is int and 1 <= p <= 256}
++    entries = record.get("feature_refusals")
++    if not isinstance(entries, list):
++        return []
++    details = []
++    for entry in entries[:256]:
++        if not isinstance(entry, dict):
++            continue
++        step, reason = entry.get("step"), entry.get("reason")
++        if type(step) is not int or step + 1 not in wanted or not isinstance(reason, str):
++            continue
++        details.append({"position": step + 1, "reason": " ".join(reason[:400].split())[:240]})
++        if len(details) == 8:
++            break
++    return details
++
++
+ def evaluate(*, activation: _policy.Activation, staged, proof: Mapping[str, Any],
+              bound: Mapping[str, Any], verdict: Mapping[str, Any],
+              audit_id: Optional[str] = None, proof_hash: Optional[str] = None,
+@@ -1000,9 +1019,11 @@ def evaluate(*, activation: _policy.Activation, staged, proof: Mapping[str, Any]
+             # Eligible steps with no score from every required model. The
+             # missing scores could only have ADDED counted positions, so a
+             # clean count is not established and this is never a pass.
++            positions = outcome.joint.get('eligible_unscored_positions', [])
++            refusals = incomplete_feature_details(record, positions)
+             raise_as = DetectorEvidenceIncomplete(
+-                f"{detail}; unscored eligible positions "
+-                f"{outcome.joint.get('eligible_unscored_positions')}")
++                f"unscored eligible positions {positions}; feature refusals "
++                f"{json.dumps(refusals, ensure_ascii=True)}; {detail}")
+         else:
+             raise_as = DetectorNotReady(detail)
+         return unavailable(raise_as)
+diff --git a/services/verification-api/src/main.py b/services/verification-api/src/main.py
+index c4c4b5b..7857377 100644
+--- a/services/verification-api/src/main.py
++++ b/services/verification-api/src/main.py
+@@ -120,10 +120,13 @@ else:
+ from zmq_send_broker import ZmqSendBroker
+ from typing import Any
+ 
+-# Optional remote delegation (HTTP attestor)
+-REMOTE_VERIFY_ENABLED = os.getenv("REMOTE_VERIFY_ENABLED", "false").lower() in ("1", "true", "yes")
+-REMOTE_VERIFY_BASE_URL = os.getenv("REMOTE_VERIFY_BASE_URL")
+-REMOTE_VERIFY_API_KEY = os.getenv("REMOTE_VERIFY_API_KEY")
++from noet.verifier_transport import private_endpoint, check_request, MAX_REQUEST_BYTES
++from noet.admission import AdmissionBudget, AdmissionFull
++
++# NOET requires local independent verification; remote verdict delegation is disabled.
++REMOTE_VERIFY_ENABLED = False
++REMOTE_VERIFY_BASE_URL = None
++REMOTE_VERIFY_API_KEY = None
+ try:
+     REMOTE_VERIFY_TIMEOUT = float(os.getenv("REMOTE_VERIFY_TIMEOUT_SECONDS", "60"))
+ except Exception:
+@@ -186,14 +189,19 @@ class AsyncValidator:
+             f"pushing results to {push_host} port {push_port}"
+         )
+ 
++        inbound = private_endpoint(os.getenv("NOET_VERIFIER_BIND", "127.0.0.1"), pull_port)
++        endpoint = private_endpoint(push_host, push_port)
++        self.admission = AdmissionBudget()
+         self.context = zmq.Context()
+ 
+         # PULL socket for receiving requests
+         self.pull_socket = self.context.socket(zmq.PULL)
+-        self.pull_socket.bind(f"tcp://*:{pull_port}")
++        self.pull_socket.setsockopt(zmq.MAXMSGSIZE, MAX_REQUEST_BYTES)
++        self.pull_socket.setsockopt(zmq.RCVHWM, 4)
++        self.pull_socket.setsockopt(zmq.LINGER, 0)
++        self.pull_socket.bind(inbound)
+ 
+         # OUTBOUND: use send broker (single owner thread for the network PUSH)
+-        endpoint = f"tcp://{push_host}:{push_port}"
+         self.logger.info(f"Outbound sender endpoint: {endpoint}")
+         self.sender = ZmqSendBroker(
+             endpoint=endpoint,
+@@ -754,13 +762,14 @@ class AsyncValidator:
+         """Parse and enqueue validation request"""
+         hash_id = None
+         try:
++            admission = self.admission.admit(message)
+             request = ValidationRequest.ValidationRequest.GetRootAs(message, 0)
+ 
+             hash_id_array = request.HashIdAsNumpy()
+             hash_id = hash_id_array.tobytes() if hash_id_array is not None else None
+ 
+-            if hash_id is None:
+-                self.logger.error("Received request with no hash_id")
++            if hash_id is None or len(hash_id) != 32:
++                self.logger.error("Received request with invalid hash_id")
+                 return
+ 
+             validation_type = request.ValidationType()
+@@ -779,6 +788,7 @@ class AsyncValidator:
+                 'validation_type': validation_type,
+                 'request': request,
+                 'raw_message': message,
++                '_admission': admission,
+                 'timestamp': time.time(),
+                 'retry_count': retry_count  # Track retry count
+             }
+@@ -970,6 +980,9 @@ class AsyncValidator:
+             else:
+                 self.logger.warning(f"Unknown validation type: {validation_type}")
+ 
++        except AdmissionFull:
++            # No consensus verdict for overload. The requesting node may retry.
++            self.logger.warning("Verifier request admission is full; request not accepted")
+         except Exception as e:
+             self.logger.error(f"Error enqueuing request: {e}")
+             fallback_hash = hash_id if hash_id is not None else b'\x00' * 32
+@@ -981,9 +994,11 @@ class AsyncValidator:
+         raw_message: bytes,
+         retry_count: int,
+         execution_retry_count: int = 0,
++        admission=None,
+     ):
+         """Re-enqueue a full validation request with updated retry count"""
+         try:
++            admission = self.admission.admit(raw_message, admission)
+             # Update retry count
+             with self.retry_lock:
+                 self.retry_counts[hash_id] = retry_count
+@@ -998,6 +1013,7 @@ class AsyncValidator:
+                 'validation_type': ValidationType.ValidationType.Full,
+                 'request': request,
+                 'raw_message': raw_message,
++                '_admission': admission,
+                 'timestamp': time.time(),
+                 'retry_count': retry_count,
+                 'execution_retry_count': execution_retry_count,
+@@ -1022,6 +1038,7 @@ class AsyncValidator:
+         mca_set_enabled(False)  # Disable MCA noise for quick validations
+ 
+         while self.running:
++            request_data = None  # Release completed queue ownership before waiting.
+             try:
+                 # Get from queue with timeout
+                 _, _, request_data = self.quick_queue.get(timeout=0.1)
+@@ -1053,6 +1070,7 @@ class AsyncValidator:
+         mca_set_enabled(False)  # Disable MCA noise for quick smell validations
+ 
+         while self.running:
++            request_data = None  # Release completed queue ownership before waiting.
+             try:
+                 # Get from queue with timeout
+                 _, _, request_data = self.quick_smell_queue.get(timeout=0.1)
+@@ -1084,6 +1102,7 @@ class AsyncValidator:
+         mca_set_enabled(False)  # Disable MCA noise for logits validations
+ 
+         while self.running:
++            request_data = None  # Release completed queue ownership before waiting.
+             try:
+                 # Get from queue with timeout
+                 _, _, request_data = self.logits_queue.get(timeout=0.1)
+@@ -1140,6 +1159,7 @@ class AsyncValidator:
+         mca_set_enabled(False)
+ 
+         while self.running:
++            request_data = None  # Release completed queue ownership before waiting.
+             try:
+                 # Dynamic processing based on queue size
+                 if self.full_queue.qsize() > 10:
+@@ -1329,6 +1349,7 @@ class AsyncValidator:
+                 )
+ 
+         while self.running:
++            request_data = None  # Release completed queue ownership before waiting.
+             try:
+                 priority, _, request_data = self.batch_queue.get(timeout=1)
+             except queue.Empty:
+@@ -1467,6 +1488,7 @@ class AsyncValidator:
+     def process_model_validations(self):
+         """Process model validation queue"""
+         while self.running:
++            request_data = None  # Release completed queue ownership before waiting.
+             try:
+                 _, _, request_data = self.model_queue.get(timeout=0.1)
+                 # Transition: enqueued -> processing
+@@ -1485,6 +1507,7 @@ class AsyncValidator:
+     def process_challenge_validations(self):
+         """Process challenge validation queue"""
+         while self.running:
++            request_data = None  # Release completed queue ownership before waiting.
+             try:
+                 _, _, request_data = self.challenge_queue.get(timeout=0.1)
+                 with self._queue_lock:
+@@ -1711,7 +1734,7 @@ class AsyncValidator:
+ 
+                 if should_reenqueue:
+                     # Re-enqueue for another full validation attempt
+-                    self.reenqueue_full_validation(hash_id, request_data['raw_message'], retry_count + 1)
++                    self.reenqueue_full_validation(hash_id, request_data['raw_message'], retry_count + 1, admission=request_data['_admission'])
+                     # Don't send response yet, wait for retry
+                     return
+ 
+@@ -1769,6 +1792,7 @@ class AsyncValidator:
+                     request_data['raw_message'],
+                     retry_count,
+                     execution_retry_count + 1,
++                    admission=request_data['_admission'],
+                 )
+             else:
+                 self.logger.error(
+diff --git a/services/verification-api/src/model_verifier.py b/services/verification-api/src/model_verifier.py
+index d6507e9..16b666e 100644
+--- a/services/verification-api/src/model_verifier.py
++++ b/services/verification-api/src/model_verifier.py
+@@ -17,6 +17,8 @@ Difficulty semantics (bcore consensus):
+         expected_difficulty = normalizer * genesis_fpt / model_fpt
+ """
+ 
++from noet.model_runtime import approved_pretrained
++
+ import gc
+ import glob
+ import json
+@@ -127,14 +129,14 @@ class ModelAuditor:
+         self._precision_scale = _get_precision_scale()
+         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+         self.revision = revision
+-        self.config = AutoConfig.from_pretrained(
++        self.config = approved_pretrained(AutoConfig,
+             model_name_or_path,
+             revision=revision,
+             trust_remote_code=False,
+         )
+         if dtype is None:
+             dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+-        self.model = AutoModelForCausalLM.from_pretrained(
++        self.model = approved_pretrained(AutoModelForCausalLM,
+             model_name_or_path,
+             revision=revision,
+             torch_dtype=dtype,
+@@ -143,7 +145,7 @@ class ModelAuditor:
+             low_cpu_mem_usage=True,
+             device_map="auto" if torch.cuda.is_available() else None,
+         ).eval()
+-        self.tokenizer = AutoTokenizer.from_pretrained(
++        self.tokenizer = approved_pretrained(AutoTokenizer,
+             model_name_or_path, revision=revision, trust_remote_code=False
+         )
+         self.vocab_size = self.config.vocab_size
+diff --git a/services/verification-api/src/proof_verifier.py b/services/verification-api/src/proof_verifier.py
+index 722c5fe..e94fd95 100644
+--- a/services/verification-api/src/proof_verifier.py
++++ b/services/verification-api/src/proof_verifier.py
+@@ -90,7 +90,8 @@ from torch.backends.cuda import sdp_kernel as old_sdp
+ 
+ #------ HF
+ from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
+-from huggingface_hub import list_repo_files, hf_hub_download
++from noet.model_runtime import approved_pretrained, checked_model_directory
++from noet.verifier_entry import require_prompt_calibration
+ 
+ #------ numpy / sklearn / scipy
+ import numpy as np
+@@ -346,6 +347,30 @@ def _precision_replay_dtype(
+     return _PRECISION_TO_DTYPE.get(precision, torch.float32)
+ 
+ 
++def _replay_compute_dtype(declared: torch.dtype, *, precision: str, cpu: bool) -> torch.dtype:
++    """Model execution dtype for replay (NOET policy).
++
++    The declared precision still sets every rounding grid, ULP scale and
++    error-model sigma (``self.dtype`` / ``self.stated_dtype`` are unchanged).
++    Only the reference forward pass is computed in fp32 for bf16/fp16 proofs,
++    as the CPU path always did: a reference that rounds activations to bf16
++    at every layer adds its own drift to the residual and turned honest GPU
++    proofs RED at the unchanged logit-severity cap. FP8 proofs keep their
++    quantized activation dtype. ``NOET_REPLAY_COMPUTE=declared`` restores the
++    upstream GPU behaviour for diagnosis only.
++    """
++    if cpu:
++        return torch.float32
++    policy = os.getenv("NOET_REPLAY_COMPUTE", "fp32").strip().lower()
++    if policy == "declared":
++        return declared
++    if policy != "fp32":
++        raise ValueError("NOET_REPLAY_COMPUTE must be 'fp32' or 'declared'")
++    if precision in ("bf16", "fp16") and declared in (torch.bfloat16, torch.float16):
++        return torch.float32
++    return declared
++
++
+ def _env_flag(name: str, default: bool) -> bool:
+     raw = os.getenv(name)
+     if raw is None:
+@@ -1704,8 +1729,16 @@ class ProofVerifier:
+         try:
+             p = self.proof
+ 
++            # Refuse unreviewed model/precision before allocating tensors or
++            # loading a model. Missing context is an abstention, not a verdict.
++            if os.environ.get("NOET_REQUIRE_PROMPT_CALIBRATION") == "1":
++                try:
++                    require_prompt_calibration(p.get('model_identifier'), p.get('compute_precision'))
++                except ValueError as exc:
++                    raise _prompt_gibberish.PromptGibberishScoringError(str(exc)) from exc
+             # Model identification
+             self.model_name, self.commit_hash = p['model_identifier'].split('@')
++            checked_model_directory(self.model_name, self.commit_hash)
+             self.precision = p.get('compute_precision', 'fp16')
+             self.model_config_diff = p.get('model_config_diff', {})
+             self.dtype = _precision_replay_dtype(
+@@ -2195,6 +2228,7 @@ class ProofVerifier:
+ 
+     def _load_or_reuse_model(self, force: bool = False) -> None:
+         """Load model, trying to reuse cached instance if present."""
++        checked_model_directory(self.model_name, self.commit_hash)
+         identifier = f"{self.model_name}@{self.commit_hash}"
+ 
+         # Check if model is actually in registry AND not forced reload
+@@ -2287,7 +2321,7 @@ class ProofVerifier:
+             return numel * bytes_per_elem
+ 
+         # Estimate without loading full model
+-        config = AutoConfig.from_pretrained(
++        config = approved_pretrained(AutoConfig,
+             self.model_name, revision=self.commit_hash, trust_remote_code=False
+         )
+ 
+@@ -2396,7 +2430,7 @@ class ProofVerifier:
+         """Load the model with resource‑aware placement and IPFS fallback."""
+         # Model identity comes from the chain (open registration): never run
+         # repo-shipped code, never unpickle Hub weights.
+-        config = AutoConfig.from_pretrained(
++        config = approved_pretrained(AutoConfig,
+             self.model_name,
+             revision=self.commit_hash,
+             trust_remote_code=False,
+@@ -2483,8 +2517,8 @@ class ProofVerifier:
+ 
+         try:
+             cpu = not torch.cuda.is_available()
+-            requested_dtype = (torch.float32 if cpu else dtype)
+-            self.model = AutoModelForCausalLM.from_pretrained(
++            requested_dtype = _replay_compute_dtype(dtype, precision=self.precision, cpu=cpu)
++            self.model = approved_pretrained(AutoModelForCausalLM,
+                 self.model_name,
+                 revision=self.commit_hash,
+                 config=config,
+@@ -2493,14 +2527,9 @@ class ProofVerifier:
+                 trust_remote_code=False,
+                 use_safetensors=True,
+             ).eval()
+-        except Exception as hf_err:
+-            if self.ipfs_cid is None:
+-                raise
+-            warnings.warn(
+-                f"HF load failed ({hf_err}); attempting IPFS fallback…",
+-                RuntimeWarning,
+-            )
+-            self.model = self._load_model_from_ipfs(self.ipfs_cid, dtype=dtype)
++        except Exception:
++            # Never substitute a different artifact after a verified load fails.
++            raise
+         if self.model is None:
+             self.logger.error("Model load returned None for %s@%s", self.model_name, self.commit_hash)
+             return False
+@@ -2531,73 +2560,13 @@ class ProofVerifier:
+         """Lazy‑initialise tokenizer if absent."""
+         if self.tokenizer is not None:
+             return
+-        self.tokenizer = AutoTokenizer.from_pretrained(
++        self.tokenizer = approved_pretrained(AutoTokenizer,
+             self.model_name, revision=self.commit_hash
+         )
+ 
+     def _load_model_from_ipfs(self, cid: str, *, dtype: torch.dtype,
+                            storage_dir: Optional[str] = None) -> PreTrainedModel:
+-        """
+-        OPTIONAL fallback: download model weights by CID from IPFS via a
+-        local `ipfs` daemon (subprocess). The worker images do NOT ship
+-        an ipfs binary — the normal path is HuggingFace by model name;
+-        this fallback only works if you install ipfs yourself.
+-
+-        Args:
+-            cid: IPFS CID (v0 or v1)
+-            dtype: Torch dtype for model weights
+-            storage_dir: Base path to store models by CID
+-
+-        Returns:
+-            Loaded AutoModelForCausalLM in eval mode
+-        """
+-        # Clean CID
+-        cid_clean = cid.strip().rstrip('/')
+-        if '/ipfs/' in cid_clean:
+-            cid_clean = cid_clean.split('/ipfs/')[-1]
+-        cid_clean = cid_clean.split('/')[0]  # Take only CID part
+-
+-        # Setup paths
+-        os.makedirs(storage_dir, exist_ok=True)
+-        model_path = os.path.join(storage_dir, cid_clean)
+-
+-        # Return if already exists
+-        if os.path.isdir(model_path) and os.listdir(model_path):
+-            self.logger.debug(f"📂 Loading cached model at {model_path}")
+-            return AutoModelForCausalLM.from_pretrained(
+-                model_path, torch_dtype=dtype, device_map="auto", trust_remote_code=False
+-            ).eval()
+-
+-        # Initialize lightweight IPFS client
+-        self._ensure_ipfs_client()
+-
+-        # Start daemon for download
+-        daemon = self._start_ipfs_daemon()
+-
+-        try:
+-            # Download via IPFS subprocess
+-            self.logger.debug(f"📥 Downloading model {cid_clean} via IPFS...")
+-            self._download_from_ipfs(cid_clean, model_path)
+-
+-            self.logger.debug(f"✅ Model downloaded to {model_path}")
+-
+-            # Load the model
+-            return AutoModelForCausalLM.from_pretrained(
+-                model_path, torch_dtype=dtype, device_map="auto", trust_remote_code=False
+-            ).eval()
+-
+-        except Exception as e:
+-            # Cleanup on failure
+-            if os.path.exists(model_path):
+-                shutil.rmtree(model_path, ignore_errors=True)
+-            raise RuntimeError(f"Failed to load model from IPFS: {e}")
+-        finally:
+-            # Always stop daemon
+-            daemon.terminate()
+-            try:
+-                daemon.wait(timeout=5)
+-            except subprocess.TimeoutExpired:
+-                daemon.kill()
++        raise ValueError("IPFS model fallback is disabled; deploy an approved local snapshot")
+ 
+     def _ensure_ipfs_client(self) -> None:
+         """Initialize lightweight IPFS client for download-only usage."""
+@@ -2837,14 +2806,14 @@ class ProofVerifier:
+                     # Load model directly to CPU
+                     print(f"\n  📥 Preloading {identifier} to CPU...")
+ 
+-                    config = AutoConfig.from_pretrained(
++                    config = approved_pretrained(AutoConfig,
+                         model_name,
+                         revision=commit_hash,
+                         trust_remote_code=False,
+                     )
+ 
+                     # Load with CPU device map
+-                    model = AutoModelForCausalLM.from_pretrained(
++                    model = approved_pretrained(AutoModelForCausalLM,
+                         model_name,
+                         revision=commit_hash,
+                         config=config,
+@@ -3495,7 +3464,7 @@ class ProofVerifier:
+             if gen_cfg is None:
+                 from transformers import GenerationConfig
+                 try:
+-                    gen_cfg = GenerationConfig.from_pretrained(
++                    gen_cfg = approved_pretrained(GenerationConfig,
+                         self.model_name, revision=self.commit_hash
+                     )
+                 except Exception:
+@@ -8384,13 +8353,25 @@ class ProofVerifier:
+                 context_lengths = _mca_context_lengths_from_mask(batched_mask)
+ 
+                 head = self._gumbel_head_mode()
++                # Candidate forwards need only the S prediction positions. Keep
++                # all B attention rows and MCA draws; avoid projecting the unused
++                # long prompt to the full vocabulary. The baseline still projects
++                # every prompt position for the independent gibberish check.
++                selected_positions = None
++                if (head == 'h0' and model_device == torch.device("cpu")
++                        and mca_noise_value is not None
++                        and os.environ.get("NOET_CPU_FULL_LOGITS") != "1"
++                        and "logits_to_keep" in inspect.signature(self.model.forward).parameters):
++                    selected_positions = len(self.prompt_tokens) - 1 + torch.arange(window_size, device=model_device)
++                projection_kwargs = {} if selected_positions is None else {"logits_to_keep": selected_positions}
+                 with noise_cm:
+                     with mca_context_lengths(context_lengths):
+                         if head == 'h0':
+                             outputs = self.model(
+                                 input_ids=batched_input,
+                                 attention_mask=batched_mask,
+-                                use_cache=False
++                                use_cache=False,
++                                **projection_kwargs
+                             )
+                         else:
+                             # Gumbel h1/h2: same body forward (same MCA
+@@ -8417,7 +8398,8 @@ class ProofVerifier:
+                 if mca_noise_value is None and batch_size == 1:
+                     self._prompt_gibberish_capture(outputs.logits[0])
+                 # Gather along sequence axis -> (B,S,V)
+-                sel = outputs.logits.index_select(dim=1, index=positions)                  # (B,S,V)
++                sel = (outputs.logits if selected_positions is not None else
++                       outputs.logits.index_select(dim=1, index=positions))                # (B,S,V)
+             else:
+                 hidden = outputs.last_hidden_state                                          # (B,L,H) post final norm
+                 if mca_noise_value is None and batch_size == 1:
+@@ -8500,6 +8482,15 @@ class ProofVerifier:
+         the engine's early exit and full_verify's fail-safe agree and the
+         shadow log fires once.
+         """
++        # Guarded deployments must abstain, never accept a shadow-only result
++        # for a model/precision lacking reviewed calibration. Check before cache
++        # reuse or the upstream off-mode return as well as on the first decision.
++        if os.environ.get("NOET_REQUIRE_PROMPT_CALIBRATION") == "1":
++            mid, precision = self._prompt_gibberish_context()
++            try:
++                require_prompt_calibration(mid, precision)
++            except ValueError as exc:
++                raise _prompt_gibberish.PromptGibberishScoringError(str(exc)) from exc
+         cached = getattr(self, "_last_prompt_gibberish_decision", None)
+         if cached is not None:
+             return ("RED", cached["reason"]) if cached["red"] else None
+@@ -9404,8 +9395,11 @@ class ProofVerifier:
+         self.logger.debug(f"Using device: {model_device}")
+         if model_device == torch.device("cpu"):
+             MCA_NOISE = 12.0
+-            batch_candidates = [2]
+-            self.logger.debug("Running on CPU, using MCA noise value 12.0 and batch size 2 only.")
++            # The sealed detector consumes six independently computed views:
++            # baseline, 2/5/10/20 MCA batches, and SPDA. Do not reduce that
++            # observation set on CPU. Legacy replay retains its compact set.
++            batch_candidates = [2, 5, 10, 20] if self._poi_detector_attaches() else [2]
++            self.logger.debug(f"Running on CPU, MCA noise 12.0, candidate batches {batch_candidates}.")
+ 
+         # ---------------- Error covariance calibration (unchanged) -----------------
+         logits_cov      = RunningMeanCov(dim=1, device=model_device)
+@@ -9577,8 +9571,11 @@ class ProofVerifier:
+         self.logger.debug(f"Using device: {model_device}")
+         if model_device == torch.device("cpu"):
+             MCA_NOISE = 12.0
+-            batch_candidates = [2]
+-            self.logger.debug("Running on CPU, using MCA noise value 12.0 and batch size 2 only.")
++            # The sealed detector consumes six independently computed views:
++            # baseline, 2/5/10/20 MCA batches, and SPDA. Do not reduce that
++            # observation set on CPU. Legacy replay retains its compact set.
++            batch_candidates = [2, 5, 10, 20] if self._poi_detector_attaches() else [2]
++            self.logger.debug(f"Running on CPU, MCA noise 12.0, candidate batches {batch_candidates}.")
+ 
+         self.logger.debug("Computing all logits with efficient prefix method (streamed/compact)...")
+         all_logits = {}
+@@ -10236,7 +10233,7 @@ class ProofVerifier:
+                 f"no model resident for full verify of {proof_identifier}")
+         exp_name, _, exp_commit = proof_identifier.partition("@")
+         try:
+-            exp_cfg = AutoConfig.from_pretrained(
++            exp_cfg = approved_pretrained(AutoConfig,
+                 exp_name,
+                 revision=exp_commit or None,
+                 trust_remote_code=False,
+diff --git a/services/verification-api/src/utils/shared_utils.py b/services/verification-api/src/utils/shared_utils.py
+index 5812372..264188b 100644
+--- a/services/verification-api/src/utils/shared_utils.py
++++ b/services/verification-api/src/utils/shared_utils.py
+@@ -38,7 +38,8 @@ import matplotlib.pyplot as plt
+ 
+ #------ torch
+ import torch
+-from huggingface_hub import list_repo_files, hf_hub_download
++from noet.model_runtime import checked_model_directory
++from noet.vdf import verify as verify_bounded_vdf
+ from torch.distributions.normal import Normal   
+ from torch.distributions import StudentT
+ 
+@@ -288,69 +289,18 @@ def _bucket_means(sorted_logits: torch.Tensor,
+ 
+ # Alternative version with additional validation:
+ def chiavdf_verify(block_hash: str, vdf: str, tick: int) -> bool:
+-    """
+-    Enhanced VDF verification with additional input validation.
+-    """
+-    # Input validation
+-    if not isinstance(block_hash, str) or not isinstance(vdf, str):
+-        print("Error: block_hash and vdf must be strings")
+-        return False
+-    
+-    # # Debug input parameters
+-    # print(f"chiavdf_verify_robust called:")
+-    # print(f"  block_hash: {block_hash} (length: {len(block_hash)})")
+-    # print(f"  vdf: {vdf} (length: {len(vdf)})")
+-    # print(f"  tick: {int(tick)}")
+-    
+-    # Convert hex strings to bytes with validation
+-    try:
+-        # Clean and validate hex strings
+-        block_hash_clean = block_hash.strip().replace('0x', '')
+-        vdf_clean = vdf.strip().replace('0x', '')
+-        
+-        # Validate hex characters
+-        if not all(c in '0123456789abcdefABCDEF' for c in block_hash_clean):
+-            raise ValueError("Invalid hex characters in block_hash")
+-        
+-        if not all(c in '0123456789abcdefABCDEF' for c in vdf_clean):
+-            raise ValueError("Invalid hex characters in vdf")
+-        
+-        # Convert to bytes
+-        block_hash_bytes = bytes.fromhex(block_hash_clean)
+-        vdf_bytes = bytes.fromhex(vdf_clean)
+-        
+-        # Validate expected lengths (adjust as needed)
+-        if len(block_hash_bytes) != 32:
+-            print(f"Warning: block_hash has unexpected length {len(block_hash_bytes)}, expected 32 bytes")
+-        
+-        # print(f"Conversion successful:")
+-        # print(f"  block_hash_bytes: {len(block_hash_bytes)} bytes")
+-        # print(f"  vdf_bytes: {len(vdf_bytes)} bytes")
+-        
+-    except ValueError as e:
+-        print(f"Error converting hex strings to bytes: {e}")
+-        return False
+-    
+-    try:
+-        result = chiavdf.verify_from_hash(
+-            block_hash_bytes,
+-            vdf_bytes,
+-            constants.DISCRIMINANT_SIZE,
+-            tick,
+-            0
+-        )
+-        
+-        # print(f"VDF verification result: {result}")
+-        return result
+-    except Exception as e:
+-        print(f"Error during VDF verification: {e}")
+-        return False
++    """Reject malformed inputs before the native cryptographic verifier."""
++    return verify_bounded_vdf(block_hash, vdf, tick, chiavdf.verify_from_hash,
++                              constants.DISCRIMINANT_SIZE)
++
+ 
+ def parse_safetensors_header(path: Path) -> Optional[torch.dtype]:
+     """Parse safetensors header to extract dtype without loading tensor data."""
+     try:
+         with path.open('rb') as f:
+             header_len = struct.unpack('<Q', f.read(8))[0]
++            if header_len < 2 or header_len > 16 * 1024 * 1024:
++                raise ValueError('Safetensors header exceeds the supported size')
+             header = json.loads(f.read(header_len))
+         
+         # Skip any "__metadata__" key, find first tensor
+@@ -382,142 +332,18 @@ def get_native_dtype_from_commit(
+     revision: Optional[str] = None,
+     filename_hint: Optional[str] = None
+     ) -> Optional[torch.dtype]:
+-    """
+-    Get native dtype from HF model repo at specific commit.
+-    
+-    Args:
+-        repo_id: HuggingFace repo identifier (e.g., "microsoft/DialoGPT-medium")
+-        revision: Git commit hash, branch name, or tag (e.g., "main", "v1.0", commit SHA)
+-        filename_hint: Specific checkpoint filename to inspect (optional)
+-    
+-    Returns:
+-        torch.dtype of the saved weights, or None if unable to determine
+-    """
+-    try:
+-        def _resolve_hf_cache_repo_dir(repo_id: str) -> Optional[Path]:
+-            cache_root = (
+-                os.environ.get("HF_HUB_CACHE")
+-                or os.environ.get("HUGGINGFACE_HUB_CACHE")
+-            )
+-            if not cache_root:
+-                hf_home = os.environ.get("HF_HOME")
+-                if hf_home:
+-                    cache_root = os.path.join(hf_home, "hub")
+-                else:
+-                    cache_root = os.path.join(
+-                        os.path.expanduser("~/.cache/huggingface"), "hub"
+-                    )
+-            repo_dir = Path(cache_root) / f"models--{repo_id.replace('/', '--')}"
+-            return repo_dir if repo_dir.is_dir() else None
+-
+-        def _resolve_snapshot_dir(repo_dir: Path, revision: Optional[str]) -> Optional[Path]:
+-            def _read_ref(ref_name: str) -> Optional[str]:
+-                ref_path = repo_dir / "refs" / ref_name
+-                if ref_path.is_file():
+-                    return ref_path.read_text().strip()
+-                return None
+-
+-            commit = None
+-            if revision:
+-                if (repo_dir / "snapshots" / revision).is_dir():
+-                    commit = revision
+-                else:
+-                    commit = _read_ref(revision)
+-            else:
+-                commit = _read_ref("main") or _read_ref("master")
+-
+-            if not commit:
+-                return None
+-            snapshot_dir = repo_dir / "snapshots" / commit
+-            return snapshot_dir if snapshot_dir.is_dir() else None
+-
+-        # Try local cache first to avoid network calls
+-        repo_dir = _resolve_hf_cache_repo_dir(repo_id)
+-        if repo_dir:
+-            snapshot_dir = _resolve_snapshot_dir(repo_dir, revision)
+-            if snapshot_dir:
+-                files = [p.name for p in snapshot_dir.iterdir() if p.is_file()]
+-                safetensor_files = sorted([f for f in files if f.endswith(".safetensors")])
+-                bin_files = sorted([f for f in files if f.endswith(".bin")])
+-
+-                target_file = None
+-                parser_func = None
+-
+-                if filename_hint:
+-                    if (snapshot_dir / filename_hint).is_file():
+-                        target_file = filename_hint
+-                        parser_func = (
+-                            parse_safetensors_header
+-                            if filename_hint.endswith(".safetensors")
+-                            else inspect_bin_dtype
+-                        )
+-                    else:
+-                        print(f"Warning: {filename_hint} not found in local cache")
+-
+-                if not target_file:
+-                    if safetensor_files:
+-                        target_file = safetensor_files[0]
+-                        parser_func = parse_safetensors_header
+-                        print(f"Using cached safetensors file: {target_file}")
+-                    elif bin_files:
+-                        target_file = bin_files[0]
+-                        parser_func = inspect_bin_dtype
+-                        print(f"Using cached .bin file: {target_file}")
+-
+-                if target_file and parser_func:
+-                    local_path = snapshot_dir / target_file
+-                    return parser_func(local_path)
+-
+-        # List files at specific revision
+-        files = list_repo_files(repo_id, revision=revision)
+-        print(f"Found {len(files)} files in {repo_id} @ {revision or 'main'}")
+-        
+-        # Prioritize safetensors files (more efficient)
+-        safetensor_files = sorted([f for f in files if f.endswith('.safetensors')])
+-        bin_files = sorted([f for f in files if f.endswith('.bin')])
+-        
+-        # Choose file to inspect
+-        target_file = None
+-        parser_func = None
+-        
+-        if filename_hint:
+-            # User specified exact file
+-            if filename_hint in files:
+-                target_file = filename_hint
+-                parser_func = parse_safetensors_header if filename_hint.endswith('.safetensors') else inspect_bin_dtype
+-            else:
+-                print(f"Warning: {filename_hint} not found in repo")
+-                
+-        if not target_file:
+-            # Auto-select: prefer safetensors
+-            if safetensor_files:
+-                target_file = safetensor_files[0]
+-                parser_func = parse_safetensors_header
+-                print(f"Using safetensors file: {target_file}")
+-            elif bin_files:
+-                target_file = bin_files[0] 
+-                parser_func = inspect_bin_dtype
+-                print(f"Using .bin file: {target_file}")
+-            else:
+-                raise FileNotFoundError(f"No checkpoint files (.safetensors/.bin) found in {repo_id}")
+-        
+-        # Download the specific file at the specified revision
+-        local_path = hf_hub_download(
+-            repo_id=repo_id,
+-            filename=target_file,
+-            revision=revision,
+-            cache_dir=None  # Use default cache
+-        )
+-        
+-        print(f"Downloaded: {target_file}")
+-        
+-        # Parse dtype
+-        dtype = parser_func(Path(local_path))
+-        return dtype
+-        
+-    except Exception as e:
+-        print(f"Error getting dtype from {repo_id} @ {revision}: {e}")
+-        return None
++    """Inspect approved local safetensors without downloads or pickle loading."""
++    root = Path(checked_model_directory(repo_id, revision))
++    files = sorted(root.rglob('*.safetensors'))
++    if filename_hint:
++        matches = [path for path in files if path.relative_to(root).as_posix() == filename_hint]
++        if not matches:
++            raise ValueError('Requested weights are outside the approved safetensors inventory')
++        files = matches
++    if not files:
++        raise ValueError('Approved snapshot has no safetensors weights')
++    return parse_safetensors_header(files[0])
++
+ 
+ def inspect_model_dtype(
+     repo_id: str,
+diff --git a/shared-utils/pow-utils/common_sampler_helper.py b/shared-utils/pow-utils/common_sampler_helper.py
+index 098eaad..50bf599 100644
+--- a/shared-utils/pow-utils/common_sampler_helper.py
++++ b/shared-utils/pow-utils/common_sampler_helper.py
+@@ -238,15 +238,14 @@ def build_pow_snapshot(pow_data):
+     # applied, which is the behaviour that preceded them
+     # (missing context preserves the previous rules).
+     #
+-    # A non-integer / non-positive value is DROPPED, not guessed and not
+-    # fatal: unlike stepbind and v4 (which select a consensus mode and so
+-    # fail closed), a bad height here can only switch a local filter on or
+-    # off, and mining must never stop over it. 0 is the schema's "not
+-    # provided" (zmq_listener._derive_job_context).
+-    raw_height = pow_data.get("height")
+-    if (isinstance(raw_height, int) and not isinstance(raw_height, bool)
+-            and raw_height > 0):
+-        snapshot["height"] = int(raw_height)
++    # Match the native header's uint32 range and the CPU engine ingress.
++    # Missing stays absent; an explicitly supplied zero is retained. A bad
++    # value must not silently disable a height-dependent pre-submit check.
++    if "height" in pow_data:
++        raw_height = pow_data["height"]
++        if type(raw_height) is not int or not 0 <= raw_height <= 0xffffffff:
++            raise ValueError("pow.height must be an unsigned 32-bit integer")
++        snapshot["height"] = raw_height
+     return snapshot
+ 
+ class CommonSamplerHelper:

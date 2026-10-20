@@ -1,0 +1,42 @@
+{
+  "qwen3-0.6b": {
+    "model": "Qwen/Qwen3-0.6B",
+    "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+    "license": "Apache-2.0",
+    "manifest": "cpu/qwen3-06b.candidate.json",
+    "manifestSha256": "c18e242c1f4c2273d89a27a226856ad1a6623a7a0c22839495b45371eefa3ae4",
+    "gguf": "qwen3-0.6b-bf16.gguf",
+    "ggufSha256": "8fa11f4d815167c4f6e3c91b25aebde25d8346a8f11228e744016592532b0700",
+    "status": "mainnet"
+  },
+  "qwen3-8b": {
+    "model": "Qwen/Qwen3-8B",
+    "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "license": "Apache-2.0",
+    "manifest": "models/qwen3-8b.candidate.json",
+    "manifestSha256": "8a7d8b20c3d5c25df70468a052601c5df1dc47d9a6bebcff32a983d353a40dc8",
+    "gguf": "qwen3-8b-bf16.gguf",
+    "ggufSha256": null,
+    "status": "candidate"
+  },
+  "qwen3-14b": {
+    "model": "Qwen/Qwen3-14B",
+    "revision": "40c069824f4251a91eefaf281ebe4c544efd3e18",
+    "license": "Apache-2.0",
+    "manifest": "models/qwen3-14b.candidate.json",
+    "manifestSha256": "ad4e82761ed0febab48cd12752acfa9705d7bc3b579f9fec810ec2c6de4efb5e",
+    "gguf": "qwen3-14b-bf16.gguf",
+    "ggufSha256": null,
+    "status": "candidate"
+  },
+  "qwen3-32b": {
+    "model": "Qwen/Qwen3-32B",
+    "revision": "9216db5781bf21249d130ec9da846c4624c16137",
+    "license": "Apache-2.0",
+    "manifest": "models/qwen3-32b.candidate.json",
+    "manifestSha256": "b6703d5b11adcf4f193c3aa04f27f211358aa078155b25e794fb60312a5f44e2",
+    "gguf": "qwen3-32b-bf16.gguf",
+    "ggufSha256": null,
+    "status": "candidate"
+  }
+}

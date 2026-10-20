@@ -1,0 +1,1661 @@
+{
+  "format": "noet-recorded-node-work-cpu-v1",
+  "date": "2026-10-11",
+  "status": "research-progress-with-mandatory-detector-release-blocker",
+  "productionReady": false,
+  "sourceCommit": "48d1344106044338e6e500de7e95869de036bc55",
+  "sourceDigests": {
+    "protocol/noet/verifier_entry.py": "f4c4ecb7cf870888a5ea1af6634f655e6d42be12808037ed225753a74886b700",
+    "protocol/patches/noet-miner.patch": "22f75660d88fb0fa30c21b8bfe1903009c091d69c04b88ba7ae1019bdd69ec11",
+    "protocol/patches/noet-engine.patch": "cffcef857d8680434bfe475a1e726aace0fa2c8dad2a4a4d0eb97319b8902c83",
+    "protocol/cpu/exercise.py": "2f9a54fc623cd14acc6cfb8eafdccf691d58128f505fd35fa56221791a78a6f5",
+    "protocol/cpu/node_work.py": "e498526e9f9f913957274035cb4bebfef72c437bea747cce4c79b202114a011e",
+    "protocol/cpu/verify_current.py": "884eacd2a452cb7643398dd6edc554a7f902d282ad1f99675ca6b67af5c5f141",
+    "protocol/cpu/projection_check.py": "ee5a2e46125cb7ac6f540c14630c23d9353019755dbef9c998a9cc0a158da942",
+    "protocol/docker/CPUWork.Dockerfile": "b831e6114b1cb86a39ad2a2a44fabecf1404b3b37b061ac92735481a85a61882",
+    "protocol/tests/mining_work_smoke.py": "e8d21bd37405aa630c482e68c813d1fc8873761720adf2d8c215433bf5f618e9",
+    "protocol/tests/verifier_startup_smoke.py": "6ff1ab3d5b73de67f104070cf8b8d9a74b8d1ef35e83640f61cfc70d5e05dc1f",
+    "protocol/tests/test_replay_profile.py": "f7127c00392bc81c826423a709a0d994ac57c0daedb5d96e8e04a6fbf0c4f2b0",
+    "protocol/tests/test_prompt_calibration.py": "e80b16ca44623da20d16efce12ce40105d9907438b323ab534acd6168b8b986d",
+    "protocol/tests/test_node_work_record.py": "6904e0ffc909932771e7a77d75732c6e209c1667dae3cd7fac1273c90dcd420a",
+    "protocol/validation/native-work.json": "2c159a4cf1773642f4c3fded19fbe21038fe9f04857239f723ef9d919c425eff",
+    "protocol/cpu/qwen3-06b.candidate.json": "c18e242c1f4c2273d89a27a226856ad1a6623a7a0c22839495b45371eefa3ae4"
+  },
+  "nodeImage": "sha256:10c5f28d84ad858f55abeed1c7fd2c0796f679d5c516a05c58e823ef891ed96c",
+  "verifierImage": "sha256:c9f2188bce465b545816d54c0aca00c720df58ed0c6960c723ceda066da5ce36",
+  "verifierBuildContextSha256": "e8ae781280b3c43f5215cbbd69bc6ec8c7a9f6a0af4af293962fb3dbdc059402",
+  "cpuWorkImage": "sha256:4a9a62863e6efc466a9ab6db7774e006ca86df80190c2cbad012d8de6146edcd",
+  "cpuWorkParentImage": "sha256:92e8bdf20bbadc973a20f6b17d6bce4b5783f5412c822ab4399b96d37faf65c7",
+  "runtime": {
+    "architecture": "linux-arm64",
+    "cpus": 3,
+    "containerMemoryGiB": 20,
+    "vmMemoryGiB": 24,
+    "network": "none",
+    "readOnlyRoot": true,
+    "gpu": false,
+    "scope": "Temporary local isolated research, not persistent hosting"
+  },
+  "generation": {
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "requestedProofVersion": 4,
+    "completionTokens": 2052,
+    "evidenceFile": "proofs/1_215963213_4d56df0c.bin",
+    "evidenceSha256": "4e8a766f61605c238d73652bfcff6dbde6c4b4f1275e8736892b42c1d6567bda",
+    "boundContextSupplied": true,
+    "evidenceFiles": [
+      "proofs/1_215963213_4d56df0c.bin",
+      "proofs/1_2255258017_a1816c86.bin",
+      "proofs/1_2852949240_f88c0caa.bin",
+      "proofs/1_2991092628_947348b2.bin",
+      "proofs/1_4106737108_d4d5c7f4.bin"
+    ],
+    "productionReady": false,
+    "scope": "Offline replay of recorded lab-node work with research model/difficulty; no block or verifier acceptance",
+    "recordedNodeJob": true,
+    "height": 1,
+    "requestId": 1,
+    "registeredModel": false,
+    "registeredDifficulty": false,
+    "liveLease": false,
+    "nodeWorkRecordSha256": "2c159a4cf1773642f4c3fded19fbe21038fe9f04857239f723ef9d919c425eff",
+    "realVdfVerified": true,
+    "engineSha256": "2c714d9069472b93071f7f8f055fc3740ea9aa9eaac28e2b21d9df653208566f"
+  },
+  "initialMemoryFailure": {
+    "image": "sha256:1ac5d0f05654e4233f42c3a0f3157533528377658bc2269e42931fbc2dd2097d",
+    "proofSha256": "4e8a766f61605c238d73652bfcff6dbde6c4b4f1275e8736892b42c1d6567bda",
+    "promptTokens": 1051,
+    "containerMemoryGiB": 20,
+    "exitCode": 137,
+    "dockerOomEventObserved": true,
+    "durationSeconds": 339,
+    "quickVerdict": 0,
+    "fullVerdict": null,
+    "scope": "Resource failure, not a RED proof verdict"
+  },
+  "projectionParity": {
+    "format": "noet-cpu-logit-projection-parity-v1",
+    "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "promptTokens": 1051,
+    "windowTokens": 256,
+    "batchSize": 2,
+    "maxAbsDifference": 0.0,
+    "bitwiseEqual": true,
+    "fullAttentionContextPreserved": true,
+    "promptScoringRowsPreserved": true,
+    "baselineShape": [
+      256,
+      1,
+      151936
+    ],
+    "productionReady": false,
+    "scope": "Actual replay method and pinned model weights; projection equivalence only, no MCA calibration or block acceptance"
+  },
+  "replays": [
+    {
+      "record": "proofs/1_215963213_4d56df0c.bin",
+      "exitCode": 2,
+      "oomKilled": false,
+      "wallSeconds": 334.554,
+      "result": {
+        "proofSha256": "4e8a766f61605c238d73652bfcff6dbde6c4b4f1275e8736892b42c1d6567bda",
+        "envelopeSha256": "d9b5479e55bed4174be265da0b05c60f590809ef12b38ace421f2c6d3bf3ad5b",
+        "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+        "proofVersion": 4,
+        "height": 1,
+        "ruleset": 2,
+        "contextCase": "bound",
+        "streamed": true,
+        "difficulty": 60000000,
+        "realVdfVerified": true,
+        "productionReady": false,
+        "scope": "Recorded lab-node header/height with constructed ruleset-2 envelope and research model/difficulty; no native block acceptance",
+        "nodeWorkRecordSha256": "2c159a4cf1773642f4c3fded19fbe21038fe9f04857239f723ef9d919c425eff",
+        "nodeIssuedHeader": true,
+        "nodeEmittedValidationRequest": false,
+        "registeredModel": false,
+        "registeredDifficulty": false,
+        "detectorStartup": {
+          "ready": true,
+          "release_id": "detector-amber-red-v2",
+          "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+          "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+          "rule_tag": "det1-5ed3fbcb68788833",
+          "integration_revision": "detector-enforce-r2",
+          "startup_error": null
+        },
+        "quickVerdict": 0,
+        "replayViews": [
+          "1",
+          "2",
+          "5",
+          "10",
+          "20",
+          "spda"
+        ],
+        "detectorRecordStatus": "scored",
+        "detectorSupport": {
+          "observation_contract": {
+            "status": "evaluated",
+            "observed": "poi-live-value-rank-full-v1",
+            "expected": "poi-live-value-rank-full-v1"
+          },
+          "vocabulary_supported": {
+            "status": "evaluated",
+            "observed": 151936,
+            "expected": [
+              151936
+            ]
+          },
+          "head_supported": {
+            "status": "evaluated",
+            "observed": "h0",
+            "expected": [
+              "h0"
+            ]
+          },
+          "verifier_head_matches_declaration": {
+            "status": "evaluated",
+            "observed": {
+              "declared": "h0",
+              "verifier": "h0"
+            },
+            "expected": "equal"
+          },
+          "window_size_supported": {
+            "status": "evaluated",
+            "observed": 256,
+            "expected": [
+              256
+            ]
+          },
+          "declared_width_supported": {
+            "status": "evaluated",
+            "observed": 70,
+            "expected": 70
+          },
+          "six_view_cloud_present": {
+            "status": "evaluated",
+            "observed": [
+              "1",
+              "2",
+              "5",
+              "10",
+              "20",
+              "spda"
+            ],
+            "expected": 6
+          },
+          "model_identifier_supported": {
+            "status": "not_evaluated",
+            "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+            "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+          },
+          "identity_temperature_and_repetition": {
+            "status": "evaluated",
+            "observed": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            },
+            "expected": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            }
+          },
+          "array_present.declared_scores0": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_weights": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.chosen": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.step_index": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_summary_stats": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_ids": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          }
+        },
+        "fullVerdict": "GREEN",
+        "elapsedSeconds": 330.78745783600016,
+        "modelLoaded": true
+      },
+      "metadata": {
+        "file": "proofs/1_215963213_4d56df0c.bin",
+        "sha256": "4e8a766f61605c238d73652bfcff6dbde6c4b4f1275e8736892b42c1d6567bda",
+        "version": 4,
+        "promptTokens": 1051,
+        "generatedTokens": 256,
+        "precision": "bf16"
+      },
+      "diagnosticPassedWithCorrectProfile": true
+    },
+    {
+      "record": "proofs/1_2255258017_a1816c86.bin",
+      "exitCode": 2,
+      "oomKilled": false,
+      "wallSeconds": 402.692,
+      "result": {
+        "proofSha256": "7e2b147a3bdf0365478aa0e71c3d1c7bc72525d70d4735606f7f836eda4eacc0",
+        "envelopeSha256": "36bf585426c6ab7ca5b281c1e9a3993e6e0a7ddccec979559d8e9098ca26c607",
+        "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+        "proofVersion": 4,
+        "height": 1,
+        "ruleset": 2,
+        "contextCase": "bound",
+        "streamed": true,
+        "difficulty": 60000000,
+        "realVdfVerified": true,
+        "productionReady": false,
+        "scope": "Recorded lab-node header/height with constructed ruleset-2 envelope and research model/difficulty; no native block acceptance",
+        "nodeWorkRecordSha256": "2c159a4cf1773642f4c3fded19fbe21038fe9f04857239f723ef9d919c425eff",
+        "nodeIssuedHeader": true,
+        "nodeEmittedValidationRequest": false,
+        "registeredModel": false,
+        "registeredDifficulty": false,
+        "detectorStartup": {
+          "ready": true,
+          "release_id": "detector-amber-red-v2",
+          "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+          "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+          "rule_tag": "det1-5ed3fbcb68788833",
+          "integration_revision": "detector-enforce-r2",
+          "startup_error": null
+        },
+        "quickVerdict": 0,
+        "replayViews": [
+          "1",
+          "2",
+          "5",
+          "10",
+          "20",
+          "spda"
+        ],
+        "detectorRecordStatus": "scored",
+        "detectorSupport": {
+          "observation_contract": {
+            "status": "evaluated",
+            "observed": "poi-live-value-rank-full-v1",
+            "expected": "poi-live-value-rank-full-v1"
+          },
+          "vocabulary_supported": {
+            "status": "evaluated",
+            "observed": 151936,
+            "expected": [
+              151936
+            ]
+          },
+          "head_supported": {
+            "status": "evaluated",
+            "observed": "h0",
+            "expected": [
+              "h0"
+            ]
+          },
+          "verifier_head_matches_declaration": {
+            "status": "evaluated",
+            "observed": {
+              "declared": "h0",
+              "verifier": "h0"
+            },
+            "expected": "equal"
+          },
+          "window_size_supported": {
+            "status": "evaluated",
+            "observed": 256,
+            "expected": [
+              256
+            ]
+          },
+          "declared_width_supported": {
+            "status": "evaluated",
+            "observed": 70,
+            "expected": 70
+          },
+          "six_view_cloud_present": {
+            "status": "evaluated",
+            "observed": [
+              "1",
+              "2",
+              "5",
+              "10",
+              "20",
+              "spda"
+            ],
+            "expected": 6
+          },
+          "model_identifier_supported": {
+            "status": "not_evaluated",
+            "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+            "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+          },
+          "identity_temperature_and_repetition": {
+            "status": "evaluated",
+            "observed": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            },
+            "expected": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            }
+          },
+          "array_present.declared_scores0": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_weights": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.chosen": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.step_index": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_summary_stats": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_ids": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          }
+        },
+        "fullVerdict": "GREEN",
+        "elapsedSeconds": 399.01505064,
+        "modelLoaded": true
+      },
+      "metadata": {
+        "file": "proofs/1_2255258017_a1816c86.bin",
+        "sha256": "7e2b147a3bdf0365478aa0e71c3d1c7bc72525d70d4735606f7f836eda4eacc0",
+        "version": 4,
+        "promptTokens": 1307,
+        "generatedTokens": 256,
+        "precision": "bf16"
+      },
+      "diagnosticPassedWithCorrectProfile": true
+    },
+    {
+      "record": "proofs/1_2852949240_f88c0caa.bin",
+      "exitCode": 0,
+      "oomKilled": false,
+      "wallSeconds": 94.529,
+      "result": {
+        "proofSha256": "5904f69f2b1bdf1970922848c09b8a5258f9265482a95f4b3f3ab477e809c702",
+        "envelopeSha256": "88a8c28a952737ade4cd4d8d41bd4e15f565e386d631a02399bf364cace78ae8",
+        "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+        "proofVersion": 4,
+        "height": 1,
+        "ruleset": 2,
+        "contextCase": "bound",
+        "streamed": true,
+        "difficulty": 60000000,
+        "realVdfVerified": true,
+        "productionReady": false,
+        "scope": "Recorded lab-node header/height with constructed ruleset-2 envelope and research model/difficulty; no native block acceptance",
+        "nodeWorkRecordSha256": "2c159a4cf1773642f4c3fded19fbe21038fe9f04857239f723ef9d919c425eff",
+        "nodeIssuedHeader": true,
+        "nodeEmittedValidationRequest": false,
+        "registeredModel": false,
+        "registeredDifficulty": false,
+        "detectorStartup": {
+          "ready": true,
+          "release_id": "detector-amber-red-v2",
+          "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+          "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+          "rule_tag": "det1-5ed3fbcb68788833",
+          "integration_revision": "detector-enforce-r2",
+          "startup_error": null
+        },
+        "quickVerdict": 0,
+        "replayViews": [
+          "1",
+          "2",
+          "5",
+          "10",
+          "20",
+          "spda"
+        ],
+        "detectorRecordStatus": "scored",
+        "detectorSupport": {
+          "observation_contract": {
+            "status": "evaluated",
+            "observed": "poi-live-value-rank-full-v1",
+            "expected": "poi-live-value-rank-full-v1"
+          },
+          "vocabulary_supported": {
+            "status": "evaluated",
+            "observed": 151936,
+            "expected": [
+              151936
+            ]
+          },
+          "head_supported": {
+            "status": "evaluated",
+            "observed": "h0",
+            "expected": [
+              "h0"
+            ]
+          },
+          "verifier_head_matches_declaration": {
+            "status": "evaluated",
+            "observed": {
+              "declared": "h0",
+              "verifier": "h0"
+            },
+            "expected": "equal"
+          },
+          "window_size_supported": {
+            "status": "evaluated",
+            "observed": 256,
+            "expected": [
+              256
+            ]
+          },
+          "declared_width_supported": {
+            "status": "evaluated",
+            "observed": 70,
+            "expected": 70
+          },
+          "six_view_cloud_present": {
+            "status": "evaluated",
+            "observed": [
+              "1",
+              "2",
+              "5",
+              "10",
+              "20",
+              "spda"
+            ],
+            "expected": 6
+          },
+          "model_identifier_supported": {
+            "status": "not_evaluated",
+            "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+            "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+          },
+          "identity_temperature_and_repetition": {
+            "status": "evaluated",
+            "observed": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            },
+            "expected": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            }
+          },
+          "array_present.declared_scores0": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_weights": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.chosen": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.step_index": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_summary_stats": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_ids": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          }
+        },
+        "fullVerdict": "GREEN",
+        "elapsedSeconds": 90.96311380700013,
+        "modelLoaded": true,
+        "detector": {
+          "detector_status": "advisory",
+          "detector_decision": "NO_VIOLATION",
+          "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+          "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+          "seconds": 0.7839477219999935,
+          "joint": {
+            "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+            "decision": "NO_VIOLATION",
+            "reason": null,
+            "bands_violated": [],
+            "bands_amber": [],
+            "counted_positions": [],
+            "counted_total": 0,
+            "eligible_total": 177,
+            "single_model_only_total": 0,
+            "models": {
+              "U1": {
+                "flagged_eligible_positions": [],
+                "threshold": 5.813099384307861,
+                "independent_decision": "NO_VIOLATION"
+              },
+              "F3": {
+                "flagged_eligible_positions": [],
+                "threshold": 6.169895648956299,
+                "independent_decision": "NO_VIOLATION"
+              }
+            }
+          },
+          "activation": {
+            "state": "advisory",
+            "network": null,
+            "height": 1,
+            "ruleset": 2,
+            "mode": "v4",
+            "activation_height": null,
+            "reason": "bcore resolved this candidate to ruleset 2 (below its own chain's V3 sunset): the detector result is advisory and the authoritative verdict is untouched",
+            "verdict_bearing": false
+          },
+          "verdict_altered": false
+        }
+      },
+      "metadata": {
+        "file": "proofs/1_2852949240_f88c0caa.bin",
+        "sha256": "5904f69f2b1bdf1970922848c09b8a5258f9265482a95f4b3f3ab477e809c702",
+        "version": 4,
+        "promptTokens": 27,
+        "generatedTokens": 256,
+        "precision": "bf16"
+      },
+      "diagnosticPassedWithCorrectProfile": true
+    },
+    {
+      "record": "proofs/1_2991092628_947348b2.bin",
+      "exitCode": 0,
+      "oomKilled": false,
+      "wallSeconds": 257.113,
+      "result": {
+        "proofSha256": "509f9d2e43782115efda04b54229fbf7312b861f01419c5feaf3c27dceca5a8c",
+        "envelopeSha256": "66c6e9fbb1a4e5bfcb4028df39e6ca62ad30955460179d0758a5447cfa8acb83",
+        "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+        "proofVersion": 4,
+        "height": 1,
+        "ruleset": 2,
+        "contextCase": "bound",
+        "streamed": true,
+        "difficulty": 60000000,
+        "realVdfVerified": true,
+        "productionReady": false,
+        "scope": "Recorded lab-node header/height with constructed ruleset-2 envelope and research model/difficulty; no native block acceptance",
+        "nodeWorkRecordSha256": "2c159a4cf1773642f4c3fded19fbe21038fe9f04857239f723ef9d919c425eff",
+        "nodeIssuedHeader": true,
+        "nodeEmittedValidationRequest": false,
+        "registeredModel": false,
+        "registeredDifficulty": false,
+        "detectorStartup": {
+          "ready": true,
+          "release_id": "detector-amber-red-v2",
+          "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+          "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+          "rule_tag": "det1-5ed3fbcb68788833",
+          "integration_revision": "detector-enforce-r2",
+          "startup_error": null
+        },
+        "quickVerdict": 0,
+        "replayViews": [
+          "1",
+          "2",
+          "5",
+          "10",
+          "20",
+          "spda"
+        ],
+        "detectorRecordStatus": "scored",
+        "detectorSupport": {
+          "observation_contract": {
+            "status": "evaluated",
+            "observed": "poi-live-value-rank-full-v1",
+            "expected": "poi-live-value-rank-full-v1"
+          },
+          "vocabulary_supported": {
+            "status": "evaluated",
+            "observed": 151936,
+            "expected": [
+              151936
+            ]
+          },
+          "head_supported": {
+            "status": "evaluated",
+            "observed": "h0",
+            "expected": [
+              "h0"
+            ]
+          },
+          "verifier_head_matches_declaration": {
+            "status": "evaluated",
+            "observed": {
+              "declared": "h0",
+              "verifier": "h0"
+            },
+            "expected": "equal"
+          },
+          "window_size_supported": {
+            "status": "evaluated",
+            "observed": 256,
+            "expected": [
+              256
+            ]
+          },
+          "declared_width_supported": {
+            "status": "evaluated",
+            "observed": 70,
+            "expected": 70
+          },
+          "six_view_cloud_present": {
+            "status": "evaluated",
+            "observed": [
+              "1",
+              "2",
+              "5",
+              "10",
+              "20",
+              "spda"
+            ],
+            "expected": 6
+          },
+          "model_identifier_supported": {
+            "status": "not_evaluated",
+            "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+            "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+          },
+          "identity_temperature_and_repetition": {
+            "status": "evaluated",
+            "observed": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            },
+            "expected": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            }
+          },
+          "array_present.declared_scores0": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_weights": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.chosen": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.step_index": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_summary_stats": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_ids": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          }
+        },
+        "fullVerdict": "GREEN",
+        "elapsedSeconds": 253.37357159700014,
+        "modelLoaded": true
+      },
+      "metadata": {
+        "file": "proofs/1_2991092628_947348b2.bin",
+        "sha256": "509f9d2e43782115efda04b54229fbf7312b861f01419c5feaf3c27dceca5a8c",
+        "version": 4,
+        "promptTokens": 795,
+        "generatedTokens": 256,
+        "precision": "bf16"
+      },
+      "diagnosticPassedWithCorrectProfile": true
+    },
+    {
+      "record": "proofs/1_4106737108_d4d5c7f4.bin",
+      "exitCode": 0,
+      "oomKilled": false,
+      "wallSeconds": 485.091,
+      "result": {
+        "proofSha256": "f83609ef81c99377b67cdccb8c9d3605f14e9d46f0fbeba49573c3b47ce3c750",
+        "envelopeSha256": "b14352301f95dff41b0c084d7e34e6f6901d6cea18aa2e0a0feae26ef0f0f9a0",
+        "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+        "proofVersion": 4,
+        "height": 1,
+        "ruleset": 2,
+        "contextCase": "bound",
+        "streamed": true,
+        "difficulty": 60000000,
+        "realVdfVerified": true,
+        "productionReady": false,
+        "scope": "Recorded lab-node header/height with constructed ruleset-2 envelope and research model/difficulty; no native block acceptance",
+        "nodeWorkRecordSha256": "2c159a4cf1773642f4c3fded19fbe21038fe9f04857239f723ef9d919c425eff",
+        "nodeIssuedHeader": true,
+        "nodeEmittedValidationRequest": false,
+        "registeredModel": false,
+        "registeredDifficulty": false,
+        "detectorStartup": {
+          "ready": true,
+          "release_id": "detector-amber-red-v2",
+          "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+          "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+          "rule_tag": "det1-5ed3fbcb68788833",
+          "integration_revision": "detector-enforce-r2",
+          "startup_error": null
+        },
+        "quickVerdict": 0,
+        "replayViews": [
+          "1",
+          "2",
+          "5",
+          "10",
+          "20",
+          "spda"
+        ],
+        "detectorRecordStatus": "scored",
+        "detectorSupport": {
+          "observation_contract": {
+            "status": "evaluated",
+            "observed": "poi-live-value-rank-full-v1",
+            "expected": "poi-live-value-rank-full-v1"
+          },
+          "vocabulary_supported": {
+            "status": "evaluated",
+            "observed": 151936,
+            "expected": [
+              151936
+            ]
+          },
+          "head_supported": {
+            "status": "evaluated",
+            "observed": "h0",
+            "expected": [
+              "h0"
+            ]
+          },
+          "verifier_head_matches_declaration": {
+            "status": "evaluated",
+            "observed": {
+              "declared": "h0",
+              "verifier": "h0"
+            },
+            "expected": "equal"
+          },
+          "window_size_supported": {
+            "status": "evaluated",
+            "observed": 256,
+            "expected": [
+              256
+            ]
+          },
+          "declared_width_supported": {
+            "status": "evaluated",
+            "observed": 70,
+            "expected": 70
+          },
+          "six_view_cloud_present": {
+            "status": "evaluated",
+            "observed": [
+              "1",
+              "2",
+              "5",
+              "10",
+              "20",
+              "spda"
+            ],
+            "expected": 6
+          },
+          "model_identifier_supported": {
+            "status": "not_evaluated",
+            "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+            "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+          },
+          "identity_temperature_and_repetition": {
+            "status": "evaluated",
+            "observed": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            },
+            "expected": {
+              "temperature": 1.0,
+              "repetition_penalty": 1.0
+            }
+          },
+          "array_present.declared_scores0": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_weights": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.chosen": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.step_index": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.declared_summary_stats": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_ids": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          },
+          "array_present.cand_top50_values": {
+            "status": "evaluated",
+            "observed": true,
+            "expected": true
+          }
+        },
+        "fullVerdict": "GREEN",
+        "elapsedSeconds": 481.4112508049998,
+        "modelLoaded": true
+      },
+      "metadata": {
+        "file": "proofs/1_4106737108_d4d5c7f4.bin",
+        "sha256": "f83609ef81c99377b67cdccb8c9d3605f14e9d46f0fbeba49573c3b47ce3c750",
+        "version": 4,
+        "promptTokens": 1563,
+        "generatedTokens": 256,
+        "precision": "bf16"
+      },
+      "diagnosticPassedWithCorrectProfile": true
+    }
+  ],
+  "diagnosticExitCorrection": {
+    "affectedRecords": [
+      "proofs/1_215963213_4d56df0c.bin",
+      "proofs/1_2255258017_a1816c86.bin"
+    ],
+    "reason": "Original harness incorrectly required ruleset-4 detector status for ruleset-2 records. Raw Full GREEN and six scored views are unchanged. The corrected diagnostic passed over both saved reports; those two processes were not rerun.",
+    "rawExitCodesPreserved": true,
+    "verifierPolicyChanged": false
+  },
+  "mandatoryDetectorRegression": {
+    "exitCode": 2,
+    "passed": false,
+    "result": {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "envelopeSha256": "68eb63daf5b13f79cb02c94dd23f77009ff8dd215da301267593296ee26c4f5b",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": 1,
+      "ruleset": 4,
+      "contextCase": "bound",
+      "streamed": true,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "detectorStartup": {
+        "ready": true,
+        "release_id": "detector-amber-red-v2",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "rule_tag": "det1-5ed3fbcb68788833",
+        "integration_revision": "detector-enforce-r2",
+        "startup_error": null
+      },
+      "quickVerdict": 0,
+      "replayViews": [
+        "1",
+        "2",
+        "5",
+        "10",
+        "20",
+        "spda"
+      ],
+      "detectorRecordStatus": "scored",
+      "detectorSupport": {
+        "observation_contract": {
+          "status": "evaluated",
+          "observed": "poi-live-value-rank-full-v1",
+          "expected": "poi-live-value-rank-full-v1"
+        },
+        "vocabulary_supported": {
+          "status": "evaluated",
+          "observed": 151936,
+          "expected": [
+            151936
+          ]
+        },
+        "head_supported": {
+          "status": "evaluated",
+          "observed": "h0",
+          "expected": [
+            "h0"
+          ]
+        },
+        "verifier_head_matches_declaration": {
+          "status": "evaluated",
+          "observed": {
+            "declared": "h0",
+            "verifier": "h0"
+          },
+          "expected": "equal"
+        },
+        "window_size_supported": {
+          "status": "evaluated",
+          "observed": 256,
+          "expected": [
+            256
+          ]
+        },
+        "declared_width_supported": {
+          "status": "evaluated",
+          "observed": 70,
+          "expected": 70
+        },
+        "six_view_cloud_present": {
+          "status": "evaluated",
+          "observed": [
+            "1",
+            "2",
+            "5",
+            "10",
+            "20",
+            "spda"
+          ],
+          "expected": 6
+        },
+        "model_identifier_supported": {
+          "status": "not_evaluated",
+          "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+          "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+        },
+        "identity_temperature_and_repetition": {
+          "status": "evaluated",
+          "observed": {
+            "temperature": 1.0,
+            "repetition_penalty": 1.0
+          },
+          "expected": {
+            "temperature": 1.0,
+            "repetition_penalty": 1.0
+          }
+        },
+        "array_present.declared_scores0": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.declared_values": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.declared_weights": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.chosen": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.step_index": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.declared_summary_stats": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.cand_top50_ids": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.cand_top50_values": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        }
+      },
+      "exceptionType": "DetectorEvidenceIncomplete",
+      "exception": "the joint rule could not be evaluated: 'eligible_step_unscored' ('1 eligible step(s) were not scored by every required model, so a clean count cannot be established; the missing scores could only have ADDED counted positions. This proof is UNAVAILABLE, not clean.'); unscored eligible positions [233]",
+      "elapsedSeconds": 89.83222233000015,
+      "modelLoaded": true
+    }
+  },
+  "controlledProjectionComparison": {
+    "seed": 7,
+    "scope": "One fixed-seed diagnostic comparison, not a replacement for the unseeded failure or a production seed policy",
+    "fullProjection": {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "envelopeSha256": "68eb63daf5b13f79cb02c94dd23f77009ff8dd215da301267593296ee26c4f5b",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": 1,
+      "ruleset": 4,
+      "contextCase": "bound",
+      "streamed": true,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "replaySeed": 7,
+      "cpuFullLogitsRequested": true,
+      "detectorStartup": {
+        "ready": true,
+        "release_id": "detector-amber-red-v2",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "rule_tag": "det1-5ed3fbcb68788833",
+        "integration_revision": "detector-enforce-r2",
+        "startup_error": null
+      },
+      "quickVerdict": 0,
+      "replayViews": [
+        "1",
+        "2",
+        "5",
+        "10",
+        "20",
+        "spda"
+      ],
+      "detectorRecordStatus": "scored",
+      "detectorSupport": {
+        "observation_contract": {
+          "status": "evaluated",
+          "observed": "poi-live-value-rank-full-v1",
+          "expected": "poi-live-value-rank-full-v1"
+        },
+        "vocabulary_supported": {
+          "status": "evaluated",
+          "observed": 151936,
+          "expected": [
+            151936
+          ]
+        },
+        "head_supported": {
+          "status": "evaluated",
+          "observed": "h0",
+          "expected": [
+            "h0"
+          ]
+        },
+        "verifier_head_matches_declaration": {
+          "status": "evaluated",
+          "observed": {
+            "declared": "h0",
+            "verifier": "h0"
+          },
+          "expected": "equal"
+        },
+        "window_size_supported": {
+          "status": "evaluated",
+          "observed": 256,
+          "expected": [
+            256
+          ]
+        },
+        "declared_width_supported": {
+          "status": "evaluated",
+          "observed": 70,
+          "expected": 70
+        },
+        "six_view_cloud_present": {
+          "status": "evaluated",
+          "observed": [
+            "1",
+            "2",
+            "5",
+            "10",
+            "20",
+            "spda"
+          ],
+          "expected": 6
+        },
+        "model_identifier_supported": {
+          "status": "not_evaluated",
+          "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+          "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+        },
+        "identity_temperature_and_repetition": {
+          "status": "evaluated",
+          "observed": {
+            "temperature": 1.0,
+            "repetition_penalty": 1.0
+          },
+          "expected": {
+            "temperature": 1.0,
+            "repetition_penalty": 1.0
+          }
+        },
+        "array_present.declared_scores0": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.declared_values": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.declared_weights": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.chosen": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.step_index": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.declared_summary_stats": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.cand_top50_ids": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.cand_top50_values": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        }
+      },
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 91.14149670999996,
+      "modelLoaded": true,
+      "detector": {
+        "detector_status": "required",
+        "detector_decision": "NO_VIOLATION",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "seconds": 0.48735676700016484,
+        "joint": {
+          "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+          "decision": "NO_VIOLATION",
+          "reason": null,
+          "bands_violated": [],
+          "bands_amber": [],
+          "counted_positions": [],
+          "counted_total": 0,
+          "eligible_total": 106,
+          "single_model_only_total": 0,
+          "models": {
+            "U1": {
+              "flagged_eligible_positions": [],
+              "threshold": 5.813099384307861,
+              "independent_decision": "NO_VIOLATION"
+            },
+            "F3": {
+              "flagged_eligible_positions": [],
+              "threshold": 6.169895648956299,
+              "independent_decision": "NO_VIOLATION"
+            }
+          }
+        },
+        "activation": {
+          "state": "required",
+          "network": null,
+          "height": 1,
+          "ruleset": 4,
+          "mode": "v4",
+          "activation_height": null,
+          "reason": "bcore resolved this candidate to ruleset 4 (at/after its own chain's V3 sunset): the detector is a required check",
+          "verdict_bearing": true
+        },
+        "verdict_altered": false
+      }
+    },
+    "selectedProjection": {
+      "proofSha256": "c2bf925edbfa4b6e7aa80a5c02746bb7ae28931359606f9c322780765037cfa8",
+      "envelopeSha256": "68eb63daf5b13f79cb02c94dd23f77009ff8dd215da301267593296ee26c4f5b",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": 1,
+      "ruleset": 4,
+      "contextCase": "bound",
+      "streamed": true,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "replaySeed": 7,
+      "cpuFullLogitsRequested": false,
+      "detectorStartup": {
+        "ready": true,
+        "release_id": "detector-amber-red-v2",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "rule_tag": "det1-5ed3fbcb68788833",
+        "integration_revision": "detector-enforce-r2",
+        "startup_error": null
+      },
+      "quickVerdict": 0,
+      "replayViews": [
+        "1",
+        "2",
+        "5",
+        "10",
+        "20",
+        "spda"
+      ],
+      "detectorRecordStatus": "scored",
+      "detectorSupport": {
+        "observation_contract": {
+          "status": "evaluated",
+          "observed": "poi-live-value-rank-full-v1",
+          "expected": "poi-live-value-rank-full-v1"
+        },
+        "vocabulary_supported": {
+          "status": "evaluated",
+          "observed": 151936,
+          "expected": [
+            151936
+          ]
+        },
+        "head_supported": {
+          "status": "evaluated",
+          "observed": "h0",
+          "expected": [
+            "h0"
+          ]
+        },
+        "verifier_head_matches_declaration": {
+          "status": "evaluated",
+          "observed": {
+            "declared": "h0",
+            "verifier": "h0"
+          },
+          "expected": "equal"
+        },
+        "window_size_supported": {
+          "status": "evaluated",
+          "observed": 256,
+          "expected": [
+            256
+          ]
+        },
+        "declared_width_supported": {
+          "status": "evaluated",
+          "observed": 70,
+          "expected": 70
+        },
+        "six_view_cloud_present": {
+          "status": "evaluated",
+          "observed": [
+            "1",
+            "2",
+            "5",
+            "10",
+            "20",
+            "spda"
+          ],
+          "expected": 6
+        },
+        "model_identifier_supported": {
+          "status": "not_evaluated",
+          "observed": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+          "reason": "the bundle declares no model-version restriction; coverage over model versions is UNMEASURED, not universal"
+        },
+        "identity_temperature_and_repetition": {
+          "status": "evaluated",
+          "observed": {
+            "temperature": 1.0,
+            "repetition_penalty": 1.0
+          },
+          "expected": {
+            "temperature": 1.0,
+            "repetition_penalty": 1.0
+          }
+        },
+        "array_present.declared_scores0": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.declared_values": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.declared_weights": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.chosen": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.step_index": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.declared_summary_stats": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.cand_top50_ids": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        },
+        "array_present.cand_top50_values": {
+          "status": "evaluated",
+          "observed": true,
+          "expected": true
+        }
+      },
+      "detectorFeatureRefusals": [],
+      "detectorSteps": {
+        "window_steps": 256,
+        "eligible_steps": 106,
+        "eligible_positions": [
+          2,
+          5,
+          6,
+          7,
+          8,
+          9,
+          11,
+          12,
+          13,
+          14,
+          15,
+          17,
+          18,
+          19,
+          20,
+          21,
+          24,
+          26,
+          28,
+          29,
+          32,
+          33,
+          37,
+          42,
+          44,
+          45,
+          47,
+          49,
+          51,
+          52,
+          53,
+          54,
+          55,
+          56,
+          58,
+          60,
+          61,
+          63,
+          64,
+          67,
+          74,
+          77,
+          81,
+          84,
+          96,
+          100,
+          102,
+          105,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          124,
+          127,
+          131,
+          132,
+          134,
+          138,
+          139,
+          144,
+          157,
+          158,
+          159,
+          160,
+          161,
+          162,
+          164,
+          166,
+          167,
+          194,
+          195,
+          197,
+          199,
+          201,
+          202,
+          204,
+          209,
+          214,
+          215,
+          217,
+          219,
+          222,
+          223,
+          224,
+          225,
+          227,
+          230,
+          231,
+          232,
+          233,
+          234,
+          236,
+          237,
+          238,
+          240,
+          241,
+          243,
+          244,
+          248,
+          250,
+          253,
+          254
+        ]
+      },
+      "fullVerdict": "GREEN",
+      "elapsedSeconds": 93.79640749000009,
+      "modelLoaded": true,
+      "detector": {
+        "detector_status": "required",
+        "detector_decision": "NO_VIOLATION",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "seconds": 0.4838526019998426,
+        "joint": {
+          "rule_id": "poi.joint_decision/u1_f3_replay1_amber_red/2",
+          "decision": "NO_VIOLATION",
+          "reason": null,
+          "bands_violated": [],
+          "bands_amber": [],
+          "counted_positions": [],
+          "counted_total": 0,
+          "eligible_total": 106,
+          "single_model_only_total": 0,
+          "models": {
+            "U1": {
+              "flagged_eligible_positions": [],
+              "threshold": 5.813099384307861,
+              "independent_decision": "NO_VIOLATION"
+            },
+            "F3": {
+              "flagged_eligible_positions": [],
+              "threshold": 6.169895648956299,
+              "independent_decision": "NO_VIOLATION"
+            }
+          }
+        },
+        "activation": {
+          "state": "required",
+          "network": null,
+          "height": 1,
+          "ruleset": 4,
+          "mode": "v4",
+          "activation_height": null,
+          "reason": "bcore resolved this candidate to ruleset 4 (at/after its own chain's V3 sunset): the detector is a required check",
+          "verdict_bearing": true
+        },
+        "verdict_altered": false
+      }
+    },
+    "fullDiagnosticPassed": true,
+    "selectedDiagnosticPassed": true
+  },
+  "invalidCandidateRegression": {
+    "exitCode": 2,
+    "expectedRejection": true,
+    "result": {
+      "proofSha256": "89a5198407f9604d2501aa13300a684f55fbb351910a2397f24fe3294c35bca7",
+      "envelopeSha256": "455e4e47ca88223eb00558d1fdb33633c772bc64f4edb4a2ac4b499d4ce56952",
+      "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+      "proofVersion": 4,
+      "height": 1,
+      "ruleset": 4,
+      "contextCase": "bound",
+      "streamed": true,
+      "difficulty": 60000000,
+      "realVdfVerified": true,
+      "productionReady": false,
+      "scope": "Synthetic ruleset-4 CPU research; no trusted node context, native block or network acceptance",
+      "detectorStartup": {
+        "ready": true,
+        "release_id": "detector-amber-red-v2",
+        "bundle_manifest_sha256": "e738325f205c681be1f00aeaff04a16bb6ea6270366158052c828efa6ad7f9c8",
+        "rule_digest": "5ed3fbcb68788833abac489a5f09096c17c34ebff2732f5ce15bc4fc4bece5c9",
+        "rule_tag": "det1-5ed3fbcb68788833",
+        "integration_revision": "detector-enforce-r2",
+        "startup_error": null
+      },
+      "quickVerdict": 1,
+      "fullVerdict": "RED",
+      "elapsedSeconds": 8.767221546999735,
+      "modelLoaded": true
+    }
+  },
+  "protocolUnitTests": 210,
+  "limits": {
+    "nodeEmittedValidationRequest": false,
+    "liveWorkSubmission": false,
+    "registeredModel": false,
+    "registeredDifficulty": false,
+    "nativeBlocksAccepted": 0,
+    "rewardsEarned": 0,
+    "promptCalibrationApproved": false,
+    "modelDetectorCoverageMeasured": false,
+    "multipleHosts": false,
+    "scope": "Recorded lab header/height/target/flags with real VDF and actual CPU model replay. Envelopes are constructed; ruleset 2 detector scoring is advisory. The separate ruleset 4 regression uses synthetic context. No production or network acceptance."
+  }
+}

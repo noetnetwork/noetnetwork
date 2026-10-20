@@ -1,0 +1,7 @@
+.upstream
+__pycache__
+**/__pycache__
+data
+*.sqlite3*
+*.psbt
+*.backup

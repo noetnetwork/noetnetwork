@@ -1,0 +1,41 @@
+{
+  "platform": "Darwin",
+  "architecture": "arm64",
+  "python": "3.14.3",
+  "pyzmq": "27.1.0",
+  "libzmq": "4.3.5",
+  "multipartMessages": 2,
+  "frames": 6,
+  "payloadBytes": 2097220,
+  "payloadSha256": "3ec3f00e0741f45930cd0b03fa3ce981a423eaa58de1fff3b73236ea82fe82b1",
+  "reconnectPassed": true,
+  "scope": "Real ZeroMQ framing over loopback mutual TLS; no node, GPU or multi-host acceptance",
+  "productionReady": false,
+  "date": "2026-10-11",
+  "protocolTestsPassed": 163,
+  "tlsCasesPassed": 15,
+  "macOpenSSL": "OpenSSL 3.6.4 25 Aug 2026",
+  "linuxTLS": {
+    "testsPassed": 15,
+    "python": "3.12.3",
+    "openssl": "OpenSSL 3.0.13 30 Jan 2024",
+    "architecture": "arm64",
+    "uid": 10001,
+    "imageId": "sha256:10d0fa75f50b5d37ae42e1f8d10a6fca5aa4ba71290805342479abae3b646c39",
+    "network": "none",
+    "readOnly": true,
+    "memoryMiB": 512
+  },
+  "sourceSha256": {
+    "noet/secure_transport.py": "2af1730a373f07af4685318fb0f8dde2d647516a209dcae91d5d6224b2b09b51",
+    "noet/verifier_entry.py": "3a13644bc07d6effd076875a794c329e73e4c1f494fdd3954851160916f02244",
+    "prepare_transport.py": "9def157e503bb0c5d44e1687572c2e6453321f358510c76665e10712f012d39a",
+    "tests/test_secure_transport.py": "ae573caf346891bdd38869e2bea03efb935ad12b80d42b4088baa07d1a7b63d0",
+    "tests/secure_zmq_smoke.py": "100e394516e865b9467909c513139cdf779caa6b8dc75d01a33e30f08ee149d2"
+  },
+  "logSha256": {
+    "noet-protocol-tls-final.log": "9c5441a63ba834f971a9f53f14da192fb7903dcedb0730a536965204b88de47b",
+    "noet-secure-zmq-final.log": "d4f3921c6bcffa45b38599bd1d1f68e875a5c1fe15493bfb4425ba270618db5d",
+    "noet-linux-tls-tests.log": "b31b9eef399f71d2eb38e49d9283009d2da6f45f47bddc9b397a2ba571ebb969"
+  }
+}

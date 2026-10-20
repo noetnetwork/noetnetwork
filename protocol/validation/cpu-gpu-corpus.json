@@ -1,0 +1,1254 @@
+{
+  "date": "2026-10-13",
+  "productionReady": false,
+  "promptCalibrationApproved": false,
+  "scope": "GPU-verified native Full requests replayed on the CPU verifier with each recorded replaySeed (research receiver path, shadow prompt gate); nothing sent to a node",
+  "image": "sha256:38c102270dd7e2daad2e65e56f53ea71db4bcdc771bcbd19f5e84187f6d31267",
+  "tool": "protocol/cpu/replay_envelopes.py (commit bde636d)",
+  "platform": "Linux ARM64 CPU (colima VM), 3 cores, 20 GiB container limit, torch threads 3",
+  "corpus": {
+    "source": ".noet-session/gpu-20261012/evidence/runs/peer-2/peer-verifier (A5000 run, 12 Oct)",
+    "gpuFullVerdictsRecorded": 847,
+    "distinctEnvelopesReplayed": 102,
+    "heights": [
+      1,
+      102
+    ],
+    "rulesets": {
+      "2": 1,
+      "3": 1,
+      "4": 100
+    },
+    "gpuVerdicts": {
+      "GREEN": 102
+    },
+    "gpuDetectorFeatureRefusals": 0
+  },
+  "result": {
+    "cpuVerdicts": {
+      "GREEN": 74,
+      "None": 28
+    },
+    "verdictAgreement": 74,
+    "detectorRequired": 100,
+    "detectorDecisionAgreement": 72,
+    "detectorFlagAgreement": 72,
+    "abstentions": 28,
+    "maxLogitSeverity": 0.2828221321105957,
+    "medianLogitSeverity": 0.14465290307998657,
+    "logitSeverityCap": 12.0,
+    "medianSeconds": 130.47,
+    "maxSeconds": 330.37
+  },
+  "cpuRedOrAmber": 0,
+  "abstentionCause": "DetectorEvidenceIncomplete on every abstention: the union of candidate tokens across the replay views at one or more eligible positions was 129-157, above the sealed detector contract width of 128, so the required (ruleset 4) detector could not score the block",
+  "abstentionsByPromptLength": {
+    "under100Tokens": {
+      "blocks": 59,
+      "abstentions": 4
+    },
+    "about294Tokens": {
+      "blocks": 43,
+      "abstentions": 24
+    }
+  },
+  "p95Seconds": 242.95,
+  "minSeconds": 86.85,
+  "peakRssMiB": 9725,
+  "limits": [
+    "Only GREEN GPU verdicts in the corpus: no negative set, so this says nothing about rejecting forgeries",
+    "One GPU run and one CPU platform; determinism across runs and machines not measured",
+    "CPU logit severities are measured against the CPU noise model and are not directly comparable to GPU severities",
+    "Detector width abstentions make CPU Full unusable at ruleset 4 until the detector contract or the CPU replay views change"
+  ],
+  "blocks": [
+    {
+      "height": 1,
+      "ruleset": 2,
+      "envelopeSha256": "65dfc52829526f653fdf00f1658b6b8878b05a3732eb706cd15e4d6e06288bff",
+      "promptTokens": 292,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1657,
+      "seconds": 142.84
+    },
+    {
+      "height": 2,
+      "ruleset": 3,
+      "envelopeSha256": "09cee8233d63268f2ac3666080479e717ac73db8b752258c69d7bb416feee2eb",
+      "promptTokens": 36,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1613,
+      "seconds": 90.03
+    },
+    {
+      "height": 3,
+      "ruleset": 4,
+      "envelopeSha256": "631f37e81bde0d4e61d65f25e59fb22fa23259a15c165eccd9db0f18a21c2116",
+      "promptTokens": 293,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0778,
+      "seconds": 132.55,
+      "unionSizes": [
+        134,
+        143,
+        131,
+        133
+      ]
+    },
+    {
+      "height": 4,
+      "ruleset": 4,
+      "envelopeSha256": "063f739f806c78ff9437c80489894128e7859d66527184d187f5936369c40694",
+      "promptTokens": 37,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.1724,
+      "seconds": 88.86,
+      "unionSizes": [
+        132,
+        129,
+        143
+      ]
+    },
+    {
+      "height": 5,
+      "ruleset": 4,
+      "envelopeSha256": "8e9c36acb0466e49d7317f7be9ef5563b86aaea7757d1c1ff118cd067efb2281",
+      "promptTokens": 293,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0946,
+      "seconds": 132.14
+    },
+    {
+      "height": 6,
+      "ruleset": 4,
+      "envelopeSha256": "aa11c3c6f8beecc4ec64b6c048dd0d138650c50d871c80abe85cde47c465a8f8",
+      "promptTokens": 37,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.2491,
+      "seconds": 86.85
+    },
+    {
+      "height": 7,
+      "ruleset": 4,
+      "envelopeSha256": "d99cd3b7704d3a27bbf871c441b5eab62aac1a182da0393753f5f2d8b82fd0da",
+      "promptTokens": 293,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0694,
+      "seconds": 130.0,
+      "unionSizes": [
+        136
+      ]
+    },
+    {
+      "height": 8,
+      "ruleset": 4,
+      "envelopeSha256": "34837db2754d1f395248c2f2c1a6ff18cffcc703bb598d1cc55baf0ec8ca41f1",
+      "promptTokens": 293,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0891,
+      "seconds": 132.16
+    },
+    {
+      "height": 9,
+      "ruleset": 4,
+      "envelopeSha256": "6be7d37664ced8a51bfd326fbb04d16bc2e9116289293beb9f1d9a7d9ab1246a",
+      "promptTokens": 293,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0885,
+      "seconds": 130.89
+    },
+    {
+      "height": 10,
+      "ruleset": 4,
+      "envelopeSha256": "777f328a9c64a88fb421d46818e4a733ab0ce30d7b977930dc07f0b06a741dc2",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.2616,
+      "seconds": 87.66
+    },
+    {
+      "height": 11,
+      "ruleset": 4,
+      "envelopeSha256": "acd52c9d672a3688695c7bd6b1aa2e5efdcbcfc3818aedde2d69ec04118f2301",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1714,
+      "seconds": 109.88
+    },
+    {
+      "height": 12,
+      "ruleset": 4,
+      "envelopeSha256": "99665292414e1d7ce22796fbd06242053be6496532eab36340ad756746773af7",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.195,
+      "seconds": 90.28
+    },
+    {
+      "height": 13,
+      "ruleset": 4,
+      "envelopeSha256": "65456f9ee5db247360948f36f5b9ec4985edccc1e3afbf53c0bf3eb9d200a405",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.118,
+      "seconds": 140.03,
+      "unionSizes": [
+        135
+      ]
+    },
+    {
+      "height": 14,
+      "ruleset": 4,
+      "envelopeSha256": "9fbc211c368263643ad210bd63c86ebaf05209c6dc9401c2b7f17ac56f6bb62a",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1671,
+      "seconds": 94.61
+    },
+    {
+      "height": 15,
+      "ruleset": 4,
+      "envelopeSha256": "45118c7043d23e83607d0405b5190dc019440d55ace345f412c57cdc75997477",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1528,
+      "seconds": 91.45
+    },
+    {
+      "height": 16,
+      "ruleset": 4,
+      "envelopeSha256": "1450876c877e8aa61894b2489d4f6713cc71f87ef0a88d14fc624704fad7acfa",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.1577,
+      "seconds": 89.88,
+      "unionSizes": [
+        152
+      ]
+    },
+    {
+      "height": 17,
+      "ruleset": 4,
+      "envelopeSha256": "f0f425f46a49b014e72ef0cf08f0317d0047c1e1af60a70d10492de20eda75a8",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0659,
+      "seconds": 134.47
+    },
+    {
+      "height": 18,
+      "ruleset": 4,
+      "envelopeSha256": "2d80ee4f74f234f3b11e41d0e896622a380f03f06789f9b5635e7d5061c005de",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1792,
+      "seconds": 87.44
+    },
+    {
+      "height": 19,
+      "ruleset": 4,
+      "envelopeSha256": "7cc7b40261ea2ea458379f872390816f39f747a15ffb96f90fc0fe85d2de4ed0",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1521,
+      "seconds": 88.38
+    },
+    {
+      "height": 20,
+      "ruleset": 4,
+      "envelopeSha256": "07e7b6b1b25f0d659498f174cda8641ec11a86917c0a414497af7d2b4abe75fc",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1045,
+      "seconds": 136.22
+    },
+    {
+      "height": 21,
+      "ruleset": 4,
+      "envelopeSha256": "e7954a8ceff170ba6cd2cb10c94ff5fb19629befdc7d1a2b900340f610038e87",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.135,
+      "seconds": 130.47
+    },
+    {
+      "height": 22,
+      "ruleset": 4,
+      "envelopeSha256": "fb0c6a9ff535d1483ab4f018bfd306b2342d9cc56ac9f703d5743312ad4cb957",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1433,
+      "seconds": 88.92
+    },
+    {
+      "height": 23,
+      "ruleset": 4,
+      "envelopeSha256": "0d64f8f67cdf8f3fd9bec30d561ac44b9975f68b59071cf9fbe3d685345310f8",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1273,
+      "seconds": 87.24
+    },
+    {
+      "height": 24,
+      "ruleset": 4,
+      "envelopeSha256": "e47915a7ad083faed3cb09f06420a8f7853d7a5622c9d3b6dd7b41f2bc0db287",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1059,
+      "seconds": 133.24
+    },
+    {
+      "height": 25,
+      "ruleset": 4,
+      "envelopeSha256": "4fa95d5d9de0634c8cae7cdf7b015032cec2299e4ae66f9e08ad3ec68b7191d7",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0884,
+      "seconds": 131.7
+    },
+    {
+      "height": 26,
+      "ruleset": 4,
+      "envelopeSha256": "6c6f429354b3fd7424a2751f98c2916d6f7a5ed4a29fd62be1e03ffb3058452a",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0752,
+      "seconds": 132.35
+    },
+    {
+      "height": 27,
+      "ruleset": 4,
+      "envelopeSha256": "0e0f84ea869dd592d6e6ca5294a3247991c1029150593f29f2d98fcda6a04bd5",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1447,
+      "seconds": 86.86
+    },
+    {
+      "height": 28,
+      "ruleset": 4,
+      "envelopeSha256": "780a5dd39e5a3575956cf60974ece419186cd120b1a7b8a163d1b28f594005c0",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0788,
+      "seconds": 132.46
+    },
+    {
+      "height": 29,
+      "ruleset": 4,
+      "envelopeSha256": "f2a95bd3215ca10390e09341c29a7ecd0068e236a42439e260c54c5d48798ac0",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1204,
+      "seconds": 90.69
+    },
+    {
+      "height": 30,
+      "ruleset": 4,
+      "envelopeSha256": "78dcd2bc0366001bd1ca08eabb9940cd30bc5e4bd895829bbb5410bc1f878fcd",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1695,
+      "seconds": 91.46
+    },
+    {
+      "height": 31,
+      "ruleset": 4,
+      "envelopeSha256": "b970de4e1f0ebe4660d127bf24340cf61ab88036e734f12c284b3c2b056aacac",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0943,
+      "seconds": 155.81,
+      "unionSizes": [
+        131,
+        134,
+        135
+      ]
+    },
+    {
+      "height": 32,
+      "ruleset": 4,
+      "envelopeSha256": "8e877ec8011e50a79537fd11c5ad2aacfc272c7fa525522978e1839d77d9408e",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.082,
+      "seconds": 184.58,
+      "unionSizes": [
+        129,
+        129
+      ]
+    },
+    {
+      "height": 33,
+      "ruleset": 4,
+      "envelopeSha256": "fca74f4441e19f7377c9a9f02a13fb27d89d27a479e8ad6e40e7be5284936188",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1869,
+      "seconds": 90.72
+    },
+    {
+      "height": 34,
+      "ruleset": 4,
+      "envelopeSha256": "94b2cb62140939edf4e7447ac0860e0bdac62453d789c0ea657cecb56cd818c7",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.089,
+      "seconds": 140.07,
+      "unionSizes": [
+        133
+      ]
+    },
+    {
+      "height": 35,
+      "ruleset": 4,
+      "envelopeSha256": "2645f6be268df868b5eb8f0978164e48aba5d27638c005ff7cf9134acd48ac1c",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.1089,
+      "seconds": 179.65,
+      "unionSizes": [
+        131,
+        135,
+        132
+      ]
+    },
+    {
+      "height": 36,
+      "ruleset": 4,
+      "envelopeSha256": "ac7a93e4d8ab30e0d10f9c0bd93bb98d5f40b9f7548fb6fc2a4251103e7d066f",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0887,
+      "seconds": 209.18
+    },
+    {
+      "height": 37,
+      "ruleset": 4,
+      "envelopeSha256": "bce8b5f4c01a41d030786111a753ab5ca227735b961f8504edba4b0a02fbd817",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1376,
+      "seconds": 154.94
+    },
+    {
+      "height": 38,
+      "ruleset": 4,
+      "envelopeSha256": "9cea8250cb991927f688ae42dd5bdb4844b17b1a37f2972a1ef49b6368b44bdb",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1642,
+      "seconds": 141.6
+    },
+    {
+      "height": 39,
+      "ruleset": 4,
+      "envelopeSha256": "6a3ab28e50f8b2c613b5f80f9eafc099981e604ce4a3c0b9a391422209e86aa6",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1498,
+      "seconds": 112.69
+    },
+    {
+      "height": 40,
+      "ruleset": 4,
+      "envelopeSha256": "9129a41cb77183100080afc8426e4efb34818301aad4ff08d90c39bb5c8e5033",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1597,
+      "seconds": 94.96
+    },
+    {
+      "height": 41,
+      "ruleset": 4,
+      "envelopeSha256": "ebfdde4d7b951115592f28a71255c9cad7581152a61c1a661c6e6f6e993e6a52",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1946,
+      "seconds": 103.16
+    },
+    {
+      "height": 42,
+      "ruleset": 4,
+      "envelopeSha256": "b4a7897bb3c9fecf2d2fa96c32b586925a738d5ef5a5c0aaa3bcc924b1c8f240",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0821,
+      "seconds": 139.22,
+      "unionSizes": [
+        132,
+        132
+      ]
+    },
+    {
+      "height": 43,
+      "ruleset": 4,
+      "envelopeSha256": "01b45a090897afd945cf9caac682167efe2ee8c1333fb83e19e68c84e8b70e37",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0871,
+      "seconds": 150.35,
+      "unionSizes": [
+        138,
+        136,
+        132
+      ]
+    },
+    {
+      "height": 44,
+      "ruleset": 4,
+      "envelopeSha256": "8808215b49e9fd1c337a61578228e8c60ee25edf2822617009a5efe28f79e24e",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0992,
+      "seconds": 146.14
+    },
+    {
+      "height": 45,
+      "ruleset": 4,
+      "envelopeSha256": "0529ae5a351b175fe11f92b0aaa1652eedafab9c554c7bed599dec41cc0c30f4",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1481,
+      "seconds": 94.93
+    },
+    {
+      "height": 46,
+      "ruleset": 4,
+      "envelopeSha256": "7afd80aef22caa83df4fa9a7448b63b729ed6b8da71694ebc32cc6f63e973770",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.1178,
+      "seconds": 152.39,
+      "unionSizes": [
+        157
+      ]
+    },
+    {
+      "height": 47,
+      "ruleset": 4,
+      "envelopeSha256": "03ae9d674b477fec23be3d71082079727833d19e39244d2d7e9ac52bfdf46b3a",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1523,
+      "seconds": 98.56
+    },
+    {
+      "height": 48,
+      "ruleset": 4,
+      "envelopeSha256": "f344c8184661875cb0dcfc88b5010152c782361373398f3b99b44a6f42faebbb",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.2365,
+      "seconds": 98.88
+    },
+    {
+      "height": 49,
+      "ruleset": 4,
+      "envelopeSha256": "52502991480e0740e5f1afedba968f9a1e81ec0f56729df04c17037952a11ffa",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.2099,
+      "seconds": 110.35,
+      "unionSizes": [
+        136
+      ]
+    },
+    {
+      "height": 50,
+      "ruleset": 4,
+      "envelopeSha256": "47d9b86f6de5d1567c74a759db7b71d130a1dbb9837f53565bf2a62cd420ac43",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1736,
+      "seconds": 119.0
+    },
+    {
+      "height": 51,
+      "ruleset": 4,
+      "envelopeSha256": "72118eda1bf8786b8a0727202b398831757b45b4fe33abadeadba05bc6d3e4c0",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1636,
+      "seconds": 102.03
+    },
+    {
+      "height": 52,
+      "ruleset": 4,
+      "envelopeSha256": "d778a374ef0326eb13029b9eb534d67f3d9aa4ea09dd24d34d30bbc76a2407fa",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.1277,
+      "seconds": 179.41,
+      "unionSizes": [
+        130
+      ]
+    },
+    {
+      "height": 53,
+      "ruleset": 4,
+      "envelopeSha256": "79009902bb0ee9e715c9b591d301ac35602509635e0829bcb97de5d02a3879c4",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1559,
+      "seconds": 104.66
+    },
+    {
+      "height": 54,
+      "ruleset": 4,
+      "envelopeSha256": "b4dbd543b5f13bf603d8fdf487bc76205e3343deab4836f8ebec7cd804c841e1",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0867,
+      "seconds": 184.67
+    },
+    {
+      "height": 55,
+      "ruleset": 4,
+      "envelopeSha256": "0628850ccc8eb9e16c8772a4f3ac4a609e2a10465bfe87728b0fa8a2d98b2206",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1686,
+      "seconds": 119.06
+    },
+    {
+      "height": 56,
+      "ruleset": 4,
+      "envelopeSha256": "00b303924d1bf776f9dc1d386ba44514692555a67740aa4b4a78b41b4b7fbe70",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1426,
+      "seconds": 123.36
+    },
+    {
+      "height": 57,
+      "ruleset": 4,
+      "envelopeSha256": "8d52edb748f2b3c48cf129f8fdeb65f3fa2cf7fb4a4c0775fd0ea4b946a65349",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1195,
+      "seconds": 246.76
+    },
+    {
+      "height": 58,
+      "ruleset": 4,
+      "envelopeSha256": "bfe19b5bfef7c190b15376372858d5b3082dd859be806784e827d332ac8ca37f",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1555,
+      "seconds": 148.81
+    },
+    {
+      "height": 59,
+      "ruleset": 4,
+      "envelopeSha256": "37cca536b5456f9f981fada5652976ffab7c0c8d9bc62cafd2ea5eef79f8f917",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1795,
+      "seconds": 93.13
+    },
+    {
+      "height": 60,
+      "ruleset": 4,
+      "envelopeSha256": "55bf640ed1f9aef9a43d6643d3ffc50c2df56f9f16bf7f1897289016835d3490",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1784,
+      "seconds": 115.77
+    },
+    {
+      "height": 61,
+      "ruleset": 4,
+      "envelopeSha256": "378326da686c662e5b298e0ac09aa1a58c9f72c5b8b4296277d16d6b97e6bf1c",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0943,
+      "seconds": 205.71,
+      "unionSizes": [
+        136,
+        138,
+        146
+      ]
+    },
+    {
+      "height": 62,
+      "ruleset": 4,
+      "envelopeSha256": "8011571361bfdba6ca224c4f1d3c95fd4b112e55f036675b87e31bb898f7cfe1",
+      "promptTokens": 38,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1501,
+      "seconds": 212.65
+    },
+    {
+      "height": 63,
+      "ruleset": 4,
+      "envelopeSha256": "a99bc3ed619fd6fe354e3a0a9bbb7d797d3737a4636736f94b3a2bc85cb945e6",
+      "promptTokens": 294,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0977,
+      "seconds": 330.37
+    },
+    {
+      "height": 64,
+      "ruleset": 4,
+      "envelopeSha256": "c40ff6b99cf78acc5eeee6171b266770d00a16b62d5dc89e5e50ea9189191584",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1527,
+      "seconds": 210.25
+    },
+    {
+      "height": 65,
+      "ruleset": 4,
+      "envelopeSha256": "8c3f61f3beb24a1a2cf10b2955b29f6db26c8df12247c4bef56545e236dcbed6",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.174,
+      "seconds": 214.57
+    },
+    {
+      "height": 66,
+      "ruleset": 4,
+      "envelopeSha256": "9833a2d2c5e4d9a642a0bdff447dfeb3fce04ea9c2a43145f1b4a36eb6ed38c9",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1436,
+      "seconds": 235.51
+    },
+    {
+      "height": 67,
+      "ruleset": 4,
+      "envelopeSha256": "9e7a43be71d97c9470e57d49438bbde8acdb282dfcfd9eae84798f8caa3f8098",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1493,
+      "seconds": 261.91
+    },
+    {
+      "height": 68,
+      "ruleset": 4,
+      "envelopeSha256": "e1c9af4b85e26c9e5ebe98e6a69e0980052468f6193fc494b55844afca630dcc",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1947,
+      "seconds": 130.3
+    },
+    {
+      "height": 69,
+      "ruleset": 4,
+      "envelopeSha256": "94bf7de19e276f2cb2a695676e283b107785975dd6cda56abb0e7ae8ad7eb45a",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1524,
+      "seconds": 117.53
+    },
+    {
+      "height": 70,
+      "ruleset": 4,
+      "envelopeSha256": "7ba6e88dfaf41f3a85a32457f7e14c2667320e867f7721a1b60e645973de6de3",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0907,
+      "seconds": 166.65,
+      "unionSizes": [
+        135
+      ]
+    },
+    {
+      "height": 71,
+      "ruleset": 4,
+      "envelopeSha256": "a88953e9d47b2daa73eb8a3c5f46dc269580d248f55c9e5beafd33bffeae68d3",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.1008,
+      "seconds": 292.74,
+      "unionSizes": [
+        129
+      ]
+    },
+    {
+      "height": 72,
+      "ruleset": 4,
+      "envelopeSha256": "8fee2bc0bfe017d4543f9f80fe863bec6bb7cfa6877f8eb96196bb88f9c0f443",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0898,
+      "seconds": 296.13,
+      "unionSizes": [
+        132,
+        142
+      ]
+    },
+    {
+      "height": 73,
+      "ruleset": 4,
+      "envelopeSha256": "e6ed04d4d86443db9a86e54e15ddd1cd105991c2f86b36e485c1d367b2eecaf6",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1101,
+      "seconds": 242.95
+    },
+    {
+      "height": 74,
+      "ruleset": 4,
+      "envelopeSha256": "9562574a9a5fa5f87e758bc694c9a9cd707cdbfb50a8860002a689bedd7a2e72",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1769,
+      "seconds": 93.64
+    },
+    {
+      "height": 75,
+      "ruleset": 4,
+      "envelopeSha256": "ac31d7ae37ec20c7274790318c9728b4e704a2e10a9efa94c77d64bd0ade0c93",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.2015,
+      "seconds": 147.17,
+      "unionSizes": [
+        129,
+        129
+      ]
+    },
+    {
+      "height": 76,
+      "ruleset": 4,
+      "envelopeSha256": "922e079899a5af3f85b814ace8fc83438dfdd07a5cb1dbedc2f275d0d10ff805",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0973,
+      "seconds": 183.37,
+      "unionSizes": [
+        129,
+        132,
+        137,
+        141
+      ]
+    },
+    {
+      "height": 77,
+      "ruleset": 4,
+      "envelopeSha256": "b8897a7bf913df1f8d6bd6fcc501477b62a188b1927d3438fc2f762ac25f5ec5",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.2259,
+      "seconds": 92.65
+    },
+    {
+      "height": 78,
+      "ruleset": 4,
+      "envelopeSha256": "3135a35aba8a4318dceb317e09d7ab5fce5e66ceb631b4a8ec6328fb3babb180",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1842,
+      "seconds": 106.16
+    },
+    {
+      "height": 79,
+      "ruleset": 4,
+      "envelopeSha256": "4f8cf5ec3e249968bc1b00d8e15c70fb754dee8ebcf7450de8e6bebcb49d7cfa",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1576,
+      "seconds": 117.08
+    },
+    {
+      "height": 80,
+      "ruleset": 4,
+      "envelopeSha256": "96febf614dfc64a210465fb0560e1e8e9b0e3bd7e73f296d6f86b1f4a79a2b7a",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0832,
+      "seconds": 149.92,
+      "unionSizes": [
+        130,
+        134,
+        136,
+        131,
+        131,
+        143,
+        129
+      ]
+    },
+    {
+      "height": 81,
+      "ruleset": 4,
+      "envelopeSha256": "b288dad4c4b25aabb6e2d0f88a4a3f563f4046382c4efc0f07f6106a7d961ce2",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1745,
+      "seconds": 96.0
+    },
+    {
+      "height": 82,
+      "ruleset": 4,
+      "envelopeSha256": "9d8c569f024c700e55f7c87dcacd0025cccfbc6692d37c51677f226e2e12c560",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1256,
+      "seconds": 96.47
+    },
+    {
+      "height": 83,
+      "ruleset": 4,
+      "envelopeSha256": "7ce5ab407a35b34dbe3be7e84748c100e747a05710a24ac6165ffe3b0a78e538",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1647,
+      "seconds": 93.31
+    },
+    {
+      "height": 84,
+      "ruleset": 4,
+      "envelopeSha256": "ce98e17eb898250cd53f54a7f729cc3569acf014498a15c4ef026c10b5c7c003",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.2616,
+      "seconds": 95.11
+    },
+    {
+      "height": 85,
+      "ruleset": 4,
+      "envelopeSha256": "144f4fa65a0ea303d695f5cfb92df17567b36033a6ccae07685892947d7f443d",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1407,
+      "seconds": 96.62
+    },
+    {
+      "height": 86,
+      "ruleset": 4,
+      "envelopeSha256": "e4506609e3b6a343c89a616481176620acdf02cf8c37431f79edd626074525a6",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1384,
+      "seconds": 100.55
+    },
+    {
+      "height": 87,
+      "ruleset": 4,
+      "envelopeSha256": "369e029c21dba7837b5801f28f4d7f0301cfb7061565d73570a988d88c40f4ff",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0834,
+      "seconds": 144.93
+    },
+    {
+      "height": 88,
+      "ruleset": 4,
+      "envelopeSha256": "db8b1801ad8a9f3c30bcb094f6ef775661052430c36fe23ed6ab7fa33d9023a1",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.076,
+      "seconds": 148.48,
+      "unionSizes": [
+        142,
+        131
+      ]
+    },
+    {
+      "height": 89,
+      "ruleset": 4,
+      "envelopeSha256": "e7bb77a224ad218a53e454e08ce889555aff70eea0bf080383b67ec315fcc471",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.2828,
+      "seconds": 97.21
+    },
+    {
+      "height": 90,
+      "ruleset": 4,
+      "envelopeSha256": "f86c24efac609e8aa5a95890c5c26b84a0d48295583ac02284c4e329877bece7",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1707,
+      "seconds": 99.48
+    },
+    {
+      "height": 91,
+      "ruleset": 4,
+      "envelopeSha256": "4448a4c9d8cf87e360c906602d80b8958ff3a3afec5e8bcd1a8844098234cfee",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.1293,
+      "seconds": 172.18,
+      "unionSizes": [
+        136,
+        134
+      ]
+    },
+    {
+      "height": 92,
+      "ruleset": 4,
+      "envelopeSha256": "32f372b21209abf3437bdff678983f7167497124b58f9d22b5fadebcbfcd8ac8",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.147,
+      "seconds": 119.65
+    },
+    {
+      "height": 93,
+      "ruleset": 4,
+      "envelopeSha256": "df7f47a5e74a3d25760003f4c416a863651956bc2c81b918f14c8dded6731572",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1338,
+      "seconds": 92.38
+    },
+    {
+      "height": 94,
+      "ruleset": 4,
+      "envelopeSha256": "70cc367a32f19c83eeabc0953365c75a4ed6e3abc5ceae27d6b12bfa12b7d380",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.0765,
+      "seconds": 140.47
+    },
+    {
+      "height": 95,
+      "ruleset": 4,
+      "envelopeSha256": "f8d4ef293bd700415ef1e3c2d4e905f05289628f179bd42e5948aec01b0f58e2",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.1692,
+      "seconds": 144.66,
+      "unionSizes": [
+        131
+      ]
+    },
+    {
+      "height": 96,
+      "ruleset": 4,
+      "envelopeSha256": "496ee45ddbc73bdfab399ffe818ffae507467e90713c3807552f4356e8ea7b58",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0756,
+      "seconds": 138.4,
+      "unionSizes": [
+        133,
+        151,
+        132,
+        130,
+        130
+      ]
+    },
+    {
+      "height": 97,
+      "ruleset": 4,
+      "envelopeSha256": "6d71b5a4d6bf4030186e98879943435fa88d2ff93743027201608641273e8980",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0937,
+      "seconds": 134.15,
+      "unionSizes": [
+        136,
+        141,
+        129
+      ]
+    },
+    {
+      "height": 98,
+      "ruleset": 4,
+      "envelopeSha256": "ddd278effa6ecfb23d56e9fb73c72f94a80e6b9bbf575de31ae7f8e34ae81cb6",
+      "promptTokens": 39,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1507,
+      "seconds": 90.17
+    },
+    {
+      "height": 99,
+      "ruleset": 4,
+      "envelopeSha256": "8ba4c6e5d5a929d2bf464546844eec58d023e01150389a6d7acf3a5b29a87c80",
+      "promptTokens": 295,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.0871,
+      "seconds": 133.21,
+      "unionSizes": [
+        129,
+        130
+      ]
+    },
+    {
+      "height": 100,
+      "ruleset": 4,
+      "envelopeSha256": "a740e384ad08f968852da8833a86d9036127921af64e6eda11a197c7a147dc12",
+      "promptTokens": 40,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1759,
+      "seconds": 89.07
+    },
+    {
+      "height": 101,
+      "ruleset": 4,
+      "envelopeSha256": "3f6b1c7afd52280f2a5acc669913039572fee76e0f127ed88c83187e5033311f",
+      "promptTokens": 40,
+      "gpu": "GREEN",
+      "cpu": "GREEN",
+      "maxLogitSeverity": 0.1561,
+      "seconds": 88.95
+    },
+    {
+      "height": 102,
+      "ruleset": 4,
+      "envelopeSha256": "37346b8dd63360f0148bf1bad111f250426cd544272aedf4ea09843f7aad7969",
+      "promptTokens": 296,
+      "gpu": "GREEN",
+      "cpu": "DetectorEvidenceIncomplete",
+      "maxLogitSeverity": 0.08,
+      "seconds": 136.9,
+      "unionSizes": [
+        132,
+        130,
+        131,
+        132,
+        132,
+        130,
+        134,
+        132
+      ]
+    }
+  ],
+  "gpuRedReplay": {
+    "scope": "The only two distinct RED verdicts among 1,199 live GPU Full checks (12-13 Oct, our own miner's proofs), replayed on CPU the same way",
+    "liveGpuFullChecks": {
+      "GREEN": 1197,
+      "RED": 2
+    },
+    "blocks": [
+      {
+        "height": 9,
+        "network": "noet-testnet-1",
+        "ruleset": 4,
+        "envelopeSha256": "a7025aac696639a4ec09eee102fa0171fe18fa22d9c7dcca00b2948ba42369a7",
+        "gpu": "RED",
+        "gpuReason": "best-p candidate logit severity 14.19 sigma at step 143 exceeds the hard cap 12",
+        "gpuAt": "2026-10-12T21:52:47Z",
+        "gpuReplaySeed": 54103896,
+        "cpu": "GREEN",
+        "cpuMaxLogitSeverity": 0.206,
+        "cpuDetector": "NO_VIOLATION, 169 eligible, none flagged",
+        "promptTokens": 37,
+        "seconds": 119.68
+      },
+      {
+        "height": 201,
+        "network": "development chain (noet-chain)",
+        "ruleset": 4,
+        "envelopeSha256": "569c198dc837739681161fdedba8e9336c6f097734a8c834ba3c116b7c268c72",
+        "gpu": "RED",
+        "gpuReason": "best-p candidate logit severity 12.42 sigma at step 210 exceeds the hard cap 12",
+        "gpuAt": "2026-10-12T14:11:05Z",
+        "gpuReplaySeed": 569564575,
+        "cpu": "DetectorEvidenceIncomplete",
+        "cpuMaxLogitSeverity": 0.195,
+        "cpuUnionSizes": [
+          131
+        ],
+        "promptTokens": 40,
+        "seconds": 118.83
+      }
+    ],
+    "reading": "Neither proof is near the cap on CPU, so both GPU REDs are most likely false rejections of honest proofs by the GPU path (about 1 in 600 Full checks). Each was checked once on GPU with one seed; later requests reused the cached RED, so seed dependence on GPU is not measured."
+  }
+}

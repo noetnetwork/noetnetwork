@@ -1,0 +1,12 @@
+{
+  "sourceArchiveSha256": "f99fd151504c550a8a8ca641ae75dd1c882b969dd0625d397971fb08fe361b6f",
+  "sourceArchiveBytes": 683806720,
+  "imageId": "sha256:10c5f28d84ad858f55abeed1c7fd2c0796f679d5c516a05c58e823ef891ed96c",
+  "architecture": "arm64",
+  "baseImage": "ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55",
+  "sourceReproducibility": "two exports have identical SHA-256",
+  "nativeAcceptance": "lab-smoke.json",
+  "imageInventory": "node-image.json",
+  "productionReady": false,
+  "signed": false
+}

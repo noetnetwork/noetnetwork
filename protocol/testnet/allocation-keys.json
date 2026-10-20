@@ -1,0 +1,21 @@
+{
+  "network": "noet-testnet-1",
+  "note": "Testnet-only allocation signer public keys. Private keys are held offline by the operator; never reuse for mainnet.",
+  "classes": {
+    "treasury": [
+      "0262d74cea1ebf132cacc4edb37f046155e26ff1bcf7ac34a643fb7e226600f75c",
+      "02e6abe77e25fd2bf90dfd64429ffab5c5a94cdbefc09f7ca9602d1bb03d2bab28",
+      "020d766b6f387d46f433049264617a735f400bff760313a4cd1149adabf38a0f6c"
+    ],
+    "team": [
+      "02973e38c86bb055e974d09fb913b8171d0958e44de4a2fc87ba29b5c4735d968e",
+      "036a6229a635a32d8f770e7ac44765a8d79d011d39fb7a65f13eaf4c5b7e17a2b4",
+      "02b79135bd0d3937658bea8b0f2f5a6b6b94a1fb6c7757d2ec60229a90d95e4d6e"
+    ],
+    "ecosystem": [
+      "02ffb3fbb8e004a5a97f2bb85e8101dff741141eabef9181481345a430ac2ffc26",
+      "029abfdf79240cb235a58a3acdea13a8fb6bb563f1e96968f7a5a3576a92eda82a",
+      "037cd238ac3e08b753e34b2c4427d373b2cd174b1986e0fad0bc072a623ad3adfe"
+    ]
+  }
+}

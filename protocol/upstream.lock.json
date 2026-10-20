@@ -1,0 +1,12 @@
+{
+  "repository": "https://git.tensorcash.org/tensorcash/tensorcash.git",
+  "release": "v1.2.2",
+  "commit": "48d1344106044338e6e500de7e95869de036bc55",
+  "components": {
+    "services/core-node/bcore": "c1c69178c715d760cc9dc61bbf7c235aa32501a9",
+    "services/miner-api/llama.cpp": "4b82726eaef1d38dd6cf4d4cb2ed2c73bc10ac26",
+    "services/miner-api/vllm-v016": "30c24e4a5f3fe9d88d5818612621c30f525080cf",
+    "shared-utils/liboqs": "97f6b86b1b6d109cfd43cf276ae39c2e776aed80",
+    "shared-utils/secp256k1-zkp": "42e75b613bc2c6b23d1ff75de49b9011f542baee"
+  }
+}

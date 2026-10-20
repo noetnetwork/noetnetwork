@@ -1,0 +1,873 @@
+{
+  "format": "noet-replay-precision-v1",
+  "date": "2026-10-12",
+  "productionReady": false,
+  "question": "Does the bf16 reference forward pass, rather than the miner, dominate honest logit-severity residuals?",
+  "method": "Recorded llama.cpp BF16-GGUF proofs replayed through Hugging Face Qwen3-0.6B at the pinned revision in bf16 and fp32 (SDPA, CPU). Severity mirrors proof_verifier: residual after the reported global mean offset, divided by the largest declared-bf16 ULP sigma floor. cov_adjuster is omitted; it can only raise sigma, so values are upper bounds.",
+  "scriptSha256": "ba335132548021fcf2f658c17d0e976827f258d7d6ff657b0c9171b138861e9e",
+  "model": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+  "uniqueProofs": 38,
+  "bf16Reference": {
+    "proofs": 38,
+    "maxSeverity": 8.35,
+    "medianMaxSeverity": 4.1,
+    "maxAbsResidual": 0.9533,
+    "stepsAtOrAbove6": 10,
+    "stepsAbove12": 0
+  },
+  "fp32Reference": {
+    "proofs": 38,
+    "maxSeverity": 3.82,
+    "medianMaxSeverity": 1.78,
+    "maxAbsResidual": 0.4362,
+    "stepsAtOrAbove6": 0,
+    "stepsAbove12": 0
+  },
+  "fp32LowerInProofs": 36,
+  "hardCapSigma": 12,
+  "capChanged": false,
+  "decision": "Replay bf16/fp16 proofs with an fp32 reference forward pass on GPU, matching the existing CPU path. Declared-precision grids, ULP sigma and every gate constant are unchanged.",
+  "limits": [
+    "CPU-produced proofs on CPU replay; GPU-produced proof acceptance under the new policy still has to be measured on GPU",
+    "Does not address the separate Flash Attention candidate-support failures; the runner keeps flash attention off",
+    "Does not approve prompt calibration or the research model"
+  ],
+  "rows": [
+    {
+      "proof": "bound/proofs/9201_1869539548_dce86e6f.bin",
+      "sha256": "75993752628d49df",
+      "version": 2,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 3.59,
+        "argmaxStep": 181,
+        "p99Severity": 3.06,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4102
+      },
+      "fp32": {
+        "maxSeverity": 3.82,
+        "argmaxStep": 159,
+        "p99Severity": 1.4,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4362
+      }
+    },
+    {
+      "proof": "bound/proofs/proof_0_0_1791746460073.bin",
+      "sha256": "99646fef067a636f",
+      "version": 2,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 3.59,
+        "argmaxStep": 181,
+        "p99Severity": 3.06,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4102
+      },
+      "fp32": {
+        "maxSeverity": 3.82,
+        "argmaxStep": 159,
+        "p99Severity": 1.4,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4362
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/1_2742696258_42397aa3.bin",
+      "sha256": "2b0b505fb5549ea9",
+      "version": 4,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 4.1,
+        "argmaxStep": 5,
+        "p99Severity": 3.22,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4484
+      },
+      "fp32": {
+        "maxSeverity": 1.93,
+        "argmaxStep": 28,
+        "p99Severity": 1.4,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2198
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/1_324620491_cb505913.bin",
+      "sha256": "930a9fa02a412fbf",
+      "version": 4,
+      "promptTokens": 795,
+      "bf16": {
+        "maxSeverity": 3.71,
+        "argmaxStep": 131,
+        "p99Severity": 3.09,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4614
+      },
+      "fp32": {
+        "maxSeverity": 1.45,
+        "argmaxStep": 172,
+        "p99Severity": 1.15,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1652
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/1_3568156684_0cc0add4.bin",
+      "sha256": "86d479f5ac14de23",
+      "version": 4,
+      "promptTokens": 1563,
+      "bf16": {
+        "maxSeverity": 3.65,
+        "argmaxStep": 57,
+        "p99Severity": 3.35,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4169
+      },
+      "fp32": {
+        "maxSeverity": 1.93,
+        "argmaxStep": 60,
+        "p99Severity": 1.6,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2197
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/1_3594671923_335742d6.bin",
+      "sha256": "caa39cdbfcf160ee",
+      "version": 4,
+      "promptTokens": 1051,
+      "bf16": {
+        "maxSeverity": 3.69,
+        "argmaxStep": 146,
+        "p99Severity": 3.37,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4209
+      },
+      "fp32": {
+        "maxSeverity": 1.95,
+        "argmaxStep": 204,
+        "p99Severity": 1.14,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2226
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/1_415876346_fac4c918.bin",
+      "sha256": "9554fe986cb74222",
+      "version": 4,
+      "promptTokens": 1819,
+      "bf16": {
+        "maxSeverity": 5.81,
+        "argmaxStep": 126,
+        "p99Severity": 3.77,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.6631
+      },
+      "fp32": {
+        "maxSeverity": 2.16,
+        "argmaxStep": 126,
+        "p99Severity": 1.85,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2467
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/1_509478087_c7045e1e.bin",
+      "sha256": "1b9025ebdf26f7cb",
+      "version": 4,
+      "promptTokens": 539,
+      "bf16": {
+        "maxSeverity": 4.17,
+        "argmaxStep": 180,
+        "p99Severity": 3.31,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4755
+      },
+      "fp32": {
+        "maxSeverity": 1.69,
+        "argmaxStep": 123,
+        "p99Severity": 1.34,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1933
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/proof_0_0_1791754641181.bin",
+      "sha256": "1a21d443e9ff6861",
+      "version": 4,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 4.1,
+        "argmaxStep": 5,
+        "p99Severity": 3.22,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4484
+      },
+      "fp32": {
+        "maxSeverity": 1.93,
+        "argmaxStep": 28,
+        "p99Severity": 1.4,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2198
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/proof_0_0_1791754726414.bin",
+      "sha256": "9b96e5208c84f63c",
+      "version": 4,
+      "promptTokens": 539,
+      "bf16": {
+        "maxSeverity": 4.17,
+        "argmaxStep": 180,
+        "p99Severity": 3.31,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4755
+      },
+      "fp32": {
+        "maxSeverity": 1.69,
+        "argmaxStep": 123,
+        "p99Severity": 1.34,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1933
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/proof_0_0_1791754769260.bin",
+      "sha256": "d7c2728cb20880a6",
+      "version": 4,
+      "promptTokens": 795,
+      "bf16": {
+        "maxSeverity": 3.71,
+        "argmaxStep": 131,
+        "p99Severity": 3.09,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4614
+      },
+      "fp32": {
+        "maxSeverity": 1.45,
+        "argmaxStep": 172,
+        "p99Severity": 1.15,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1652
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/proof_0_0_1791754812033.bin",
+      "sha256": "cd9b821d7608d76a",
+      "version": 4,
+      "promptTokens": 1051,
+      "bf16": {
+        "maxSeverity": 3.69,
+        "argmaxStep": 146,
+        "p99Severity": 3.37,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4209
+      },
+      "fp32": {
+        "maxSeverity": 1.95,
+        "argmaxStep": 204,
+        "p99Severity": 1.14,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2226
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/proof_0_0_1791754899651.bin",
+      "sha256": "201b6ab02931f1d4",
+      "version": 4,
+      "promptTokens": 1563,
+      "bf16": {
+        "maxSeverity": 3.65,
+        "argmaxStep": 57,
+        "p99Severity": 3.35,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4169
+      },
+      "fp32": {
+        "maxSeverity": 1.93,
+        "argmaxStep": 60,
+        "p99Severity": 1.6,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2197
+      }
+    },
+    {
+      "proof": "live-private-1/generation-0/proofs/proof_0_0_1791754945312.bin",
+      "sha256": "48dbeb274b4e884a",
+      "version": 4,
+      "promptTokens": 1819,
+      "bf16": {
+        "maxSeverity": 5.81,
+        "argmaxStep": 126,
+        "p99Severity": 3.77,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.6631
+      },
+      "fp32": {
+        "maxSeverity": 2.16,
+        "argmaxStep": 126,
+        "p99Severity": 1.85,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2467
+      }
+    },
+    {
+      "proof": "live-private-2/generation-2/proofs/3_475571964_fca6581c.bin",
+      "sha256": "f2aad827c7155363",
+      "version": 4,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 3.99,
+        "argmaxStep": 144,
+        "p99Severity": 3.54,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4552
+      },
+      "fp32": {
+        "maxSeverity": 1.38,
+        "argmaxStep": 11,
+        "p99Severity": 1.26,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1485
+      }
+    },
+    {
+      "proof": "live-private-2/generation-2/proofs/proof_0_0_1791755250743.bin",
+      "sha256": "2c7fbe92a51472ef",
+      "version": 4,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 3.99,
+        "argmaxStep": 144,
+        "p99Severity": 3.54,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4552
+      },
+      "fp32": {
+        "maxSeverity": 1.38,
+        "argmaxStep": 11,
+        "p99Severity": 1.26,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1485
+      }
+    },
+    {
+      "proof": "live-private-3/generation-0/proofs/1_3419704015_cf8ad4cb.bin",
+      "sha256": "8c8412b2a17fff23",
+      "version": 4,
+      "promptTokens": 283,
+      "bf16": {
+        "maxSeverity": 8.35,
+        "argmaxStep": 238,
+        "p99Severity": 3.54,
+        "stepsOver6": 1,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.9533
+      },
+      "fp32": {
+        "maxSeverity": 1.81,
+        "argmaxStep": 238,
+        "p99Severity": 1.21,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2064
+      }
+    },
+    {
+      "proof": "live-private-3/generation-0/proofs/proof_0_0_1791755733537.bin",
+      "sha256": "94ffffc301a87748",
+      "version": 4,
+      "promptTokens": 283,
+      "bf16": {
+        "maxSeverity": 8.35,
+        "argmaxStep": 238,
+        "p99Severity": 3.54,
+        "stepsOver6": 1,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.9533
+      },
+      "fp32": {
+        "maxSeverity": 1.81,
+        "argmaxStep": 238,
+        "p99Severity": 1.21,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2064
+      }
+    },
+    {
+      "proof": "live-private-3/generation-2/proofs/3_2430566015_7f7edf90.bin",
+      "sha256": "26d3b6378a01817a",
+      "version": 4,
+      "promptTokens": 36,
+      "bf16": {
+        "maxSeverity": 3.93,
+        "argmaxStep": 17,
+        "p99Severity": 3.07,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4452
+      },
+      "fp32": {
+        "maxSeverity": 1.0,
+        "argmaxStep": 70,
+        "p99Severity": 0.92,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1174
+      }
+    },
+    {
+      "proof": "live-private-3/generation-2/proofs/proof_0_0_1791756254697.bin",
+      "sha256": "110aec5441aa7a26",
+      "version": 4,
+      "promptTokens": 36,
+      "bf16": {
+        "maxSeverity": 3.93,
+        "argmaxStep": 17,
+        "p99Severity": 3.07,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.4452
+      },
+      "fp32": {
+        "maxSeverity": 1.0,
+        "argmaxStep": 70,
+        "p99Severity": 0.92,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1174
+      }
+    },
+    {
+      "proof": "proofs/9201_3494446597_050649d0.bin",
+      "sha256": "eaf113126ee5d86e",
+      "version": 2,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 5.27,
+        "argmaxStep": 99,
+        "p99Severity": 4.66,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.6008
+      },
+      "fp32": {
+        "maxSeverity": 3.07,
+        "argmaxStep": 99,
+        "p99Severity": 1.33,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.3505
+      }
+    },
+    {
+      "proof": "proofs/proof_0_0_1791744529240.bin",
+      "sha256": "51a8ce9c9c159ebe",
+      "version": 2,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 5.27,
+        "argmaxStep": 99,
+        "p99Severity": 4.66,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.6008
+      },
+      "fp32": {
+        "maxSeverity": 3.07,
+        "argmaxStep": 99,
+        "p99Severity": 1.33,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.3505
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/1_215963213_4d56df0c.bin",
+      "sha256": "4e8a766f61605c23",
+      "version": 4,
+      "promptTokens": 1051,
+      "bf16": {
+        "maxSeverity": 6.28,
+        "argmaxStep": 200,
+        "p99Severity": 2.92,
+        "stepsOver6": 1,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.717
+      },
+      "fp32": {
+        "maxSeverity": 1.78,
+        "argmaxStep": 200,
+        "p99Severity": 1.36,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2031
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/1_2255258017_a1816c86.bin",
+      "sha256": "7e2b147a3bdf0365",
+      "version": 4,
+      "promptTokens": 1307,
+      "bf16": {
+        "maxSeverity": 4.49,
+        "argmaxStep": 171,
+        "p99Severity": 3.6,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.5124
+      },
+      "fp32": {
+        "maxSeverity": 1.36,
+        "argmaxStep": 163,
+        "p99Severity": 1.21,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1548
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/1_2852949240_f88c0caa.bin",
+      "sha256": "5904f69f2b1bdf19",
+      "version": 4,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 3.16,
+        "argmaxStep": 248,
+        "p99Severity": 2.9,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.3608
+      },
+      "fp32": {
+        "maxSeverity": 1.39,
+        "argmaxStep": 241,
+        "p99Severity": 1.12,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.159
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/1_2991092628_947348b2.bin",
+      "sha256": "509f9d2e43782115",
+      "version": 4,
+      "promptTokens": 795,
+      "bf16": {
+        "maxSeverity": 3.45,
+        "argmaxStep": 48,
+        "p99Severity": 2.78,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.3941
+      },
+      "fp32": {
+        "maxSeverity": 1.38,
+        "argmaxStep": 97,
+        "p99Severity": 1.05,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1572
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/1_4106737108_d4d5c7f4.bin",
+      "sha256": "f83609ef81c99377",
+      "version": 4,
+      "promptTokens": 1563,
+      "bf16": {
+        "maxSeverity": 6.89,
+        "argmaxStep": 122,
+        "p99Severity": 5.71,
+        "stepsOver6": 3,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.7868
+      },
+      "fp32": {
+        "maxSeverity": 1.86,
+        "argmaxStep": 176,
+        "p99Severity": 1.51,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2178
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/proof_0_0_1791750168412.bin",
+      "sha256": "2e7dc7331fef736c",
+      "version": 4,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 3.16,
+        "argmaxStep": 248,
+        "p99Severity": 2.9,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.3608
+      },
+      "fp32": {
+        "maxSeverity": 1.39,
+        "argmaxStep": 241,
+        "p99Severity": 1.12,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.159
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/proof_0_0_1791750299763.bin",
+      "sha256": "4348cb5d3fd2c090",
+      "version": 4,
+      "promptTokens": 795,
+      "bf16": {
+        "maxSeverity": 3.45,
+        "argmaxStep": 48,
+        "p99Severity": 2.78,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.3941
+      },
+      "fp32": {
+        "maxSeverity": 1.38,
+        "argmaxStep": 97,
+        "p99Severity": 1.05,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1572
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/proof_0_0_1791750342655.bin",
+      "sha256": "3d8c9147a9c09436",
+      "version": 4,
+      "promptTokens": 1051,
+      "bf16": {
+        "maxSeverity": 6.28,
+        "argmaxStep": 200,
+        "p99Severity": 2.92,
+        "stepsOver6": 1,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.717
+      },
+      "fp32": {
+        "maxSeverity": 1.78,
+        "argmaxStep": 200,
+        "p99Severity": 1.36,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2031
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/proof_0_0_1791750387589.bin",
+      "sha256": "9aa33524543819fd",
+      "version": 4,
+      "promptTokens": 1307,
+      "bf16": {
+        "maxSeverity": 4.49,
+        "argmaxStep": 171,
+        "p99Severity": 3.6,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.5124
+      },
+      "fp32": {
+        "maxSeverity": 1.36,
+        "argmaxStep": 163,
+        "p99Severity": 1.21,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1548
+      }
+    },
+    {
+      "proof": "recorded-node-work-runtime/proofs/proof_0_0_1791750433216.bin",
+      "sha256": "42ab9d572de7a34b",
+      "version": 4,
+      "promptTokens": 1563,
+      "bf16": {
+        "maxSeverity": 6.89,
+        "argmaxStep": 122,
+        "p99Severity": 5.71,
+        "stepsOver6": 3,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.7868
+      },
+      "fp32": {
+        "maxSeverity": 1.86,
+        "argmaxStep": 176,
+        "p99Severity": 1.51,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2178
+      }
+    },
+    {
+      "proof": "repeat/proofs/9201_3494446597_050649d0.bin",
+      "sha256": "4975358981fc2ce6",
+      "version": 2,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 5.27,
+        "argmaxStep": 99,
+        "p99Severity": 4.66,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.6008
+      },
+      "fp32": {
+        "maxSeverity": 3.07,
+        "argmaxStep": 99,
+        "p99Severity": 1.33,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.3505
+      }
+    },
+    {
+      "proof": "repeat/proofs/proof_0_0_1791744789997.bin",
+      "sha256": "5290fc965f901128",
+      "version": 2,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 5.27,
+        "argmaxStep": 99,
+        "p99Severity": 4.66,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.6008
+      },
+      "fp32": {
+        "maxSeverity": 3.07,
+        "argmaxStep": 99,
+        "p99Severity": 1.33,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.3505
+      }
+    },
+    {
+      "proof": "v4-eight-windows/proofs/9201_2036078033_d1155c79.bin",
+      "sha256": "c2bf925edbfa4b6e",
+      "version": 4,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 4.0,
+        "argmaxStep": 235,
+        "p99Severity": 3.29,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.5126
+      },
+      "fp32": {
+        "maxSeverity": 1.59,
+        "argmaxStep": 132,
+        "p99Severity": 1.24,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1814
+      }
+    },
+    {
+      "proof": "v4-eight-windows/proofs/9201_28519065_992ab301.bin",
+      "sha256": "89a5198407f9604d",
+      "version": 4,
+      "promptTokens": 795,
+      "bf16": {
+        "maxSeverity": 4.21,
+        "argmaxStep": 167,
+        "p99Severity": 3.51,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.6559
+      },
+      "fp32": {
+        "maxSeverity": 1.25,
+        "argmaxStep": 116,
+        "p99Severity": 1.14,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2022
+      }
+    },
+    {
+      "proof": "v4-eight-windows/proofs/proof_0_0_1791747484839.bin",
+      "sha256": "75d01c55f442e640",
+      "version": 4,
+      "promptTokens": 27,
+      "bf16": {
+        "maxSeverity": 4.0,
+        "argmaxStep": 235,
+        "p99Severity": 3.29,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.5126
+      },
+      "fp32": {
+        "maxSeverity": 1.59,
+        "argmaxStep": 132,
+        "p99Severity": 1.24,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.1814
+      }
+    },
+    {
+      "proof": "v4-eight-windows/proofs/proof_0_0_1791747630152.bin",
+      "sha256": "3906ae1a82a1fcca",
+      "version": 4,
+      "promptTokens": 795,
+      "bf16": {
+        "maxSeverity": 4.21,
+        "argmaxStep": 167,
+        "p99Severity": 3.51,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.6559
+      },
+      "fp32": {
+        "maxSeverity": 1.25,
+        "argmaxStep": 116,
+        "p99Severity": 1.14,
+        "stepsOver6": 0,
+        "stepsOver12": 0,
+        "maxAbsResidual": 0.2022
+      }
+    }
+  ]
+}

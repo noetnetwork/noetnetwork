@@ -1,0 +1,89 @@
+diff --git a/tools/server/server-context.cpp b/tools/server/server-context.cpp
+index f8e1d63..f8d9c6b 100644
+--- a/tools/server/server-context.cpp
++++ b/tools/server/server-context.cpp
+@@ -2135,6 +2135,9 @@ private:
+ 
+                 // Ingress POW_PROOF_VERSION stamp (absent key = old proxy) —
+                 // the proof writer cross-checks it against this process's env.
++                if (slot.task->params.pow_params.height >= 0) {
++                    pow_params["height"] = std::to_string(slot.task->params.pow_params.height);
++                }
+                 if (slot.task->params.pow_params.proof_version != 0) {
+                     pow_params["proof_version"] =
+                         std::to_string(slot.task->params.pow_params.proof_version);
+diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
+index 5adb842..99ca992 100644
+--- a/tools/server/server-task.cpp
++++ b/tools/server/server-task.cpp
+@@ -94,7 +94,7 @@ json task_params::to_json(bool only_metrics) const {
+         grammar_triggers.push_back(ct.to_json());
+     }
+ 
+-    return json {
++    json result {
+         {"seed",                      sampling.seed},
+         {"temperature",               sampling.temp},
+         {"dynatemp_range",            sampling.dynatemp_range},
+@@ -162,6 +162,10 @@ json task_params::to_json(bool only_metrics) const {
+             {"proof_version",     pow_params.proof_version},
+         }},
+     };
++    if (pow_params.height >= 0) {
++        result["pow_params"]["height"] = pow_params.height;
++    }
++    return result;
+ }
+ 
+ //
+@@ -407,6 +411,15 @@ task_params server_task::params_from_json_cmpl(
+         params.pow_params.model_identifier  = json_value(pow_json, "model_identifier",  std::string());
+         params.pow_params.compute_precision = json_value(pow_json, "compute_precision", std::string());
+         params.pow_params.proof_version     = json_value(pow_json, "proof_version",     (int64_t)0);
++        if (pow_json.contains("height")) {
++            const auto & height = pow_json.at("height");
++            // Match BlockHeader.height without coercion or signed overflow.
++            // Never infer a missing height from process state or another job.
++            if (!height.is_number_integer() || height < 0 || height > UINT32_MAX) {
++                throw std::runtime_error("pow.height must be an unsigned 32-bit integer");
++            }
++            params.pow_params.height = height.get<int64_t>();
++        }
+         if (pow_json.contains("stepbind")) {
+             const auto & marker = pow_json.at("stepbind");
+             if (!marker.is_number_integer() || marker.get<int64_t>() != 1) {
+@@ -1381,6 +1394,9 @@ json server_task_result_cmpl_final::to_json_anthropic_stream() {
+ //
+ void server_task_result_cmpl_partial::update(task_result_state & state) {
+     is_updated = true;
++    if (res_type == TASK_RESPONSE_TYPE_NONE || res_type == TASK_RESPONSE_TYPE_OAI_CMPL) {
++        return;
++    }
+     state.update_chat_msg(content, true, oaicompat_msg_diffs);
+ 
+     // Copy current state for use in to_json_*() (reflects state BEFORE this chunk)
+diff --git a/tools/server/server-task.h b/tools/server/server-task.h
+index 2b20a45..fa2ef25 100644
+--- a/tools/server/server-task.h
++++ b/tools/server/server-task.h
+@@ -84,6 +84,8 @@ struct task_params {
+         std::string ipfs_cid;
+         int64_t request_id = 0;
+         int64_t difficulty = 0;
++        // Optional node-issued uint32 height. -1 means absent, never genesis.
++        int64_t height = -1;
+         std::string model_identifier;
+         std::string compute_precision;
+         // v3 (TIP-0003 §9): the miner-api ingress stamps its own
+@@ -405,6 +407,11 @@ struct server_task_result_cmpl_final : server_task_result {
+ 
+     virtual void update(task_result_state & state) override {
+         is_updated = true;
++        // Raw completions have no chat framing. Parsing them can reject valid
++        // generated text after its proof has already been saved.
++        if (res_type == TASK_RESPONSE_TYPE_NONE || res_type == TASK_RESPONSE_TYPE_OAI_CMPL) {
++            return;
++        }
+         oaicompat_msg = state.update_chat_msg(content, false, oaicompat_msg_diffs);
+ 
+         oai_resp_id = state.oai_resp_id;

@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-11",
+  "protocolTestsPassed": 166,
+  "walletModuleTestsPassed": 16,
+  "actualWindowTestsPassed": 3,
+  "windowTestPlatform": "Linux ARM64, Python 3.12, Tk/Xvfb",
+  "windowTestImage": "sha256:cfcda2560fe3256f822916328aff8da96f221c5f94afdb03cf7f8da0f47f2619",
+  "hostBundleSha256": "e45a4cf2a9640def7e287d79ba81eb917185e2a31f700ec8fb9fe963725d8f25",
+  "extensionBundleSha256": "04f935cf164ca4d88cea4feb6213777e7983ae061e75a7d7d09527e7bef99a65",
+  "sourceSha256": {
+    "protocol/noet/wallet_prompt.py": "a1dc7fb2789257ac595d5caf0fc1dbcdade1d6a46989f43259edc5a20500cba6",
+    "protocol/noet/native_host.py": "15b174a94467ed61e0b383c91df436c75067c74ad862c7bfec16d043ff9d7037",
+    "protocol/desktop/native_prompt_check.py": "f8e2e646717e04853dc4f26706e83067142ff8f3375cae09b6bc52a668739dbd",
+    "wallets/native/extension/review.mjs": "514a760e5967ebb5709a977da052abff485c7f0f93fb83ae040a8743fc7d2116",
+    "wallets/native/extension/wallet.mjs": "e08add4ada9384b54a6f4759983cab0faacbca3b6cdaa6316f169c17712b804f"
+  },
+  "scope": "Readable development signing approval and exact-amount rendering. Installed Chrome/macOS acceptance is not verified.",
+  "productionReady": false,
+  "signed": false
+}
