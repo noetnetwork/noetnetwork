@@ -21,5 +21,11 @@
   "genesisTime": 1791849600,
   "genesisNonce": 1,
   "genesisHash": "fc3e73901e2831df8457ea56f56cf92cd23018453439a0c1d402cbab61f45a54",
-  "allocationKeys": "mainnet/allocation-keys.json"
+  "allocationKeys": "mainnet/allocation-keys.json",
+  "modelSwitch": {
+    "model": "Qwen/Qwen3-14B",
+    "revision": "40c069824f4251a91eefaf281ebe4c544efd3e18",
+    "height": 3500,
+    "targetScale": [2, 1]
+  }
 }

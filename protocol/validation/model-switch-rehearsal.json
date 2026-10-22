@@ -1,0 +1,86 @@
+{
+  "format": "noet-model-switch-rehearsal-v1",
+  "date": "2026-10-22",
+  "productionReady": false,
+  "question": "Does a chain cross from Qwen3-0.6B to Qwen3-14B at a set height under real verification, are proofs made with 0.6B weights but claiming 14B refused, and how often are honest 14B blocks wrongly refused?",
+  "switch": {
+    "from": "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca",
+    "to": "Qwen/Qwen3-14B@40c069824f4251a91eefaf281ebe4c544efd3e18",
+    "height": 8,
+    "targetScale": [1, 1],
+    "ggufSha256": {
+      "qwen3-0.6b-bf16.gguf": "8fa11f4d815167c4f6e3c91b25aebde25d8346a8f11228e744016592532b0700",
+      "qwen3-14b-bf16.gguf": "b4ac198af720a0d4359a084f162f75553a1050e82869c96e583d3104f599dbe9"
+    }
+  },
+  "host": "Rented research Pod, 2x NVIDIA A100-SXM4-80GB: producer on GPU 0, verifier on GPU 1 with both reviewed snapshots (gpu/stage.py --switch-profile, gpu/model_session.sh)",
+  "chain": "Private research chain built with realwork/prepare.py --switch-model --switch-height 8 (no difficulty reset: targetScale 1/1); not mainnet",
+  "verifier": "full-r2-2026-10-21, real mode; every block final only after a computed Full verdict",
+  "runs": [
+    {
+      "name": "run 1",
+      "attempts": 19,
+      "acceptedBlocks": {"qwen3-0.6b": 7, "qwen3-14b": 6, "heights": "1-13, consecutive"},
+      "computedFullVerdicts": {"green": 13, "red": 3},
+      "honestBlocksRefused": 0,
+      "forgeries": {"attempts": 3, "height": 8, "quickStatus": "passed (accepted_pending_connect)", "fullVerdict": "RED", "maxLogitSeveritySigma": [117.0, 129.85, 130.53]},
+      "fullVerificationSeconds": {
+        "qwen3-0.6b": {"minimum": 20.25, "median": 20.82, "maximum": 22.66},
+        "qwen3-14b": {"minimum": 253.28, "median": 268.23, "maximum": 274.74}
+      },
+      "end": "Stopped after 3,909 s by a research-harness fault: one 14B generation ended with an end token at 426 of 516 tokens and the harness treated it as fatal. The public miner already counts this as a miss. Fixed in gpu/native.py (commit e34c132)."
+    },
+    {
+      "name": "run 2",
+      "attempts": 95,
+      "acceptedBlocks": {"qwen3-0.6b": 7, "qwen3-14b": 54, "heights": "1-61, consecutive; node tip 61 (3dd903c3...c87b)"},
+      "computedFullVerdicts": {"green": 61, "red": 3},
+      "exactRetryResponses": 415,
+      "honestBlocksRefusedByFull": 0,
+      "honestProofsRefusedAtSubmit": [
+        {"attempt": 61, "height": 40, "model": "qwen3-14b", "rule": "bad-prompt-scaffold", "reason": "local copied-token coverage 120/128,0/64,60/64,0/64 with at least three credit-bearing holes", "effect": "Node quick check refused the proof before Full; the attempt is lost like a miss and the chain is unaffected"}
+      ],
+      "forgeries": {"attempts": 3, "height": 8, "quickStatus": "passed (accepted_pending_connect)", "fullVerdict": "RED", "maxLogitSeveritySigma": [112.75, 132.96, 102.0], "retriesAllRed": 21},
+      "acceptedProofSeverity": {
+        "rule": "full-r2 logit-severity hard cap 12 sigma on the unperturbed replay",
+        "qwen3-0.6b": {"proofs": 7, "medianMax": 0.62, "max": 0.97},
+        "qwen3-14b": {"proofs": 54, "medianMax": 0.77, "max": 1.75}
+      },
+      "producer": {
+        "qwen3-0.6b": {"attempts": 13, "noEligibleWindow": 6, "tokensPerSecond": {"minimum": 43.84, "median": 45.38, "maximum": 47.99}},
+        "qwen3-14b": {"attempts": 79, "noEligibleWindow": 23, "incompleteRuns": 0, "tokensPerSecond": {"minimum": 25.39, "median": 26.63, "maximum": 27.82}}
+      },
+      "attemptSeconds": {
+        "method": "Harness time from one job record to the next on attempts that found no eligible window (no submission, no Full wait); engine start and model load included, as in the public miner",
+        "qwen3-0.6b": {"attempts": 6, "minimum": 24, "median": 24, "maximum": 25},
+        "qwen3-14b": {"attempts": 23, "minimum": 35, "median": 36, "maximum": 38},
+        "ratio14bTo06b": 1.5
+      },
+      "fullVerificationSeconds": {
+        "qwen3-0.6b": {"minimum": 18.53, "median": 19.51, "maximum": 20.58},
+        "qwen3-14b": {"minimum": 224.22, "median": 242.47, "maximum": 271.82}
+      },
+      "peakGpuMemoryMiB": {"producer": 28441, "verifier": 71041},
+      "verifierPeakCudaBytes": 70505819136,
+      "end": "Six-hour limit reached at 21,601 s with 61 of the requested 80 blocks; block 62 was awaiting its Full verdict. The harness could not read the tip after the deadline, so the evidence audit's chain check had no final height; the node log shows tip 61."
+    }
+  ],
+  "audit": {
+    "tool": "gpu/audit.py --require-captures",
+    "fix": "A retry of a refused forgery is now compared with that forgery's own RED result. Before, it was looked up among honest results only, and run 2's 21 forgery retries were reported as mismatches although each repeated RED.",
+    "remainingFailures": {
+      "run 1": ["Native acceptance did not finish successfully"],
+      "run 2": ["Native acceptance did not finish successfully", "Accepted blocks are not the complete consecutive chain"]
+    },
+    "cause": "Both runs ended early (harness fault, then the time limit), not on a verdict. No honest Full result was RED and every detector record was complete."
+  },
+  "upstreamVerifierTests": "tests/test_full_gates.py: 42 passed on the Pod CPU, including the full-r2 test in all four engines",
+  "limits": [
+    "One host type (A100 80 GB). The attempt-time ratio on 48 GB cards (A40, RTX A6000, L40S), which have less memory bandwidth, is not measured.",
+    "61 honest Full verdicts across both models in run 2, 54 of them 14B, plus 6 in run 1: no false RED, which bounds a false-RED rate only roughly.",
+    "The research harness starts the engine for every attempt and waits for each Full verdict; its block rate is not mining throughput.",
+    "The difficulty reset at the switch (targetScale) was not exercised here; it was checked on a node with a mocked clock (testnet/switch_check.py)."
+  ],
+  "costUsd": 28.24,
+  "costSource": "Spend watchdog reading at 06:24 UTC, just before the Pod was deleted; both runs on one Pod at $3.58 an hour"
+}

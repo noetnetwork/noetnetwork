@@ -31,6 +31,7 @@ FILES = {
     'noet/model_artifacts.py': 'app/noet/model_artifacts.py',
     'cpu/fetch_model.py': 'app/fetch_model.py',
     'cpu/qwen3-06b.candidate.json': 'app/qwen3-06b.candidate.json',
+    'models/qwen3-14b.candidate.json': 'app/qwen3-14b.candidate.json',
     'miner/Dockerfile': 'Dockerfile',
     'miner/setup.sh': 'setup.sh',
     'miner/convert.sh': 'convert.sh',

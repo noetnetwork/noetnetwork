@@ -29,6 +29,21 @@ class ModelRuntimeTests(unittest.TestCase):
         with self.readonly():self.assertEqual(runtime.checked_model_directory('NOET/fixture','a'*40),str(self.root))
         for model,revision in [('other/model','a'*40),('NOET/fixture','main')]:
             with self.readonly(),self.assertRaises(ValueError):runtime.checked_model_directory(model,revision)
+    def test_second_snapshot_serves_only_its_own_model(self):
+        # Across a model switch one verifier holds both consensus models (design/MODEL-SWITCH.md).
+        second=self.folder/'second';second.mkdir();(second/'config.json').write_text('{"n":2}')
+        manifest=self.folder/'second.json';manifest.write_text(json.dumps(create(second,'NOET/switch','b'*40,'test fixture')))
+        slot={'NOET_MODEL_ROOT_2':str(second),'NOET_MODEL_MANIFEST_2':str(manifest),
+              'NOET_MODEL_MANIFEST_SHA256_2':hashlib.sha256(manifest.read_bytes()).hexdigest()}
+        with self.readonly(),patch.dict(os.environ,slot):
+            self.assertEqual(runtime.checked_model_directory('NOET/fixture','a'*40),str(self.root))
+            self.assertEqual(runtime.checked_model_directory('NOET/switch','b'*40),str(second))
+            for model,revision in [('NOET/switch','a'*40),('other/model','b'*40)]:
+                with self.assertRaisesRegex(ValueError,'outside the reviewed'):runtime.checked_model_directory(model,revision)
+            with patch.dict(os.environ,{'NOET_MODEL_MANIFEST_SHA256_2':'0'*64}),self.assertRaises(ValueError):
+                runtime.checked_model_directory('NOET/switch','b'*40)
+        with self.readonly(),self.assertRaisesRegex(ValueError,'outside the reviewed'):
+            runtime.checked_model_directory('NOET/switch','b'*40)  # no second slot configured
     def test_writable_root_and_nested_mount_rejected(self):
         with patch.object(runtime.os,'statvfs',return_value=types.SimpleNamespace(f_flag=0)),self.assertRaisesRegex(ValueError,'read-only'):
             runtime.checked_model_directory('NOET/fixture','a'*40)

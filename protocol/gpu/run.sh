@@ -14,6 +14,18 @@ assert re.fullmatch(r"[a-z0-9.-]+[.]candidate[.]json", m["manifestFile"]) and re
 assert re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*@[a-f0-9]{40}", m["id"])
 print(sys.argv[2] + "/" + m["manifestFile"], m["manifestSha256"], m["id"])' "$R/model.json" "$R")
 fi
+# A switch rehearsal (model.json "switch") gives the verifier the second model's
+# snapshot too (noet/model_runtime.py), so it replays both sides of the switch.
+SLOT2=()
+if [[ -f $R/model.json ]]; then
+  read -r MANIFEST2 MANIFEST2_SHA256 < <("$R/runtime/bin/python" -c '
+import json, re, sys
+s = json.load(open(sys.argv[1])).get("switch")
+if not s: print("- -"); raise SystemExit
+assert re.fullmatch(r"[a-z0-9.-]+[.]candidate[.]json", s["manifestFile"]) and re.fullmatch(r"[a-f0-9]{64}", s["manifestSha256"])
+print(sys.argv[2] + "/" + s["manifestFile"], s["manifestSha256"])' "$R/model.json" "$R")
+  [[ $MANIFEST2 != - ]] && SLOT2=(NOET_MODEL_ROOT_2=$R/model-2 NOET_MODEL_MANIFEST_2="$MANIFEST2" NOET_MODEL_MANIFEST_SHA256_2="$MANIFEST2_SHA256")
+fi
 # model_session.sh may give the producer and verifier separate GPUs (plan_host.py).
 VERIFIER_GPU=${NOET_VERIFIER_GPU:-0}
 PRODUCER_GPU=${NOET_PRODUCER_GPU:-0}
@@ -26,7 +38,7 @@ exec setpriv --reuid=10001 --regid=10001 --clear-groups --bounding-set=-all --in
  CUDA_VISIBLE_DEVICES=$VERIFIER_GPU NOET_PRODUCER_GPU=$PRODUCER_GPU HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1 DO_NOT_TRACK=1 \
  HF_HOME=/tmp/noet-gpu-home/hf MPLCONFIGDIR=/tmp/noet-gpu-home/mpl \
  NOET_MODEL_ROOT=/workspace/noet-gpu/model NOET_MODEL_MANIFEST="$MANIFEST" \
- NOET_MODEL_MANIFEST_SHA256="$MANIFEST_SHA256" NOET_MODEL_ID="$MODEL_ID" \
+ NOET_MODEL_MANIFEST_SHA256="$MANIFEST_SHA256" NOET_MODEL_ID="$MODEL_ID" ${SLOT2[@]+"${SLOT2[@]}"} \
  NOET_MODEL_PROTECTION=root-owned POW_V4_STRICT_MODE=enforce POW_V2_STREAMED=1 POW_ALLOW_CPU_INFERENCE=0 \
  POW_PROMPT_GIBBERISH_GATE=shadow ${VALIDATOR_SHARED_SECRET:+VALIDATOR_SHARED_SECRET=$VALIDATOR_SHARED_SECRET} \
  POI_DETECTOR_BUNDLE=/workspace/noet-gpu/verifier/services/verification-api/src/poi_detector/assets/detector-amber-red-v2/bundle.json \

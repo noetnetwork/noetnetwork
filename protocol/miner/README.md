@@ -1,13 +1,14 @@
 # NOET miner
 
 Mine NOET with an NVIDIA GPU. Each block is produced by running a pinned
-language model (Qwen3-0.6B) on a research prompt; the proof of that inference,
+language model (Qwen3-0.6B, and Qwen3-14B from block 3,500) on a research prompt; the proof of that inference,
 plus a time-lock (VDF), is checked by the network's verifier. Block rewards are
 paid by consensus directly to your own address.
 
 ## What you need
 
-- An NVIDIA GPU with 8 GB or more of memory. Tested on RTX A5000 and A40
+- An NVIDIA GPU with 8 GB or more of memory, and from block 3,500 at least
+  34 GiB (see below). Tested on RTX A5000 and A40
   (compute capability 8.6). Other architectures (8.0, 8.9, 9.0, 12.0) are
   built but not yet validated against the network verifier.
 - NVIDIA driver 570 or newer.
@@ -49,6 +50,27 @@ sudo ./setup.sh          # build tools (once)
 ./mine.sh noet1... --check
 ./mine.sh noet1...
 ```
+
+## Model switch to Qwen3-14B
+
+NOET Mainnet moves from Qwen3-0.6B to Qwen3-14B at block 3,500
+(`protocol/design/MODEL-SWITCH.md`). From that block, mining needs:
+
+- a GPU with at least 34 GiB of memory: a 48 GB card (A40, RTX A6000, L40S) or
+  an 80 GB card. 24 GB cards cannot run the 14B model.
+- the Qwen3-14B model file (29.6 GB, SHA-256
+  `b4ac198af720a0d4359a084f162f75553a1050e82869c96e583d3104f599dbe9`), built
+  from the pinned Hugging Face revision like the 0.6B file. The conversion
+  needs about 90 GB of free disk.
+
+```sh
+./convert.sh . models qwen3-14b                       # without Docker
+docker build --build-arg WITH_14B=1 -t noet-miner .   # with Docker
+```
+
+With both model files the miner switches at block 3,500 by itself. With only
+the 0.6B file it stops there and says what to do. Miners released before the
+switch was set stop when the node upgrade lists Qwen3-14B; update them first.
 
 ## What happens
 

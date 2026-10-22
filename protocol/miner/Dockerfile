@@ -6,13 +6,16 @@
 # Hugging Face revision with the engine's own converter and must hash to the
 # pinned GGUF; the build fails otherwise. No weights are redistributed here.
 
-# 1. Model: fetch the pinned snapshot and convert it to the pinned GGUF.
+# 1. Model: fetch the pinned snapshot and convert it to the pinned GGUF. With
+# --build-arg WITH_14B=1 also Qwen3-14B (design/MODEL-SWITCH.md): a 29.6 GB file,
+# so the image can mine across the switch.
 FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS model
+ARG WITH_14B=0
 WORKDIR /build
 COPY engine.tar convert.sh ./
-COPY app/fetch_model.py app/qwen3-06b.candidate.json app/
+COPY app/fetch_model.py app/qwen3-06b.candidate.json app/qwen3-14b.candidate.json app/
 COPY app/noet/ app/noet/
-RUN ./convert.sh /build /models
+RUN ./convert.sh /build /models && if [ "$WITH_14B" = 1 ]; then ./convert.sh /build /models qwen3-14b; fi
 
 # 2. Engine and VDF binding, compiled for current NVIDIA architectures.
 FROM nvidia/cuda:12.8.1-devel-ubuntu24.04@sha256:520292dbb4f755fd360766059e62956e9379485d9e073bbd2f6e3c20c270ed66 AS build
@@ -43,12 +46,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 libgmp1
     && useradd --create-home --uid 10001 miner && mkdir /work && chown miner /work
 COPY --from=build /build/engine/build/bin/llama-server /opt/noet/bin/llama-server
 COPY --from=build /build/chiavdf*.so /opt/noet/lib/
-COPY --from=model /models/qwen3-0.6b-bf16.gguf /models/qwen3-0.6b-bf16.gguf
+COPY --from=model /models/ /models/
 COPY app/ /opt/noet/app/
 COPY README.md LICENSE-NOTICE.md /opt/noet/
 COPY licenses/ /opt/noet/licenses/
 ENV PYTHONPATH=/opt/noet/lib PYTHONDONTWRITEBYTECODE=1 NOET_ENGINE=/opt/noet/bin/llama-server \
-    NOET_MODEL=/models/qwen3-0.6b-bf16.gguf NOET_WORK_DIR=/work
+    NOET_MODEL_DIR=/models NOET_WORK_DIR=/work
 USER miner
 WORKDIR /work
 VOLUME /work

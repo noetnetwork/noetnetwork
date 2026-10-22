@@ -22,7 +22,7 @@ Updated 20 October 2026.
 | 1 | Independent security review of the consensus overlay, vesting outputs, verifier and wallet | outside reviewers |
 | 2 | Verification that does not depend on one operator: standby and independent verifiers, and the CPU path in `design/CPU-VALIDATION.md` | code, outside operators |
 | 3 | Several independently operated nodes, with their names added to `seeds` in `mainnet/network.json` | outside operators |
-| 4 | Larger models: candidate profiles in `models/`; a switch is a consensus upgrade at an announced height | code, GPU tests |
+| 4 | Switch to Qwen3-14B at an announced height (`design/MODEL-SWITCH.md`): node, verifier and miner support is in place and rehearsed on GPUs (`validation/model-switch-rehearsal.json`); height 3,500 and target scale 2 are set; the miner release, the node deploy and an 80 GB verifier host remain | owner decision, operator |
 | 5 | Validation of GPU architectures beyond compute capability 8.6 | GPU tests |
 | 6 | A prebuilt miner image (the CUDA stages need an x86 build) | code |
 | 7 | Signed desktop installers and store-ready mobile apps | code, accounts |

@@ -1,0 +1,59 @@
+{
+  "format": "noet-candidate-model-test-v1",
+  "date": "2026-10-21",
+  "productionReady": false,
+  "model": "Qwen/Qwen3-14B@40c069824f4251a91eefaf281ebe4c544efd3e18",
+  "question": "Do honest Qwen3-14B proofs pass real Full verification, and what does the model need from miners and verifiers?",
+  "host": "Rented research Pod, 2x NVIDIA A100-SXM4-80GB: producer on GPU 0, verifier on GPU 1 (gpu/model_session.sh, gpu/plan_host.py)",
+  "conversion": {
+    "gguf": "qwen3-14b-bf16.gguf",
+    "sha256": "b4ac198af720a0d4359a084f162f75553a1050e82869c96e583d3104f599dbe9",
+    "independentConversionsAgree": true
+  },
+  "run": {
+    "chain": "Private research chain registering the candidate; not mainnet",
+    "attempts": 50,
+    "acceptedBlocks": 30,
+    "computedFullVerdicts": 33,
+    "redVerdicts": 3,
+    "producerTokensPerSecond": {"minimum": 26.3, "median": 26.81, "maximum": 27.28},
+    "producerSecondsFor516Tokens": {"minimum": 18.91, "median": 19.24, "maximum": 19.62},
+    "fullVerificationSeconds": {"minimum": 214.1, "median": 220.1, "maximum": 239.4},
+    "peakGpuMemoryMiB": {"producer": 28441, "verifier": 71223},
+    "verifierPeakCudaBytes": 70505475072
+  },
+  "rejections": {
+    "rule": "full-r1 v4 Full hard cap on the best-p candidate's logit severity (12 sigma)",
+    "severitySigma": [13.23, 12.73, 29.13],
+    "cause": "At the flagged steps an MCA-noised replay candidate won best-p, so the cap measured injected noise. On the two rejected proofs whose candidates were captured, the unperturbed batch-1 replay peaked at 1.22 and 1.43 sigma.",
+    "reportedVsIndependentFp32MaxAbsLogit": [0.147, 0.409, 0.141],
+    "reportedVsIndependentBf16MaxAbsLogit": [2.125, 1.75, 1.688],
+    "acceptedProofsForComparison": {"fp32": [0.124, 0.184], "bf16": [0.812, 0.5]}
+  },
+  "acceptedProofSeverity": {
+    "proofs": 30,
+    "bestPCandidate": {"medianMax": 0.83, "max": 9.51},
+    "unperturbedReplay": {"medianMax": 0.8, "max": 1.11, "maxAbsLogitResidual": 0.404},
+    "stepsWhereANoisedCandidateWonBestP": 12,
+    "stepsTotal": 7680
+  },
+  "fullR2": {
+    "change": "The Full logit-severity cap reads the unperturbed batch-1 replay at every step, not the best-p candidate. Cap, p-values, sampling-noise selection and every other rule unchanged (patches/noet-miner.patch, full_gates.py, FULL_RULES_REVISION full-r2-2026-10-21).",
+    "replaysWithRecordedSeeds": {
+      "formerlyRed": {"proofs": 3, "green": 3},
+      "accepted": {"proofs": 2, "green": 2}
+    },
+    "forgeries": [
+      {"proof": "height 1", "case": "forged-logits", "change": "+50 on every step's top logit", "verdict": "RED", "rule": "Quick: chosen probability mismatch"},
+      {"proof": "height 6 (formerly RED)", "case": "nudged-logit", "change": "+4 on step 100's top logit, bf16 grid", "verdict": "RED", "rule": "Quick: chosen probability mismatch"},
+      {"proof": "height 1", "case": "nudged-logit", "change": "+4 on step 100's top logit, bf16 grid", "verdict": "RED", "rule": "full-r2 reference replay logit severity 17.43 sigma at step 100"}
+    ]
+  },
+  "limits": [
+    "One host type (A100 80 GB) for both producer and verifier; other miner GPUs are not yet measured.",
+    "33 Full verdicts. The false-RED rate under full-r2 needs a longer run; the unperturbed replay stayed at or below 1.43 sigma on the 32 proofs where it was captured.",
+    "Prompt-gate calibration, difficulty for the new attempt time and the switch height are not yet set (models/README.md).",
+    "A proof produced by a smaller model and labelled 14B was not tested here."
+  ],
+  "costUsd": 15.11
+}

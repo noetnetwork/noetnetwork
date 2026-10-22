@@ -23,6 +23,11 @@ PROFILE=(json.loads((ROOT/'model.json').read_text()) if (ROOT/'model.json').exis
 GENESIS=PROFILE['privateGenesis']
 MODEL=PROFILE['id']
 GGUF=ROOT/PROFILE['gguf']
+# A switch rehearsal (design/MODEL-SWITCH.md): from SWITCH['height'] every block
+# carries the second model, and each attempt runs the weights of its job's height.
+SWITCH=PROFILE.get('switch')
+SWITCH_MODEL=SWITCH['id'] if SWITCH else None
+SWITCH_GGUF=ROOT/SWITCH['gguf'] if SWITCH else None
 
 
 def run(args):
@@ -38,7 +43,8 @@ def run(args):
         'rejectedProofs':[],'continueAfterRejection':args.continue_after_rejection,
         'acceptedBlocks':[],'spendableRewardVerified':False,'startedAt':time.time(),
         'producerAccelerator':args.accelerator,
-        'flashAttention':args.flash_attention,
+        'flashAttention':args.flash_attention,'forgeries':[],'forgeryAccepted':False,
+        'switch':{'model':SWITCH_MODEL,'height':SWITCH['height'],'relabelAfterSwitch':args.relabel_after_switch} if SWITCH else None,
         'scope':'Single rented host, private research chain, unapproved calibration in shadow, inherited test economics'}
     processes=[];logs=[]
     deadline=time.monotonic()+args.seconds
@@ -80,6 +86,12 @@ def run(args):
         if PROFILE['ggufSha256'] and converted_digest!=PROFILE['ggufSha256']:
             raise ValueError('Converted model differs from the pinned research artifact')
         report.update(model=MODEL,convertedModelSha256=converted_digest,convertedModelPinned=bool(PROFILE['ggufSha256']))
+        if SWITCH:
+            with SWITCH_GGUF.open('rb') as source:
+                switch_digest=hashlib.file_digest(source,'sha256').hexdigest()
+            if SWITCH['ggufSha256'] and switch_digest!=SWITCH['ggufSha256']:
+                raise ValueError('Converted switch model differs from its pinned artifact')
+            report['switch']['convertedModelSha256']=switch_digest
         node_command=[str(binaries/'bitcoind'),'-chain=tensor-reg','-datadir='+str(data),'-server=1',
             '-listen=0','-dnsseed=0','-fixedseeds=0','-listenonion=0','-discover=0','-connect=0',
             '-port=30441','-rpcport=30443','-validationapi=real','-useextapi=1',
@@ -89,8 +101,9 @@ def run(args):
         report['genesis']=rpc('getblockhash',0)
         if GENESIS and report['genesis']!=GENESIS:raise AssertionError('Private genesis mismatch')
         registry=rpc('getmodelslist',False)
-        if (len(registry)!=1 or registry[0]['model_name']+'@'+registry[0]['model_commit']!=MODEL
-                or registry[0]['difficulty']!=1000000):raise AssertionError('Model registry mismatch')
+        registered={r['model_name']+'@'+r['model_commit']:r for r in registry}
+        if (sorted(registered)!=sorted([MODEL]+([SWITCH_MODEL] if SWITCH else []))
+                or any(r['difficulty']!=1000000 for r in registry)):raise AssertionError('Model registry mismatch')
         report['registry']=registry
         report['validationInfo']=rpc('getvalidationapiinfo')
         if report['validationInfo']['mode']!='real' or report['validationInfo']['result_pull_endpoint']!='tcp://127.0.0.1:18556':
@@ -127,14 +140,20 @@ def run(args):
                     report['rewardSpend']={'txid':spend,'recipient':recipient,'mempool':rpc('getmempoolentry',spend)}
             parent=rpc('getbestblockhash')
             job=rpc('create_mining_work_unit','tensor-reg',script,secrets.token_hex(8))
-            record={'profile':'noet-private-work-v1','genesis':report['genesis'],'parent':parent,'model':registry[0],'job':job}
+            chosen=SWITCH_MODEL if SWITCH and job['height']>=SWITCH['height'] else MODEL
+            # Research forgery: the genesis model's weights behind a proof that claims the switch model.
+            forged=chosen==SWITCH_MODEL and len(report['forgeries'])<args.relabel_after_switch
+            weights=SWITCH_GGUF if chosen==SWITCH_MODEL and not forged else GGUF
+            record={'profile':'noet-private-work-v1','genesis':report['genesis'],'parent':parent,
+                    'model':registered[chosen],'job':job}
             jobfile=args.out/f'job-{attempt}.json';jobfile.write_text(json.dumps(record,indent=2)+'\n')
             generation=args.out/f'generation-{attempt}'
             with (args.out/f'producer-{attempt}.log').open('xb') as log:
                 generated=subprocess.Popen([sys.executable,str(ROOT/'checks/generate.py'),'--job',str(jobfile),
-                    '--engine',str(ROOT/'engine/build/bin/llama-server'),'--model',str(GGUF),
+                    '--engine',str(ROOT/'engine/build/bin/llama-server'),'--model',str(weights),
                     '--out',str(generation),'--accelerator',args.accelerator,
-                    '--flash-attention',args.flash_attention],env=env,stdout=log,stderr=subprocess.STDOUT,
+                    '--flash-attention',args.flash_attention],env={**env,'NOET_MODEL_ID':chosen},
+                    stdout=log,stderr=subprocess.STDOUT,
                     start_new_session=True)
                 try:generated.wait(timeout=min(900,remaining()))
                 finally:
@@ -143,16 +162,30 @@ def run(args):
                     try:os.killpg(generated.pid,signal.SIGKILL)
                     except ProcessLookupError:pass
                     generated.wait(timeout=10)
-            observed={'attempt':attempt,'height':job['height'],'producerExit':generated.returncode,'submissions':[]}
+            observed={'attempt':attempt,'height':job['height'],'model':chosen,'weights':weights.name,
+                'producerExit':generated.returncode,'submissions':[]}
+            if forged:observed['forgedRelabel']=True
             report['attempts'].append(observed);save()
-            if generated.returncode and 'No eligible evidence' not in (args.out/f'producer-{attempt}.log').read_text()[-4000:]:
-                raise RuntimeError('Producer failed before completing an eligible-window search; inspect its log')
+            if generated.returncode:
+                tail=(args.out/f'producer-{attempt}.log').read_text()[-4000:]
+                if 'Incomplete inference run' in tail:
+                    # The model ended its text (an end token) before the fixed proof
+                    # length: no proof, a miss like "No eligible evidence" (and so for miners).
+                    observed['incompleteRun']=True;save()
+                elif 'No eligible evidence' not in tail:
+                    raise RuntimeError('Producer failed before completing an eligible-window search; inspect its log')
             for proof in sorted((generation/'proofs').glob(str(job['req_id'])+'_*.bin')):
                 with proof.open('rb') as source:raw=source.read(2*1024*1024+1)
                 if len(raw)>2*1024*1024:raise ValueError('Oversized mining proof')
                 submitted=rpc('submit_mining_response',job['req_id'],base64.b64encode(raw).decode(),0)
                 observed['submissions'].append({'proofSha256':hashlib.sha256(raw).hexdigest(),'response':submitted});save()
-                if submitted.get('status') not in ('accepted','accepted_pending_connect'):continue
+                if submitted.get('status') not in ('accepted','accepted_pending_connect'):
+                    if forged:
+                        # Refused when submitted, before any Full replay: also a refusal.
+                        report['forgeries'].append({'attempt':attempt,'height':job['height'],'claimedModel':chosen,
+                            'weights':weights.name,'verdict':'refused-at-submit','response':submitted})
+                        save();break
+                    continue
                 block=submitted['block_hash']
                 def settled():
                     rows=[r for r in rpc('getrecentvalidations',100) if r['block_hash']==block and r['type']=='full']
@@ -163,6 +196,13 @@ def run(args):
                 try:verdict=wait(settled,900)
                 except TimeoutError:observed['acceptanceTimeout']=True;break
                 observed['nativeFullValidation']=verdict
+                if forged:
+                    report['forgeries'].append({'attempt':attempt,'height':job['height'],'blockHash':block,
+                        'claimedModel':chosen,'weights':weights.name,'verdict':verdict['full_status']})
+                    report['forgeryAccepted']=report['forgeryAccepted'] or verdict['full_status']=='green'
+                    save()
+                    if verdict['full_status']=='green':raise AssertionError('A relabelled proof was accepted')
+                    break
                 if verdict['full_status']!='green':
                     report['rejectedProofs'].append({'attempt':attempt,'height':job['height'],
                         'blockHash':block,'proofSha256':hashlib.sha256(raw).hexdigest(),
@@ -189,7 +229,8 @@ def run(args):
             report['spendableRewardVerified']=transaction['confirmations']>=1 and Decimal(transaction['amount'])==1
         milestones=len(report['acceptedBlocks'])>=args.blocks and (not args.spend or report['spendableRewardVerified'])
         report['miningAndPaymentComplete']=milestones
-        report['passed']=milestones and not report['rejectedProofs']
+        report['passed']=(milestones and not report['rejectedProofs'] and not report['forgeryAccepted']
+            and len(report['forgeries'])==(args.relabel_after_switch if SWITCH else 0))
         if milestones and args.check_indexer:
             from noet.indexer import Index
             index=Index(args.out/'explorer.sqlite3',report['genesis'])
@@ -250,7 +291,12 @@ if __name__=='__main__':
     p.add_argument('--continue-after-rejection',action='store_true',
         help='Continue fresh work after RED, retaining every rejection and a failed acceptance result')
     p.add_argument('--check-indexer',action='store_true');p.add_argument('--restart',action='store_true')
+    p.add_argument('--relabel-after-switch',type=int,default=0,
+        help='Switch rehearsal: this many attempts after the switch run the genesis weights while claiming '
+             'the switch model; each must be refused (research forgery, recorded apart from honest rejections)')
     a=p.parse_args()
+    if not 0<=a.relabel_after_switch<=10 or (a.relabel_after_switch and not SWITCH):
+        p.error('--relabel-after-switch needs a switch rehearsal and at most 10 attempts')
     if not 1<=a.blocks<=105 or not 1<=a.attempts<=400 or not 60<=a.seconds<=86400:p.error('Acceptance must stay bounded')
     if a.spend and a.blocks<101:p.error('Reward spend acceptance needs actual maturity')
     raise SystemExit(0 if run(a) else 2)

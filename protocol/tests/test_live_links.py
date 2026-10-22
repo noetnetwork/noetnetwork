@@ -209,6 +209,33 @@ class LiveLinkTests(unittest.IsolatedAsyncioTestCase):
         miner = [item for item in items if item.name == 'miner'][0].command()
         self.assertIn('noet_miner.py', miner[2])
         self.assertEqual(miner[miner.index('--network') + 1], 'testnet')
+        self.assertEqual([miner[i + 1] for i, part in enumerate(miner) if part == '--model'],
+                         [str(live.ROOT / 'qwen3-0.6b-bf16.gguf')])
+
+    def test_gpu_supervisor_crosses_a_model_switch_on_two_gpus(self):
+        # design/MODEL-SWITCH.md: both GGUF files go to the miner; producer and verifier get their own GPU.
+        settings = {'node': '203.0.113.21', 'rewardAddress': 'noet1q' + 'q' * 58, 'network': 'mainnet',
+                    'gateway': 'https://noet-mainnet.fly.dev:9443', 'producerGpu': 0, 'verifierGpu': 1}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for name in live.GGUFS:
+                (root / name).write_bytes(b'')
+            with mock.patch.object(live, 'OUT', Path('/tmp/out')), mock.patch.object(live, 'ROOT', root):
+                items = {item.name: item for item in live.services(settings, 'a' * 64, {})}
+        miner = items['miner'].command()
+        self.assertEqual([miner[i + 1] for i, part in enumerate(miner) if part == '--model'],
+                         [str(root / name) for name in live.GGUFS])
+        for name in ('miner', 'verifier'):
+            self.assertEqual((items[name].env['NOET_PRODUCER_GPU'], items[name].env['NOET_VERIFIER_GPU']), ('0', '1'))
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'gpu-bundle.b64').write_text((self.root / 'certs/gpu-bundle.b64').read_text())
+            (root / 'shared-secret').write_text('a' * 64)
+            (root / 'miner-credentials').write_text('miner:' + 'x' * 32)
+            for bad in (10, -1, '1', True):
+                (root / 'live.json').write_text(json.dumps({**settings, 'verifierGpu': bad}))
+                with self.subTest(bad=bad), self.assertRaisesRegex(ValueError, 'GPU index'):
+                    live.load(root)
 
 
 if __name__ == '__main__':

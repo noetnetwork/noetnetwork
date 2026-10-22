@@ -26,7 +26,7 @@
     "manifest": "models/qwen3-14b.candidate.json",
     "manifestSha256": "ad4e82761ed0febab48cd12752acfa9705d7bc3b579f9fec810ec2c6de4efb5e",
     "gguf": "qwen3-14b-bf16.gguf",
-    "ggufSha256": null,
+    "ggufSha256": "b4ac198af720a0d4359a084f162f75553a1050e82869c96e583d3104f599dbe9",
     "status": "candidate"
   },
   "qwen3-32b": {

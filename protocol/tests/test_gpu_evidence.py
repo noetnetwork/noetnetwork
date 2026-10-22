@@ -50,6 +50,37 @@ class GpuEvidenceTests(unittest.TestCase):
         self.assertTrue(result['passed'], result['failures'])
         self.assertEqual(result['exactRetryResponses'], 1)
 
+    def test_switch_rehearsal_forgery_must_be_red_and_stays_apart(self):
+        # native.py --relabel-after-switch: genesis weights claiming the switch model at height 3.
+        forged = self.root / 'verifier' / '9'
+        forged.mkdir()
+        raw = b'forged-3'
+        (forged / 'request.bin').write_bytes(raw)
+        (forged / 'result.json').write_text(json.dumps({'requestType': 2, 'height': 3, 'fullVerdict': 'RED',
+            'responseSent': True, 'responseCode': 8, 'envelopeSha256': hashlib.sha256(raw).hexdigest()}))
+        retry = forged.with_name('10')  # the node asks again; the verifier repeats RED
+        retry.mkdir()
+        (retry / 'request.bin').write_bytes(raw)
+        row = {**json.loads((forged / 'result.json').read_text()), 'reusedExactEnvelope': True,
+               'computedResultDirectory': '9'}
+        (retry / 'result.json').write_text(json.dumps(row))
+        self.report['forgeries'] = [{'height': 3, 'verdict': 'red'}]
+        self.report['attempts'].append({'forgedRelabel': True, 'nativeFullValidation': {'full_status': 'red'}})
+        self.write_report()
+        result = audit(self.root)
+        self.assertTrue(result['passed'], result['failures'])
+        self.assertEqual((result['refusedForgeries'], result['exactRetryResponses']), (['9'], 1))
+        (retry / 'result.json').write_text(json.dumps({**row, 'fullVerdict': 'GREEN', 'responseCode': 6}))
+        self.assertIn('10: Retry does not match its computed verdict', audit(self.root)['failures'])
+        (retry / 'result.json').write_text(json.dumps(row))
+        # A recorded forgery without its RED result, or an honest block that is RED, fails.
+        self.report['forgeries'].append({'height': 2, 'verdict': 'red'})
+        self.write_report()
+        self.assertIn('A recorded forgery has no RED Full result', audit(self.root)['failures'])
+        self.report['forgeries'] = []
+        self.write_report()
+        self.assertFalse(audit(self.root)['passed'])
+
     def test_overall_success_cannot_hide_failed_full(self):
         self.change(2, fullVerdict='RED', responseCode=8)
         self.assertFalse(audit(self.root)['passed'])

@@ -28,7 +28,9 @@ def replace_once(text, old, new):
     return text.replace(old, new, 1)
 
 
-def overlay(chain, init, model=MODEL, revision=REVISION):
+def overlay(chain, init, model=MODEL, revision=REVISION, switch=None):
+    """switch: {'model', 'revision', 'height'} for a rehearsal of a model switch
+    (design/MODEL-SWITCH.md); its other source edits come from switch_sources."""
     start = chain.index('class CTensorRegParams')
     end = chain.index('\n};', start) + 3
     block = chain[start:end]
@@ -58,6 +60,9 @@ def overlay(chain, init, model=MODEL, revision=REVISION):
         pattern = r'consensus\.' + field + r' = [^;]+;'
         block, count = re.subn(pattern, f'consensus.{field} = {value};', block)
         if count != 1: raise ValueError('Unexpected activation field: '+field)
+    if switch:
+        from testnet.prepare import switch_chainparams
+        block = switch_chainparams(block, revision, switch, str(switch['height']))
     chain = chain[:start] + block + chain[end:]
     anchor = '    const std::string api_mode = to_lower(args.GetArg("-validationapi", "real"));'
     init = replace_once(init, anchor, anchor + '''
@@ -72,11 +77,18 @@ def overlay(chain, init, model=MODEL, revision=REVISION):
     return chain, init
 
 
-def prepare(builder, output, model=MODEL, revision=REVISION):
+def prepare(builder, output, model=MODEL, revision=REVISION, switch=None):
     if not re.fullmatch(r'[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64}', builder):
         raise ValueError('Pin the reviewed native compiler image by digest')
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', model) or not re.fullmatch(r'[a-f0-9]{40}', revision):
         raise ValueError('Use organization/model and a full 40-character revision')
+    if switch is not None:
+        if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', switch['model']) or \
+                not re.fullmatch(r'[a-f0-9]{40}', switch['revision']) or switch['model'] == model or \
+                type(switch['height']) is not int or not 2 <= switch['height'] < 100000:
+            raise ValueError('A rehearsal switch needs another exact model and a height from 2')
+        # The private chain never retargets (no DAA), so the one-off reset is inert here.
+        switch = {**switch, 'targetScale': (1, 1)}
     source = ROOT/'.upstream/services/core-node/bcore'
     lock = json.loads((ROOT/'upstream.lock.json').read_text())
     commit = lock['components']['services/core-node/bcore']
@@ -87,7 +99,14 @@ def prepare(builder, output, model=MODEL, revision=REVISION):
         raise ValueError('Native source differs from the reviewed laboratory patch')
     paths = ('src/kernel/chainparams.cpp', 'src/init.cpp')
     before = [(source/p).read_text() for p in paths]
-    after = overlay(*before, model, revision)
+    after = list(overlay(*before, model, revision, switch))
+    if switch:
+        from testnet.prepare import SWITCH_FILES, switch_sources
+        more = {p: (source/p).read_text() for p in SWITCH_FILES}
+        edited = switch_sources(more, switch)
+        paths += SWITCH_FILES
+        before += [more[p] for p in SWITCH_FILES]
+        after += [edited[p] for p in SWITCH_FILES]
     with tempfile.TemporaryDirectory(prefix='noet-private-work-') as folder:
         context = Path(folder)
         files = {}
@@ -97,6 +116,7 @@ def prepare(builder, output, model=MODEL, revision=REVISION):
             files[path] = {'beforeSha256':hashlib.sha256(original.encode()).hexdigest(),
                            'afterSha256':hashlib.sha256(updated.encode()).hexdigest()}
         record = {'format':PROFILE, 'model':model+'@'+revision, 'builder':builder,
+            **({'modelSwitch':{'model':switch['model']+'@'+switch['revision'],'height':switch['height']}} if switch else {}),
             'sourceCommit':commit, 'labPatchSha256':hashlib.sha256(patch.read_bytes()).hexdigest(),
             'files':files, 'productionReady':False, 'registeredDifficulty':1000000,
             'purpose':'Disposable real-work integration; inherited test economics; unapproved research model'}
@@ -118,5 +138,11 @@ if __name__ == '__main__':
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--model', default=MODEL)
     parser.add_argument('--revision', default=REVISION)
+    parser.add_argument('--switch-model', help='organization/model@revision a rehearsal chain switches to')
+    parser.add_argument('--switch-height', type=int)
     args = parser.parse_args()
-    print(prepare(args.builder, args.out, args.model, args.revision))
+    switch = None
+    if args.switch_model:
+        name, _, commit = args.switch_model.partition('@')
+        switch = {'model': name, 'revision': commit, 'height': args.switch_height}
+    print(prepare(args.builder, args.out, args.model, args.revision, switch))

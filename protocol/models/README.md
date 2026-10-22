@@ -38,6 +38,8 @@ The producer holds the bf16 GGUF (about the size of the weights) and the verifie
 
 The verifier never splits one model across GPUs, so 32B needs a card of at least 133 GB for the verifier alone (H200 or B200).
 
+`gpu/control.py create --gpu-count 2` rents a two-GPU host. `model_session.sh` builds for that host's GPU architecture (`NOET_CUDA_ARCH`), so 14B and 32B can run on A100, H100 or H200 cards; both GPUs must be the same model. Live hosts still build for the A40 architecture (8.6).
+
 ## Before a candidate can replace the mainnet model
 
 1. Honest proofs pass and faked proofs are rejected, measured over many blocks.
@@ -45,3 +47,20 @@ The verifier never splits one model across GPUs, so 32B needs a card of at least
 3. Prompt-gate calibration for the candidate.
 4. Difficulty set for the new attempt time.
 5. A planned upgrade height for node, verifier and miners, announced in advance.
+
+### Qwen3-14B status
+
+The first test (2x A100 80 GB, `validation/model-qwen3-14b.json`):
+- **Conversion:** reproducible.
+- **Blocks:** 30 accepted from 50 attempts.
+- **Speed:** about 19 s per 516-token attempt; Full verification about 220 s.
+- **Peak GPU memory:** 28 GiB for the producer and 70 GiB for the verifier.
+
+Three honest proofs were RED under full-r1, because the logit cap read an MCA-noised replay candidate. full-r2 gates the unperturbed replay instead. All three now pass, and a single logit raised by 4 is still RED.
+
+The switch rehearsal (2x A100 80 GB, `validation/model-switch-rehearsal.json`) crossed from 0.6B to 14B at height 8 on a private chain:
+- **Blocks:** 54 14B blocks in six hours, none wrongly refused by Full; honest proofs peaked at 1.75 sigma against the 12 sigma cap.
+- **Faked proofs:** 0.6B weights claiming 14B were RED in Full at 102 to 133 sigma, 6 of 6.
+- **Attempt time:** 36 s against 24 s for 0.6B on the same GPU.
+
+Item 1 has its longer run; items 1 and 2 still need other miner GPUs. Item 3 is open. For item 4, the switch resets the target once (`targetScale`); for item 5, the switch itself (one model per height, the difficulty reset, the two-model verifier and miner) is in `design/MODEL-SWITCH.md`. The height (3,500) and the target scale (2) are set in `mainnet/network.json`.

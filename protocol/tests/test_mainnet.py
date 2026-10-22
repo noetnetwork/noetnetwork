@@ -63,9 +63,14 @@ class MainnetTests(unittest.TestCase):
                 self.assertIn(expected, params)
             self.assertNotIn('-daav2height', params)  # no node flag can move consensus
         self.assertIn('ReadDaaV2HeightArg("-daav2height")', block(test))
-        for result in (main, testnet, test):
+        for result in (testnet, test):
             self.assertIn('DaaV2PhaseCHeight() const { return std::numeric_limits<int>::max(); }',
                           result['src/consensus/params.h'])
+        # Mainnet resets the target once, at the model switch (design/MODEL-SWITCH.md).
+        self.assertIn('consensus.ModelSwitchHeight = 3500;', block(main))
+        for expected in ('DaaV2PhaseCHeight() const { return ModelSwitchHeight; }',
+                         'DAAV2_PHASE_C_TARGET_NUM{2};', 'DAAV2_PHASE_C_TARGET_DEN{1};'):
+            self.assertIn(expected, main['src/consensus/params.h'])
 
     def test_asert_port_doubles_per_half_life(self):
         from testnet import asert_check as a

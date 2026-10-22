@@ -37,19 +37,43 @@ VERSION = '0.1.0'
 HERE = Path(__file__).resolve().parent
 MODEL = 'Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca'
 GGUF_SHA256 = '8fa11f4d815167c4f6e3c91b25aebde25d8346a8f11228e744016592532b0700'
+SWITCH_MODEL = 'Qwen/Qwen3-14B@40c069824f4251a91eefaf281ebe4c544efd3e18'
+# The consensus models: the genesis model and, from a network's switch height
+# (design/MODEL-SWITCH.md), Qwen3-14B. Each GGUF is a reproducible conversion;
+# GPU memory is what the engine needs for the model and an attempt.
+MODELS = {
+    MODEL: {'gguf': 'qwen3-0.6b-bf16.gguf', 'sha256': GGUF_SHA256, 'minGpuMib': 6 * 1024},
+    SWITCH_MODEL: {'gguf': 'qwen3-14b-bf16.gguf', 'minGpuMib': 34 * 1024,
+                   'sha256': 'b4ac198af720a0d4359a084f162f75553a1050e82869c96e583d3104f599dbe9'},
+}
 PROOF_LIMIT = 2 * 1024 * 1024
 # GPUs the engine is compiled for (Dockerfile CUDA_ARCHITECTURES), and the driver CUDA 12.8 needs.
 ARCHITECTURES = ('8.0', '8.6', '8.9', '9.0', '12.0')
 MIN_DRIVER = (570, 0)
-MIN_GPU_MIB = 6 * 1024
 MIN_DISK_BYTES = 2 * 1024 ** 3
-# Each network pins its genesis so a gateway cannot point you at another chain.
+# Each network pins its genesis so a gateway cannot point you at another chain,
+# and its model switch, (height, model) or None (protocol/mainnet/network.json).
 NETWORKS = {
     'mainnet': {'gateway': 'https://noet-mainnet.fly.dev:9443', 'hrp': 'noet', 'profile': 'noet-mainnet-1',
-                'genesis': 'fc3e73901e2831df8457ea56f56cf92cd23018453439a0c1d402cbab61f45a54'},
+                'genesis': 'fc3e73901e2831df8457ea56f56cf92cd23018453439a0c1d402cbab61f45a54',
+                'switch': (3500, SWITCH_MODEL)},
     'testnet': {'gateway': 'https://noet-testnet.fly.dev:9443', 'hrp': 'tnoet', 'profile': 'noet-testnet-1',
-                'genesis': '2da97e8dadb7fe27645263d3e732211cb67650adbc02a016102cc7390785cdaa'},
+                'genesis': '2da97e8dadb7fe27645263d3e732211cb67650adbc02a016102cc7390785cdaa',
+                'switch': None},
 }
+
+
+class ModelUnavailable(RuntimeError):
+    """The block being mined needs a model this miner was not given."""
+    def __init__(self, model, height):
+        super().__init__(f'Height {height} needs {model}; give its GGUF with --model')
+        self.model, self.height = model, height
+
+
+def network_model(network, height):
+    """The model every block at `height` carries on this network."""
+    switch = network.get('switch')
+    return switch[1] if switch and height >= switch[0] else MODEL
 
 
 class GatewayError(RuntimeError):
@@ -123,9 +147,14 @@ def checked_info(gateway, network):
         raise RuntimeError('The gateway serves a different network than the one you chose')
     if info.get('addressPrefix') != network['hrp'] + '1':
         raise RuntimeError('The gateway uses a different address format')
+    # The node lists the genesis model and, once upgraded for a switch, the switch
+    # model. Any other model means this miner is outdated or the gateway is wrong.
+    switch = network.get('switch')
+    known = {MODEL, *([switch[1]] if switch else [])}
     models = info.get('models') or []
-    if len(models) != 1 or models[0].get('model') != MODEL or models[0].get('difficulty') != 1000000:
-        raise RuntimeError('The network model differs from the model this miner runs')
+    if not models or any(m.get('model') not in known or m.get('difficulty') != 1000000 for m in models) or \
+            network_model(network, info.get('height', 0) + 1) not in {m.get('model') for m in models}:
+        raise RuntimeError('The network model differs from the models this miner runs; update the miner')
     return info
 
 
@@ -274,24 +303,32 @@ def attempt(gateway, network, info, address, paths, out, number, flash_attention
         raise RuntimeError('The gateway sent an invalid task')
     if lease.get('rewardAddress') != address:
         raise RuntimeError('The gateway changed the reward address')
+    model = network_model(network, job['height'])
+    if model not in paths['models']:
+        try:
+            gateway.release(job['req_id'], lease['lease'])
+        except GatewayError:
+            pass
+        raise ModelUnavailable(model, job['height'])
     # Check the payout from the node's own coinbase, not the gateway's word.
     payout_proven = verify_payout(job, address, network['hrp'])
     header = bytes.fromhex(job['header_prefix'])
     record = {'profile': network['profile'], 'genesis': info['genesis'], 'parent': header[4:36][::-1].hex(),
-              'model': {'model_name': MODEL.split('@')[0], 'model_commit': MODEL.split('@')[1],
+              'model': {'model_name': model.split('@')[0], 'model_commit': model.split('@')[1],
                         'difficulty': 1000000}, 'job': job, 'task': task}
     folder = out / f'attempt-{number:06d}'
     folder.mkdir(mode=0o700)
     (folder / 'job.json').write_text(json.dumps(record, indent=2) + '\n')
-    result = {'attempt': number, 'height': job['height'], 'startedAt': time.time(), 'submissions': [],
-              'payoutVerified': bool(payout_proven)}
+    result = {'attempt': number, 'height': job['height'], 'model': model, 'startedAt': time.time(),
+              'submissions': [], 'payoutVerified': bool(payout_proven)}
     started = time.monotonic()
     with (folder / 'producer.log').open('xb') as log:
         producer = runner([sys.executable, str(HERE / 'generate.py'), '--job', str(folder / 'job.json'),
-                           '--engine', str(paths['engine']), '--model', str(paths['model']),
+                           '--engine', str(paths['engine']), '--model', str(paths['models'][model]),
                            '--out', str(folder / 'generation'), '--accelerator', 'cuda',
                            '--flash-attention', flash_attention],
-                          stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+                          stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
+                          env={**os.environ, 'NOET_MODEL_ID': model})
         try:
             producer.wait(timeout=900)
         except subprocess.TimeoutExpired:
@@ -374,8 +411,9 @@ def preflight(args, network, gateway, run=subprocess.run):
             if row['computeCap'] not in ARCHITECTURES:
                 problems.append(f'{row["name"]}: compute capability {row["computeCap"]} is not supported '
                                 f'({", ".join(ARCHITECTURES)})')
-            if row['memoryMiB'] < MIN_GPU_MIB:
-                problems.append(f'{row["name"]}: {row["memoryMiB"]} MiB of GPU memory; {MIN_GPU_MIB} MiB needed')
+            needed = max(MODELS[m]['minGpuMib'] for m in mined_models())
+            if row['memoryMiB'] < needed:
+                problems.append(f'{row["name"]}: {row["memoryMiB"]} MiB of GPU memory; {needed} MiB needed')
         if problems:
             raise RuntimeError('; '.join(problems))
         return ', '.join(f'{r["name"]} ({r["memoryMiB"]} MiB, driver {r["driver"]})' for r in found)
@@ -385,12 +423,16 @@ def preflight(args, network, gateway, run=subprocess.run):
             raise RuntimeError(f'not found or not executable at {args.engine}; run setup.sh or use the Docker image')
         return str(args.engine)
 
+    def mined_models():
+        """The models this miner will run: the ones it was given, or the network's current one."""
+        return sorted(state.get('models') or [network_model(network, state.get('height', 0) + 1)])
+
     def model():
-        if not args.model.is_file():
-            raise RuntimeError(f'not found at {args.model}; run convert.sh or use the Docker image')
-        if file_sha256(args.model) != GGUF_SHA256:
-            raise RuntimeError('differs from the pinned NOET model; convert or download it again')
-        return 'pinned checksum matches'
+        state['models'] = models_given(args.model)
+        current = network_model(network, state.get('height', 0) + 1)
+        if current not in state['models']:
+            raise RuntimeError(f'the network mines {current} now; give its GGUF with --model')
+        return ', '.join(f'{m.split("@")[0]} (pinned checksum matches)' for m in sorted(state['models']))
 
     def disk():
         folder = args.out if args.out.exists() else args.out.resolve().parent
@@ -401,6 +443,7 @@ def preflight(args, network, gateway, run=subprocess.run):
 
     def network_check():
         info = checked_info(gateway, network)
+        state['height'] = info['height']
         return f'{gateway.base} at height {info["height"]}'
 
     def python():
@@ -409,14 +452,16 @@ def preflight(args, network, gateway, run=subprocess.run):
             raise RuntimeError(f'Python {version}; 3.11 or newer is needed')
         return version
 
+    state = {}
     check('Python', python)
     check('Reward address', lambda: checked_address(args.address, network))
+    check('Gateway and network', network_check)
+    check('Model', model)
     check('NVIDIA GPU', gpu)
     check('Engine', engine)
-    check('Model', model)
     check('Disk space', disk)
-    check('Gateway and network', network_check)
-    return checks
+    order = ('Python', 'Reward address', 'NVIDIA GPU', 'Engine', 'Model', 'Disk space', 'Gateway and network')
+    return sorted(checks, key=lambda row: order.index(row[0]))
 
 
 def next_attempt(out):
@@ -457,13 +502,39 @@ def file_sha256(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def models_given(paths, check=True):
+    """{model: path} for the GGUF files given, each identified by its pinned checksum
+    (or, with check=False, by its file name)."""
+    found = {}
+    for path in paths:
+        if not path.is_file():
+            raise RuntimeError(f'Model not found at {path}. Run convert.sh or use the Docker image.')
+        if check:
+            digest = file_sha256(path)
+            model = next((m for m, pin in MODELS.items() if pin['sha256'] == digest), None)
+        else:
+            model = next((m for m, pin in MODELS.items() if pin['gguf'] == path.name), None)
+        if model is None:
+            raise RuntimeError(f'{path} differs from every pinned NOET model. Fetch it again.')
+        found[model] = path
+    return found
+
+
+def default_models():
+    """The GGUF files for the models of the image (/models), or the genesis model's path."""
+    root = Path(os.environ.get('NOET_MODEL_DIR', '/models'))
+    found = [root / pin['gguf'] for pin in MODELS.values() if (root / pin['gguf']).is_file()]
+    return found or [Path(os.environ.get('NOET_MODEL', root / MODELS[MODEL]['gguf']))]
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--address', required=True, help='Your NOET address; rewards are paid here')
     p.add_argument('--network', choices=sorted(NETWORKS), default='mainnet')
     p.add_argument('--gateway', help='Override the network gateway URL')
     p.add_argument('--engine', type=Path, default=Path(os.environ.get('NOET_ENGINE', '/opt/noet/bin/llama-server')))
-    p.add_argument('--model', type=Path, default=Path(os.environ.get('NOET_MODEL', '/models/qwen3-0.6b-bf16.gguf')))
+    p.add_argument('--model', type=Path, action='append',
+                   help='A pinned model GGUF; give it twice to mine across a model switch (default: /models)')
     p.add_argument('--out', type=Path, default=Path(os.environ.get('NOET_WORK_DIR', 'noet-mining')))
     p.add_argument('--flash-attention', choices=('auto', 'on', 'off'), default='off')
     p.add_argument('--max-attempts', type=int, default=0, help='0 runs until stopped')
@@ -471,6 +542,7 @@ def main(argv=None):
     p.add_argument('--check', action='store_true', help='Check this machine and the gateway, then exit')
     p.add_argument('--skip-model-check', action='store_true', help=argparse.SUPPRESS)
     args = p.parse_args(argv)
+    args.model = args.model or default_models()
     network = NETWORKS[args.network]
     gateway = Gateway(args.gateway or network['gateway'])
     if args.check:
@@ -483,10 +555,10 @@ def main(argv=None):
     address = checked_address(args.address, network)
     if not args.engine.is_file():
         raise SystemExit(f'Engine not found at {args.engine}. Run setup.sh or use the Docker image.')
-    if not args.model.is_file():
-        raise SystemExit(f'Model not found at {args.model}. Run convert.sh or use the Docker image.')
-    if not args.skip_model_check and file_sha256(args.model) != GGUF_SHA256:
-        raise SystemExit('The model file differs from the pinned NOET model. Fetch it again.')
+    try:
+        models = models_given(args.model, check=not args.skip_model_check)
+    except RuntimeError as error:
+        raise SystemExit(str(error))
     stopping = []
     signal.signal(signal.SIGTERM, lambda *_: stopping.append(True))
     signal.signal(signal.SIGINT, lambda *_: stopping.append(True))
@@ -504,9 +576,9 @@ def main(argv=None):
                 return 0
     args.out.mkdir(mode=0o700, parents=True, exist_ok=True)
     print(json.dumps({'event': 'mining', 'network': args.network, 'height': info['height'],
-                      'rewardAddress': address}), flush=True)
+                      'rewardAddress': address, 'models': sorted(models)}), flush=True)
     number = next_attempt(args.out)
-    paths = {'engine': args.engine, 'model': args.model}
+    paths = {'engine': args.engine, 'models': models}
     found, failures = 0, 0
     while not stopping and (not args.max_attempts or number < args.max_attempts):
         try:
@@ -533,6 +605,18 @@ def main(argv=None):
             print(json.dumps({'attempt': number, 'gateway': error.status, 'detail': str(error),
                               'retryIn': delay}), flush=True)
             wait(delay, stopping)
+        except ModelUnavailable as error:
+            switch = network.get('switch')
+            if switch and error.height >= switch[0]:
+                # The network has switched models; this miner cannot help until restarted with the new one.
+                print(json.dumps({'event': 'model-switch', 'height': switch[0], 'model': error.model,
+                                  'detail': 'The network now mines ' + error.model + '. Convert it (convert.sh) '
+                                            'and restart the miner with its GGUF.'}), flush=True)
+                return 3
+            # Given only the switch model before the switch: wait for the switch height.
+            print(json.dumps({'event': 'waiting-for-switch', 'height': error.height, 'detail': str(error),
+                              'retryIn': 60}), flush=True)
+            wait(60, stopping)
         except Exception as error:
             print(json.dumps({'attempt': number, 'error': type(error).__name__, 'detail': str(error)[:300]}),
                   flush=True)

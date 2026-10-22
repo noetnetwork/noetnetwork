@@ -4,6 +4,9 @@ set -euo pipefail
 umask 022
 cd /workspace/noet-gpu
 sha256sum -c inputs.sha256
+# Live and mainnet hosts build for the A40 architecture (8.6). A candidate-model
+# test on a larger card sets NOET_CUDA_ARCH to that card's (model_session.sh).
+export NOET_CUDA_ARCH=${NOET_CUDA_ARCH:-86}
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends build-essential cmake ninja-build pkg-config flatbuffers-compiler libflatbuffers-dev libargon2-dev libzmq3-dev cppzmq-dev libssl-dev libgmp-dev python3-dev python3-venv pybind11-dev libboost-dev
@@ -21,15 +24,15 @@ python3 -m pip install --only-binary=:all: -r verifier/services/verification-api
 python3 -m pip check
 python3 -m pip freeze > requirements.resolved.txt
 python3 - <<'PY'
-import json,platform,torch
+import json,os,platform,torch
 from pathlib import Path
 if not torch.cuda.is_available():raise RuntimeError('CUDA unavailable')
-if torch.cuda.get_device_capability()!=(8,6):raise RuntimeError('Build is pinned to the A40 architecture')
+if '%d%d'%torch.cuda.get_device_capability()!=os.environ['NOET_CUDA_ARCH']:raise RuntimeError('GPU architecture differs from NOET_CUDA_ARCH')
 Path('runtime.json').write_text(json.dumps({'machine':platform.machine(),'python':platform.python_version(),
     'torch':torch.__version__,'cuda':torch.version.cuda,'gpu':torch.cuda.get_device_name(),
     'productionReady':False},indent=2)+'\n')
 PY
-cmake -S engine/llama -B engine/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=86 -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_CURL=OFF -DLLAMA_OPENSSL=OFF -DBUILD_SHARED_LIBS=OFF
+cmake -S engine/llama -B engine/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=$NOET_CUDA_ARCH -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_CURL=OFF -DLLAMA_OPENSSL=OFF -DBUILD_SHARED_LIBS=OFF
 cmake --build engine/build --target llama-server -j8
 mkdir -p native schemas
 cd verifier/shared-utils/fb-schemas

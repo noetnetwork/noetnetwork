@@ -8,7 +8,8 @@ loopback. Configuration lives in /workspace/noet-live (mode 0700):
   gpu-bundle.b64   relay certificates, keys and peer pins (deploy/certs.py)
   live.json        {"node": "IP", "verdictPort": 17443, "rpcPort": 18443,
                     "rewardAddress": "nwrk1...", "gateway": "https://..." (optional),
-                    "network": "dev" | "testnet" | "mainnet" (default dev)}
+                    "network": "dev" | "testnet" | "mainnet" (default dev),
+                    "producerGpu": 0, "verifierGpu": 1 (optional, a two-GPU Pod)}
   shared-secret    64 hex characters, identical to the node's verdict secret
   miner-credentials  "miner:<password>" matching the node's rpcauth entry
 """
@@ -28,6 +29,10 @@ OUT = ROOT / 'output/live'
 UID = 10001
 REQUEST_TLS_PORT, REQUEST_PORT, VERDICT_PORT, RPC_PORT = 16443, 18555, 18556, 30443
 PREFIXES = {'dev': 'nwrk1', 'testnet': 'tnoet1', 'mainnet': 'noet1'}
+# The GGUF files a live Pod may hold. The miner identifies each by its pinned
+# checksum and runs the one each height needs, across a model switch too
+# (design/MODEL-SWITCH.md).
+GGUFS = ('qwen3-0.6b-bf16.gguf', 'qwen3-14b-bf16.gguf')
 
 
 def log(**event):
@@ -54,6 +59,9 @@ def load(live=LIVE):
         raise ValueError(f'live.json needs the node IP address and a {prefix} reward address')
     if settings['network'] != 'dev' and not settings.get('gateway'):
         raise ValueError('Only the development network supports the direct RPC miner; set gateway')
+    for key in ('producerGpu', 'verifierGpu'):
+        if key in settings and (type(settings[key]) is not int or not 0 <= settings[key] <= 9):
+            raise ValueError(key + ' must be a GPU index from 0 to 9')
     secret = (live / 'shared-secret').read_text().strip()
     if not re.fullmatch('[0-9a-f]{64}', secret):
         raise ValueError('shared-secret must be 64 lowercase hex characters')
@@ -124,8 +132,11 @@ def services(settings, secret, configs):
     items = [Service(name, lambda path=path: worker(['/usr/bin/python3', '-m', 'noet.secure_transport',
                                                      '--config', str(path)]), relay_env, name + '.log')
              for name, path in sorted(configs.items())]
+    # run.sh places the verifier and the engine; a two-GPU Pod splits them.
+    gpus = {name: str(settings[key]) for name, key in (('NOET_PRODUCER_GPU', 'producerGpu'),
+                                                        ('NOET_VERIFIER_GPU', 'verifierGpu')) if key in settings}
     verify_env = {'PATH': '/usr/bin:/bin', 'VALIDATOR_SHARED_SECRET': secret,
-                  'VALIDATOR_PUSH_PORT': str(REQUEST_PORT), 'VALIDATOR_PULL_PORT': str(VERDICT_PORT)}
+                  'VALIDATOR_PUSH_PORT': str(REQUEST_PORT), 'VALIDATOR_PULL_PORT': str(VERDICT_PORT), **gpus}
     sessions = OUT / 'verifier'
 
     def verifier():
@@ -135,14 +146,15 @@ def services(settings, secret, configs):
     items.append(Service('verifier', verifier, verify_env, 'verifier.log'))
     if settings.get('gateway'):
         # Mine through the public gateway exactly as any outside miner does.
+        models = [ROOT / name for name in GGUFS if (ROOT / name).exists()] or [ROOT / GGUFS[0]]
         miner = ['bash', str(ROOT / 'run.sh'), str(ROOT / 'checks/noet_miner.py'), '--network', settings['network'],
                  '--gateway', settings['gateway'], '--address', settings['rewardAddress'],
                  '--engine', str(ROOT / 'engine/build/bin/llama-server'),
-                 '--model', str(ROOT / 'qwen3-0.6b-bf16.gguf'), '--out', str(OUT / 'public-miner')]
+                 *[part for path in models for part in ('--model', str(path))], '--out', str(OUT / 'public-miner')]
     else:
         miner = ['bash', str(ROOT / 'run.sh'), str(ROOT / 'checks/miner.py'), '--out', str(OUT / 'miner'),
                  '--credentials', str(LIVE / 'worker/miner-credentials'), '--reward-address', settings['rewardAddress']]
-    items.append(Service('miner', lambda: miner, {'PATH': '/usr/bin:/bin'}, 'miner.log'))
+    items.append(Service('miner', lambda: miner, {'PATH': '/usr/bin:/bin', **gpus}, 'miner.log'))
     return items
 
 

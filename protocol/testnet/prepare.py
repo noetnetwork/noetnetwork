@@ -10,6 +10,9 @@ Starts from the reviewed laboratory sources and changes only:
   * the coinbase template, so block 1 pays those allocations;
   * difficulty: per-block ASERT toward 600 s blocks (12-hour half-life) from
     the network's `asertHeight`; upstream's regtest family never retargets;
+  * a scheduled model switch (`modelSwitch`, design/MODEL-SWITCH.md): from its
+    height every block carries the switch model, earlier blocks the genesis
+    model, and the difficulty target is eased once at that height;
   * startup, which requires real external verification (release variant).
 The `test` variant keeps mock validation and the laboratory proof activation
 heights for local consensus tests only; economics and identity are identical.
@@ -46,6 +49,9 @@ TESTNET_ASERT_HEIGHT = 1500
 ASERT_HALF_LIFE = 12 * 60 * 60
 ASERT_ANCHOR_BITS = 0x207fffff  # powLimit, the difficulty every block had before
 ASERT_PHASE_B_OFFSET = 144  # upstream requires a second phase; NOET uses the same half-life
+# Model switch (design/MODEL-SWITCH.md). The test variant reads the height from
+# -modelswitchheight and uses this target scale when network.json sets none.
+SWITCH_TEST_SCALE = (5, 2)
 
 # Network identity. The laboratory chain uses magic 4e 4f 45 54, port 29441,
 # nlab addresses and base58 prefixes 0x35/0x75/0xB5; every public network differs.
@@ -68,6 +74,7 @@ def mainnet(path=ROOT / 'mainnet/network.json'):
     if isinstance(asert, bool) or not isinstance(asert, int) or asert < 2:
         # Height 1 would anchor the schedule at the genesis time, long before launch.
         raise ValueError('Mainnet asertHeight must be an integer of at least 2')
+    switch = model_switch(spec.get('modelSwitch'), asert)
     keys = ROOT / spec['allocationKeys']
     if not keys.exists():
         raise ValueError('Mainnet allocation signers are not set yet: run '
@@ -76,9 +83,46 @@ def mainnet(path=ROOT / 'mainnet/network.json'):
             'port': spec['p2pPort'], 'genesisTime': spec['genesisTime'], 'genesisNonce': spec['genesisNonce'],
             'hrp': spec['hrp'], 'base58': tuple(int(b, 16) for b in spec['base58']),
             'bip32': int(spec['bip32'], 16), 'releasePercent': spec.get('releasePercent', RELEASE_PERCENT),
-            'seeds': seeds, 'asertHeight': asert, 'keys': keys}
+            'seeds': seeds, 'asertHeight': asert, 'keys': keys, 'modelSwitch': switch}
+
+
+def model_switch(switch, asert):
+    """network.json `modelSwitch`, checked: the model and revision always; the
+    height (null until announced) and the one-off target scale [num, den]."""
+    if switch is None:
+        return None
+    model, revision, height, scale = (switch.get(k) for k in ('model', 'revision', 'height', 'targetScale'))
+    if not isinstance(model, str) or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', model) or \
+            not isinstance(revision, str) or not re.fullmatch(r'[0-9a-f]{40}', revision):
+        raise ValueError('modelSwitch needs an exact model name and a 40-character revision')
+    if model == MODEL:
+        raise ValueError('modelSwitch must name a different model')
+    if scale is not None and not (isinstance(scale, list) and len(scale) == 2 and all(type(x) is int for x in scale)
+                                  and 1 <= scale[1] <= scale[0] <= 4 * scale[1]):
+        # Easing only, at most 4x: pow.cpp RetargetSafe assumes NUM <= 4 * DEN.
+        raise ValueError('modelSwitch targetScale must be [num, den] with 1 <= num/den <= 4')
+    if height is not None:
+        if isinstance(height, bool) or not isinstance(height, int) or \
+                not asert + ASERT_PHASE_B_OFFSET < height < 2 ** 31 - 1:
+            raise ValueError('modelSwitch height must be an integer after the ASERT phase-B height')
+        if scale is None:
+            raise ValueError('Set modelSwitch targetScale together with its height')
+    return {'model': model, 'revision': revision, 'height': height,
+            'targetScale': tuple(scale) if scale is not None else None}
+
+
+def applied_switch(net, test):
+    """The model switch compiled into this build: in the test variant whenever the
+    network defines one (height from -modelswitchheight); in a release only once
+    network.json announces its height. None leaves the sources as before."""
+    switch = net.get('modelSwitch')
+    if switch is None or (not test and switch['height'] is None):
+        return None
+    return {**switch, 'targetScale': switch['targetScale'] or SWITCH_TEST_SCALE}
+
+
 FILES = ('src/kernel/chainparams.cpp', 'src/init.cpp', 'src/consensus/amount.h', 'src/consensus/params.h',
-         'src/validation.cpp', 'src/node/miner.cpp')
+         'src/validation.cpp', 'src/node/miner.cpp', 'src/modeldb.cpp', 'src/net_processing.cpp')
 
 
 def replace_once(text, old, new):
@@ -109,6 +153,10 @@ def chainparams(text, test, net=TESTNET):
         ('{0x04, 0x72, 0x4e, 0x58}', f'{{0x04, 0x72, 0x{net["bip32"]:02x}, 0x58}}'),
     ):
         block = replace_once(block, old, new)
+    switch = applied_switch(net, test)
+    if switch:
+        height = 'ReadDaaV2HeightArg("-modelswitchheight")' if test else str(switch['height'])
+        block = switch_chainparams(block, REVISION, switch, height)
     if net.get('seeds'):
         # DNS seeds: each name resolves to nodes listening on the default port.
         block = replace_once(block, '        vSeeds.clear();\n', '        vSeeds.clear();\n' + ''.join(
@@ -147,16 +195,70 @@ def chainparams(text, test, net=TESTNET):
     return text[:start] + block + text[end:]
 
 
-def params(text):
+def switch_chainparams(block, revision, switch, height):
+    """The switch model and its height, next to the genesis model's revision."""
+    return replace_once(block, f'consensus.DefaultModelCommit = "{revision}";', f'''consensus.DefaultModelCommit = "{revision}";
+        // NOET model switch (consensus/params.h ModelForHeight, design/MODEL-SWITCH.md).
+        consensus.SwitchModelName = "{switch['model']}";
+        consensus.SwitchModelCommit = "{switch['revision']}";
+        consensus.ModelSwitchHeight = {height};''')
+
+
+SWITCH_FILES = ('src/consensus/params.h', 'src/validation.cpp', 'src/node/miner.cpp', 'src/modeldb.cpp',
+                'src/net_processing.cpp')
+
+
+def switch_sources(sources, switch):
+    """The switch's edits outside chainparams, on unmodified upstream sources (for
+    an overlay that changes none of these files otherwise, like realwork/prepare.py)."""
+    return {'src/consensus/params.h': params(sources['src/consensus/params.h'], switch),
+            'src/validation.cpp': switch_validation(sources['src/validation.cpp']),
+            'src/node/miner.cpp': switch_miner(sources['src/node/miner.cpp']),
+            'src/modeldb.cpp': switch_modeldb(sources['src/modeldb.cpp']),
+            'src/net_processing.cpp': switch_relay(sources['src/net_processing.cpp'])}
+
+
+PHASE_C = 'int DaaV2PhaseCHeight() const { return V3PenaltyHeight; }'
+
+
+def params(text, switch=None):
     # Upstream couples a one-off difficulty reset to V3PenaltyHeight, which NOET
-    # chains pass at height 2, before ASERT starts. NOET has no such reset.
-    return replace_once(text, 'int DaaV2PhaseCHeight() const { return V3PenaltyHeight; }',
-                        'int DaaV2PhaseCHeight() const { return std::numeric_limits<int>::max(); } // NOET: no phase-C reset')
+    # chains pass at height 2, before ASERT starts. NOET has no such reset, except
+    # at a scheduled model switch, where the new model makes every attempt slower.
+    if switch is None:
+        return replace_once(text, PHASE_C,
+                            'int DaaV2PhaseCHeight() const { return std::numeric_limits<int>::max(); } // NOET: no phase-C reset')
+    num, den = switch['targetScale']
+    for name, value in (('NUM', num), ('DEN', den)):
+        old = f'static constexpr uint64_t DAAV2_PHASE_C_TARGET_{name}{{{10 if name == "NUM" else 7}}};'
+        text = replace_once(text, old, f'static constexpr uint64_t DAAV2_PHASE_C_TARGET_{name}{{{value}}}; // NOET model switch')
+    return replace_once(text, PHASE_C, '''// NOET: the one-off reset (target x NUM/DEN, fresh ASERT anchor) is the model switch.
+    int DaaV2PhaseCHeight() const { return ModelSwitchHeight; }
+    // NOET model switch (design/MODEL-SWITCH.md): blocks below ModelSwitchHeight
+    // carry the genesis model, blocks from it SwitchModelName@SwitchModelCommit.
+    std::string SwitchModelName;
+    std::string SwitchModelCommit;
+    int ModelSwitchHeight{std::numeric_limits<int>::max()};
+    bool ModelSwitchScheduled() const
+    {
+        return ModelSwitchHeight != std::numeric_limits<int>::max() && !SwitchModelName.empty() && !SwitchModelCommit.empty();
+    }
+    //! The model a block at `height` must carry; empty when no switch is scheduled.
+    std::string ModelForHeight(int height) const
+    {
+        if (!ModelSwitchScheduled()) return "";
+        return height >= ModelSwitchHeight ? SwitchModelName + "@" + SwitchModelCommit
+                                           : DefaultModelName + "@" + DefaultModelCommit;
+    }''')
 
 
 def init(text, test, net=TESTNET):
     if test:
-        return text
+        if applied_switch(net, test) is None:
+            return text
+        anchor = '        argsman.AddArg("-daav2height=<n>",'
+        return replace_once(text, anchor, '''        argsman.AddArg("-modelswitchheight=<n>", "NOET test chains only: height from which every block carries the switch model and the difficulty target is eased once (default: no switch).", ArgsManager::ALLOW_ANY, OptionsCategory::CHAINPARAMS);
+''' + anchor)
     anchor = '    const std::string api_mode = to_lower(args.GetArg("-validationapi", "real"));'
     return replace_once(text, anchor, anchor + f'''
     // The public {net["name"]} only runs with its own chain and real external verification.
@@ -209,6 +311,106 @@ def miner(text, net=TESTNET):
 ''')
 
 
+def switch_validation(text):
+    """One consensus model per height, and neither scheduled model can be banned."""
+    text = replace_once(text, '''    // INERT LEVER (ASERT_CHANGE.md §5.1/§5.2): consensus floor on the difficulty of
+    // the model a block may be MINED with.
+''', '''    // NOET model switch (consensus/params.h ModelForHeight): exactly one model per height.
+    const std::string required_model{Params().GetConsensus().ModelForHeight(pindex->nHeight)};
+    if (!required_model.empty() && block.pow.model_identifier != required_model) {
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-model-for-height",
+                             strprintf("%s: a block at height %d must carry model %s, not %s",
+                                       call_path, pindex->nHeight, required_model, block.pow.model_identifier));
+    }
+
+    // INERT LEVER (ASERT_CHANGE.md §5.1/§5.2): consensus floor on the difficulty of
+    // the model a block may be MINED with.
+''')
+    # With two Registered models upstream's sole-model protection lapses, and model
+    # challenges are not verified (the check is commented out), so anyone could ban
+    # the model a height requires and stop the chain. Both scheduled models keep it.
+    return replace_once(text, '''        if (!consensusParams.IsProofV4Active(pindexNew->nHeight)) return false;
+        const bool protected_now = count_registered_models() <= 1;
+''', '''        if (!consensusParams.IsProofV4Active(pindexNew->nHeight)) return false;
+        if (consensusParams.ModelSwitchScheduled() &&
+            (model_hash == HashSHA256(consensusParams.DefaultModelName, consensusParams.DefaultModelCommit) ||
+             model_hash == HashSHA256(consensusParams.SwitchModelName, consensusParams.SwitchModelCommit))) {
+            LogPrintf("[ModelDB] challenge-scheduled-model-protected: model %s is a NOET consensus model; "
+                      "resolving the challenge as failed instead of banning\\n", model_hash.ToString());
+            return true;
+        }
+        const bool protected_now = count_registered_models() <= 1;
+''')
+
+
+def switch_miner(text):
+    """Block assembly picks the model of the height it builds."""
+    return replace_once(text, '''                const auto& cons = chainparams.GetConsensus();
+                if (!cons.DefaultModelName.empty() && !cons.DefaultModelCommit.empty()) {
+                    pblock->pow.model_identifier = cons.DefaultModelName + "@" + cons.DefaultModelCommit;
+                }
+''', '''                const auto& cons = chainparams.GetConsensus();
+                const std::string scheduled{cons.ModelForHeight(nHeight)};  // NOET model switch
+                if (!scheduled.empty()) {
+                    pblock->pow.model_identifier = scheduled;
+                } else if (!cons.DefaultModelName.empty() && !cons.DefaultModelCommit.empty()) {
+                    pblock->pow.model_identifier = cons.DefaultModelName + "@" + cons.DefaultModelCommit;
+                }
+''')
+
+
+def switch_modeldb(text):
+    """The switch model is registered from genesis, like the genesis model."""
+    return replace_once(text, '''    RefreshModelWorkFloor();
+    LogPrintf("[ModelDB] Initialized database''', '''    // NOET model switch: register the scheduled model like the genesis model (also
+    // in a database created before the switch was scheduled). Validation admits
+    // each model only at its own heights (consensus/params.h ModelForHeight).
+    if (consensusParams.ModelSwitchScheduled()) {
+        const uint256 switch_hash = HashSHA256(consensusParams.SwitchModelName, consensusParams.SwitchModelCommit);
+        if (!Exists(switch_hash)) {
+            ModelRecord switch_record;
+            switch_record.metadata.model_name = consensusParams.SwitchModelName;
+            switch_record.metadata.model_commit = consensusParams.SwitchModelCommit;
+            switch_record.metadata.difficulty = static_cast<int64_t>(consensusParams.ModelDifficultyNormalizer);
+            switch_record.status = ModelRegistrationStatus::Registered;
+            switch_record.deposit_block_hash = consensusParams.hashGenesisBlock;
+            switch_record.deposit_block_height = 0;
+            switch_record.commit_block_hash = consensusParams.hashGenesisBlock;
+            switch_record.commit_block_height = 0;
+            switch_record.deposit_amount = 0;
+            switch_record.verification_code = 0;
+            if (WriteModel(switch_hash, switch_record)) {
+                LogPrintf("[ModelDB] NOET switch model %s@%s registered.\\n",
+                          consensusParams.SwitchModelName, consensusParams.SwitchModelCommit);
+            } else {
+                LogPrintf("[ModelDB] Failed to write the NOET switch model.\\n");
+            }
+        }
+    }
+    RefreshModelWorkFloor();
+    LogPrintf("[ModelDB] Initialized database''')
+
+
+def switch_relay(text):
+    """A block rebuilt from a compact relay gets the model of its height."""
+    return replace_once(text, '''    if (block.pow.model_identifier.empty()) {
+        const auto& cons = m_chainman.GetParams().GetConsensus();
+        if (!cons.DefaultModelName.empty() && !cons.DefaultModelCommit.empty()) {
+            block.pow.model_identifier = cons.DefaultModelName + "@" + cons.DefaultModelCommit;
+        }
+    }
+''', '''    if (block.pow.model_identifier.empty()) {
+        const auto& cons = m_chainman.GetParams().GetConsensus();
+        const std::string scheduled{height >= 0 ? cons.ModelForHeight(height) : std::string{}};  // NOET model switch
+        if (!scheduled.empty()) {
+            block.pow.model_identifier = scheduled;
+        } else if (!cons.DefaultModelName.empty() && !cons.DefaultModelCommit.empty()) {
+            block.pow.model_identifier = cons.DefaultModelName + "@" + cons.DefaultModelCommit;
+        }
+    }
+''')
+
+
 SUPPORT = '''// NOET public testnet economics. Shared by validation and block assembly.
 #pragma once
 #include <consensus/amount.h>
@@ -257,11 +459,12 @@ def support(net=TESTNET):
 def overlay(sources, test=False, net=TESTNET):
     """sources: {relative path: original text}. Returns {relative path: new text} including new headers."""
     n = net['name']
+    switch = applied_switch(net, test)
     result = {
         'src/kernel/chainparams.cpp': chainparams(sources['src/kernel/chainparams.cpp'], test, net),
         'src/init.cpp': init(sources['src/init.cpp'], test, net),
         'src/consensus/amount.h': amount(sources['src/consensus/amount.h'], net),
-        'src/consensus/params.h': params(sources['src/consensus/params.h']),
+        'src/consensus/params.h': params(sources['src/consensus/params.h'], switch),
         'src/validation.cpp': validation(sources['src/validation.cpp'], net),
         'src/node/miner.cpp': miner(sources['src/node/miner.cpp'], net),
         f'src/noet_{n}.h': support(net),
@@ -270,6 +473,11 @@ def overlay(sources, test=False, net=TESTNET):
         f'src/noet_{n}_policy.h': (ROOT / 'economics/candidate/policy.h').read_text()
         if net['releasePercent'] == RELEASE_PERCENT else policy_text(net['releasePercent']),
     }
+    if switch:
+        result['src/validation.cpp'] = switch_validation(result['src/validation.cpp'])
+        result['src/node/miner.cpp'] = switch_miner(result['src/node/miner.cpp'])
+        result['src/modeldb.cpp'] = switch_modeldb(sources['src/modeldb.cpp'])
+        result['src/net_processing.cpp'] = switch_relay(sources['src/net_processing.cpp'])
     return result
 
 
@@ -279,8 +487,12 @@ def profile(sources, result, test=False, net=TESTNET):
         before = sources.get(path)
         files[path] = {'beforeSha256': hashlib.sha256(before.encode()).hexdigest() if before is not None else None,
                        'afterSha256': hashlib.sha256(text.encode()).hexdigest()}
+    switch = applied_switch(net, test)
+    extra = {'modelSwitch': {'model': switch['model'] + '@' + switch['revision'],
+                             'height': '-modelswitchheight' if test else switch['height'],
+                             'targetScale': list(switch['targetScale'])}} if switch else {}
     return {'format': net['profile'], 'variant': 'test' if test else 'release', 'model': MODEL + '@' + REVISION,
-            'genesisTime': net['genesisTime'], 'addressPrefix': net['hrp'], 'p2pPort': net['port'],
+            **extra, 'genesisTime': net['genesisTime'], 'addressPrefix': net['hrp'], 'p2pPort': net['port'],
             'economics': {'capAtoms': str(CAP), 'miningAtoms': str(MINING),
                           'allocationAtoms': str(ALLOCATION_ATOMS), 'allocationOutputs': OUTPUTS,
                           'epochBlocks': EPOCH_BLOCKS,

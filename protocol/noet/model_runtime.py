@@ -54,9 +54,9 @@ def required_key(name):
     return value
 
 
-def checked_model_directory(model, revision):
-    root = Path(os.environ['NOET_MODEL_ROOT'])
-    manifest_path = Path(os.environ['NOET_MODEL_MANIFEST'])
+def _reviewed_snapshot(suffix):
+    root = Path(os.environ['NOET_MODEL_ROOT' + suffix])
+    manifest_path = Path(os.environ['NOET_MODEL_MANIFEST' + suffix])
     if not root.is_absolute() or root.is_symlink() or not manifest_path.is_absolute():
         raise ValueError('Use absolute model and manifest paths without a model-root symlink')
     fd = os.open(manifest_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
@@ -66,14 +66,25 @@ def checked_model_directory(model, revision):
         raw = stream.read(MAX_MANIFEST + 1)
     if len(raw) > MAX_MANIFEST:
         raise ValueError('Model manifest exceeds the supported size')
-    data = validate(json.loads(raw, object_pairs_hook=unique_object))
-    if data['model'] != model or data['revision'] != revision:
-        raise ValueError('Requested model is outside the reviewed deployment')
-    require_snapshot_protection(root, data['files'])
-    report = verify(root, raw, os.environ['NOET_MODEL_MANIFEST_SHA256'])
-    if not report['filesVerified']:
-        raise ValueError('Model artifact verification failed')
-    return str(root)
+    return root, raw, validate(json.loads(raw, object_pairs_hook=unique_object))
+
+
+def checked_model_directory(model, revision):
+    """The verified snapshot of exactly this model. A deployment reviews one
+    snapshot (NOET_MODEL_ROOT, _MANIFEST, _MANIFEST_SHA256) and, across a
+    scheduled model switch (design/MODEL-SWITCH.md), a second with the same
+    names ending in _2, so one verifier replays both sides of the switch."""
+    suffixes = ('', '_2') if 'NOET_MODEL_ROOT_2' in os.environ else ('',)
+    for suffix in suffixes:
+        root, raw, data = _reviewed_snapshot(suffix)
+        if data['model'] != model or data['revision'] != revision:
+            continue
+        require_snapshot_protection(root, data['files'])
+        report = verify(root, raw, os.environ['NOET_MODEL_MANIFEST_SHA256' + suffix])
+        if not report['filesVerified']:
+            raise ValueError('Model artifact verification failed')
+        return str(root)
+    raise ValueError('Requested model is outside the reviewed deployment')
 
 
 def backend_environment(api_key):

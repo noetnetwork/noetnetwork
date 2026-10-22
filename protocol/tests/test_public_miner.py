@@ -17,8 +17,9 @@ NETWORK = {'gateway': '', 'hrp': 'tnoet', 'profile': 'noet-testnet-1', 'genesis'
 
 
 class Node:
-    def __init__(self, status='accepted_pending_connect'):
+    def __init__(self, status='accepted_pending_connect', models=None):
         self.status, self.submitted = status, []
+        self.models = models or [noet_miner.MODEL]
 
     def __call__(self, method, *params):
         if method == 'validateaddress':
@@ -34,8 +35,8 @@ class Node:
         if method == 'getblockhash':
             return GENESIS
         if method == 'getmodelslist':
-            return [{'model_name': 'Qwen/Qwen3-0.6B', 'model_commit': 'c1899de289a04d12100db370d81485cdf75e47ca',
-                     'difficulty': 1000000}]
+            return [{'model_name': m.split('@')[0], 'model_commit': m.split('@')[1], 'difficulty': 1000000}
+                    for m in self.models]
         if method == 'getrecentvalidations':
             return [{'block_hash': BLOCK, 'type': 'full', 'full_status': 'green'}]
         if method == 'getblockheader':
@@ -46,10 +47,11 @@ class Node:
 class Producer:
     """Stands in for the engine; writes one candidate proof for the lease."""
     def __init__(self):
-        self.commands = []
+        self.commands, self.envs = [], []
 
     def __call__(self, command, **kwargs):
         self.commands.append(command)
+        self.envs.append(kwargs.get('env'))
         out = Path(command[command.index('--out') + 1])
         (out / 'proofs').mkdir(parents=True)
         (out / 'proofs/9_1_x.bin').write_bytes(b'proof-bytes')
@@ -77,7 +79,7 @@ class PublicMinerTests(unittest.TestCase):
         info = noet_miner.checked_info(self.gateway, NETWORK)
         with tempfile.TemporaryDirectory() as tmp:
             producer = Producer()
-            result = noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, {'engine': 'e', 'model': 'm'},
+            result = noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, {'engine': 'e', 'models': {noet_miner.MODEL: 'm'}},
                                         Path(tmp), 0, runner=producer)
             record = json.loads((Path(tmp) / 'attempt-000000/job.json').read_text())
         self.assertEqual(result['outcome'], 'green')
@@ -108,7 +110,7 @@ class PublicMinerTests(unittest.TestCase):
                             ' Air scatters blue light most.\n\nQuestion: more'}]}))
                         return process
                 result = noet_miner.attempt(gateway, NETWORK, noet_miner.checked_info(gateway, NETWORK), ADDRESS,
-                                            {'engine': 'e', 'model': 'm'}, Path(tmp) / 'work', 0, runner=Answering())
+                                            {'engine': 'e', 'models': {noet_miner.MODEL: 'm'}}, Path(tmp) / 'work', 0, runner=Answering())
                 record = json.loads((Path(tmp) / 'work/attempt-000000/job.json').read_text())
                 view = service.task(task)
             finally:
@@ -129,7 +131,7 @@ class PublicMinerTests(unittest.TestCase):
     def test_no_tasks_mines_without_asking_for_one(self):
         info = noet_miner.checked_info(self.gateway, NETWORK)
         with tempfile.TemporaryDirectory() as tmp:
-            result = noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, {'engine': 'e', 'model': 'm'},
+            result = noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, {'engine': 'e', 'models': {noet_miner.MODEL: 'm'}},
                                         Path(tmp), 0, runner=Producer(), tasks=False)
             record = json.loads((Path(tmp) / 'attempt-000000/job.json').read_text())
         self.assertIsNone(record['task'])
@@ -145,7 +147,7 @@ class PublicMinerTests(unittest.TestCase):
         self.node.status = 'quick_verify_failed'
         info = noet_miner.checked_info(self.gateway, NETWORK)
         with tempfile.TemporaryDirectory() as tmp:
-            result = noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, {'engine': 'e', 'model': 'm'},
+            result = noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, {'engine': 'e', 'models': {noet_miner.MODEL: 'm'}},
                                         Path(tmp), 0, runner=Producer())
         self.assertEqual(result['outcome'], 'no-eligible-proof')
         self.assertEqual(len(self.node.submitted), 1)
@@ -159,7 +161,7 @@ class PublicMinerTests(unittest.TestCase):
                 return process
         info = noet_miner.checked_info(self.gateway, NETWORK)
         with tempfile.TemporaryDirectory() as tmp:
-            result = noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, {'engine': 'e', 'model': 'm'},
+            result = noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, {'engine': 'e', 'models': {noet_miner.MODEL: 'm'}},
                                         Path(tmp), 0, runner=Empty())
         self.assertEqual(result['outcome'], 'no-eligible-proof')
         self.assertTrue(result['leaseReleased'])
@@ -205,9 +207,9 @@ class PublicMinerTests(unittest.TestCase):
             engine.write_text('#!/bin/sh\n')
             engine.chmod(0o755)
             model.write_bytes(b'not the model')
-            args = argparse.Namespace(address=ADDRESS, engine=engine, model=model, out=Path(tmp) / 'work')
+            args = argparse.Namespace(address=ADDRESS, engine=engine, model=[model], out=Path(tmp) / 'work')
             with mock.patch.object(noet_miner.shutil, 'which', return_value='/usr/bin/nvidia-smi'), \
-                    mock.patch.object(noet_miner, 'GGUF_SHA256', noet_miner.file_sha256(model)):
+                    mock.patch.dict(noet_miner.MODELS[noet_miner.MODEL], {'sha256': noet_miner.file_sha256(model)}):
                 good = noet_miner.preflight(args, NETWORK, self.gateway,
                                             run=smi(['NVIDIA RTX A5000, 570.86, 24564, 8.6']))
                 self.assertTrue(all(ok for _, ok, _ in good), good)
@@ -221,6 +223,66 @@ class PublicMinerTests(unittest.TestCase):
                 missing = dict((n, ok) for n, ok, _ in noet_miner.preflight(args, NETWORK, self.gateway))
             self.assertFalse(missing['NVIDIA GPU'])
             self.assertFalse(missing['Model'])
+
+    def test_the_switch_height_picks_the_model_and_its_weights(self):
+        # design/MODEL-SWITCH.md: the job's height decides the model, the GGUF and the proof's registry entry.
+        switched = {**NETWORK, 'switch': (12, noet_miner.SWITCH_MODEL)}
+        node = Node(models=[noet_miner.MODEL, noet_miner.SWITCH_MODEL])
+        service = Service(node, 'tnoet', GENESIS)
+        server = ThreadingHTTPServer(('127.0.0.1', 0), handler_for(service, False))
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        gateway = noet_miner.Gateway(f'http://127.0.0.1:{server.server_address[1]}')
+        info = noet_miner.checked_info(gateway, switched)
+        models = {noet_miner.MODEL: 'small.gguf', noet_miner.SWITCH_MODEL: 'large.gguf'}
+        producer = Producer()
+        with tempfile.TemporaryDirectory() as tmp:
+            result = noet_miner.attempt(gateway, switched, info, ADDRESS, {'engine': 'e', 'models': models},
+                                        Path(tmp), 0, runner=producer, tasks=False)
+            record = json.loads((Path(tmp) / 'attempt-000000/job.json').read_text())
+        self.assertEqual(result['model'], noet_miner.SWITCH_MODEL)  # the job is for height 12
+        self.assertEqual(producer.commands[0][producer.commands[0].index('--model') + 1], 'large.gguf')
+        self.assertEqual(producer.envs[0]['NOET_MODEL_ID'], noet_miner.SWITCH_MODEL)
+        self.assertEqual(record['model']['model_name'] + '@' + record['model']['model_commit'],
+                         noet_miner.SWITCH_MODEL)
+        # Without the new model's weights the lease goes back and the miner is told what it needs.
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(noet_miner.ModelUnavailable) as caught:
+            noet_miner.attempt(gateway, switched, info, ADDRESS, {'engine': 'e', 'models': {noet_miner.MODEL: 'm'}},
+                               Path(tmp), 0, runner=Producer(), tasks=False)
+        self.assertEqual((caught.exception.model, caught.exception.height), (noet_miner.SWITCH_MODEL, 12))
+        self.assertEqual(service.stats['released'], 1)
+        # A miner that does not know the switch refuses a node listing the new model.
+        with self.assertRaisesRegex(RuntimeError, 'update the miner'):
+            noet_miner.checked_info(gateway, NETWORK)
+
+    def test_model_files_are_identified_by_their_pinned_checksum(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            small, large, other = (Path(tmp) / name for name in ('a.gguf', 'b.gguf', 'c.gguf'))
+            for path in (small, large, other):
+                path.write_bytes(path.name.encode())
+            pins = {noet_miner.MODEL: {'sha256': noet_miner.file_sha256(small)},
+                    noet_miner.SWITCH_MODEL: {'sha256': noet_miner.file_sha256(large)}}
+            with mock.patch.dict(noet_miner.MODELS[noet_miner.MODEL], pins[noet_miner.MODEL]), \
+                    mock.patch.dict(noet_miner.MODELS[noet_miner.SWITCH_MODEL], pins[noet_miner.SWITCH_MODEL]):
+                self.assertEqual(noet_miner.models_given([large, small]),
+                                 {noet_miner.MODEL: small, noet_miner.SWITCH_MODEL: large})
+                with self.assertRaisesRegex(RuntimeError, 'differs from every pinned'):
+                    noet_miner.models_given([other])
+                with self.assertRaisesRegex(RuntimeError, 'not found'):
+                    noet_miner.models_given([Path(tmp) / 'missing.gguf'])
+
+    def test_the_miner_pins_each_network_model_schedule(self):
+        spec = json.loads((Path(__file__).resolve().parents[1] / 'mainnet/network.json').read_text())
+        switch = spec['modelSwitch']
+        self.assertEqual(noet_miner.SWITCH_MODEL, switch['model'] + '@' + switch['revision'])
+        expected = None if switch['height'] is None else (switch['height'], noet_miner.SWITCH_MODEL)
+        self.assertEqual(noet_miner.NETWORKS['mainnet']['switch'], expected)
+        profiles = json.loads((Path(__file__).resolve().parents[1] / 'models/profiles.json').read_text())
+        for model, pin in noet_miner.MODELS.items():
+            profile = next(p for p in profiles.values() if p['model'] + '@' + p['revision'] == model)
+            self.assertEqual((pin['gguf'], pin['sha256']), (profile['gguf'], profile['ggufSha256']))
 
     def test_backoff_grows_and_stops_promptly(self):
         self.assertEqual([noet_miner.backoff(n, 0) for n in (1, 2, 3, 7, 20)], [15, 30, 60, 300, 300])

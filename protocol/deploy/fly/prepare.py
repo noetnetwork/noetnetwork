@@ -31,9 +31,13 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def prepare(out, profile_name='private-work'):
+def prepare(out, profile_name='private-work', test=False):
+    """test: the overlay's test variant (mock validation) of the testnet or mainnet
+    consensus, for local checks such as testnet/switch_check.py. Never deployed."""
     if profile_name not in ('private-work', 'testnet', 'mainnet'):
         raise ValueError('Unknown network profile')
+    if test and profile_name == 'private-work':
+        raise ValueError('The test variant exists for the testnet and mainnet overlays only')
     net, identity = testnet.TESTNET, {'profile': profile_name}
     if profile_name == 'mainnet':
         # Refuses until genesis, real signers and the pinned genesis hash exist (mainnet/README.md).
@@ -63,15 +67,19 @@ def prepare(out, profile_name='private-work'):
     if profile_name in ('testnet', 'mainnet'):
         # Release variant: real external verification only, proposed economics.
         sources = {p: (core / p).read_text() for p in testnet.FILES}
-        result = testnet.overlay(sources, test=False, net=net)
+        result = testnet.overlay(sources, test=test, net=net)
         for path, updated in result.items():
             (core / path).write_text(updated)
-        files = testnet.profile(sources, result, test=False, net=net)['files']
+        overlay_profile = testnet.profile(sources, result, test=test, net=net)
+        files = overlay_profile['files']
         profile = {'format': net['profile'], 'model': testnet.MODEL + '@' + testnet.REVISION,
+                   **({'modelSwitch': overlay_profile['modelSwitch']} if 'modelSwitch' in overlay_profile else {}),
+                   **({'variant': 'test'} if test else {}),
                    'sourceCommit': lock['components'][NATIVE[0]],
                    'labPatchSha256': digest((ROOT / 'patches/noet-lab.patch').read_bytes()), 'files': files,
                    'productionReady': False, 'registeredDifficulty': 1000000,
-                   'purpose': ('Hosted public testnet node; proposed economics; test coins have no value'
+                   'purpose': ('Local consensus test node: mock validation, for no network' if test else
+                               'Hosted public testnet node; proposed economics; test coins have no value'
                                if profile_name == 'testnet' else 'Hosted mainnet node')}
     else:
         paths = ('src/kernel/chainparams.cpp', 'src/init.cpp')
@@ -112,5 +120,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--profile', choices=('private-work', 'testnet', 'mainnet'), default='private-work')
+    parser.add_argument('--test-variant', action='store_true', help='mock validation, for local consensus checks only')
     args = parser.parse_args()
-    print(json.dumps(prepare(args.out, args.profile), indent=2))
+    print(json.dumps(prepare(args.out, args.profile, args.test_variant), indent=2))

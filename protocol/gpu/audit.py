@@ -1,5 +1,6 @@
 """Audit every recorded Full result, including retries, without rerunning inference."""
 import argparse
+from collections import Counter
 import hashlib
 import json
 from pathlib import Path
@@ -16,7 +17,10 @@ def audit(directory, *, require_captures=False):
     heights = [block['height'] for block in blocks]
     if not heights or heights != list(range(1, report.get('finalHeight', 0) + 1)):
         failures.append('Accepted blocks are not the complete consecutive chain')
-    computed, reused = [], []
+    computed, reused, refused, original = [], [], [], {}
+    # A switch rehearsal's research forgeries (native.py --relabel-after-switch)
+    # must be RED; they are counted apart from the honest chain.
+    forged = Counter(f['height'] for f in report.get('forgeries', []) if f.get('verdict') == 'red')
     for path in sorted((directory / 'verifier').glob('*/result.json')):
         row = json.loads(path.read_text())
         if row.get('requestType') != 2:
@@ -26,6 +30,11 @@ def audit(directory, *, require_captures=False):
             failures.append(f'{path.parent.name}: Native envelope digest differs')
         if row.get('reusedExactEnvelope'):
             reused.append((path, row))
+            continue
+        original[path.parent.name] = row
+        if row.get('fullVerdict') == 'RED' and forged[row.get('height')] > 0:
+            forged[row.get('height')] -= 1
+            refused.append(path.parent.name)
             continue
         computed.append((path, row))
         if (row.get('fullVerdict') != 'GREEN' or row.get('responseCode') != 6
@@ -43,15 +52,18 @@ def audit(directory, *, require_captures=False):
             if (row.get('detectorCaptureError') or not capture.is_file()
                     or hashlib.sha256(capture.read_bytes()).hexdigest() != expected.get('sha256')):
                 failures.append(f'{path.parent.name}: Detector capture missing or changed')
-    by_directory = {path.parent.name: row for path, row in computed}
+    # A retry repeats the result it names: GREEN for an honest block, RED for a forgery.
     for path, row in reused:
-        prior = by_directory.get(row.get('computedResultDirectory'), {})
+        prior = original.get(row.get('computedResultDirectory'), {})
         if (not row.get('responseSent') or row.get('exception')
                 or any(prior.get(key) != row.get(key) for key in ('envelopeSha256', 'height', 'ruleset', 'fullVerdict', 'responseCode'))):
             failures.append(f'{path.parent.name}: Retry does not match its computed verdict')
     if set(heights) != {row.get('height') for _, row in computed}:
         failures.append('Computed Full coverage differs from the accepted chain')
-    successes = [attempt for attempt in report.get('attempts', []) if attempt.get('nativeFullValidation')]
+    if sum(forged.values()):
+        failures.append('A recorded forgery has no RED Full result')
+    successes = [attempt for attempt in report.get('attempts', [])
+                 if attempt.get('nativeFullValidation') and not attempt.get('forgedRelabel')]
     if len(successes) != len(blocks) or any(
             attempt.get('duplicateIsIdempotent') is not True
             or attempt['nativeFullValidation'].get('full_status') != 'green' for attempt in successes):
@@ -60,6 +72,7 @@ def audit(directory, *, require_captures=False):
         'format': 'noet-gpu-evidence-audit-v1', 'passed': not failures,
         'productionReady': False, 'acceptedHeights': heights,
         'computedFullRequests': len(computed), 'exactRetryResponses': len(reused),
+        'refusedForgeries': refused,
         'requiredDetectorRequests': sum(row.get('height', 0) >= 3 for _, row in computed),
         'capturesRequired': require_captures, 'failures': failures,
         'scope': 'Recorded private acceptance only; every computed Full result audited, no seed selection or recalibration',

@@ -751,6 +751,63 @@ index b6afa4d..2fbb61d 100644
          else:
              raise_as = DetectorNotReady(detail)
          return unavailable(raise_as)
+diff --git a/services/verification-api/src/full_gates.py b/services/verification-api/src/full_gates.py
+index 9b2c8b8..c65f977 100644
+--- a/services/verification-api/src/full_gates.py
++++ b/services/verification-api/src/full_gates.py
+@@ -17,7 +17,15 @@ What this module does and does not do:
+     ProofVerifier (the best-p candidate and the independent minimum-absolute
+     sampling-noise reduction). It never selects, filters or re-ranks
+     candidates. The logit severity it gates on is the severity of the
+-    existing best-p candidate at every step; the probability residual it
++    unperturbed batch-1 replay (candidate 1, no MCA noise) at every step,
++    a fixed choice that does not depend on the proof (full-r2). Before
++    full-r2 it was the best-p candidate's: when an MCA-noised candidate won
++    best-p, the gate measured the injected noise, which grows with model
++    depth. Qwen3-14B, 33 honest proofs: 3 RED at 12.7-29.1 sigma, each from
++    an MCA-noised candidate; the unperturbed replay peaked at 1.11 sigma on
++    the 30 accepted and at 1.22 and 1.43 sigma on two of the rejected, all
++    three pass under full-r2, and a single logit raised by 4 is RED at 17.4
++    sigma (validation/model-qwen3-14b.json). The probability residual it
+     gates on is the existing selected ``sampling_noise`` statistic (replayed
+     upper-CDF endpoint minus the reported upper-CDF endpoint, reduced by the
+     existing minimum-absolute-error selection).
+@@ -65,7 +73,7 @@ import numpy as np
+ # through v4_dispatch.RULES_REVISION (one mechanism: the dispatch tag carries
+ # this string; tests/test_full_gates.py asserts the two agree). Bump it, and
+ # the dispatch revision, whenever a constant or comparison below changes.
+-FULL_RULES_REVISION = "full-r1-2026-09-10"
++FULL_RULES_REVISION = "full-r2-2026-10-21"
+ 
+ # --------------------------------------------------------------------------- #
+ # Tail definition (fixed by the plan, not a calibration constant)
+@@ -147,7 +155,7 @@ TAIL_RULE_REFERENCE_FALSE_RED_AT_RESOLUTION = 2.62e-3
+ # clean replay is not derivable from a reference null: TBD by calibration.
+ PROB_RESIDUAL_HARD_CAP = 0.5
+ 
+-# Catastrophic logit-severity ceiling on the existing best-p candidate,
++# Catastrophic logit-severity ceiling on the unperturbed batch-1 replay,
+ # applied over the WHOLE window, in units of the fitted null's largest
+ # per-step standard deviation (see module docstring). The legacy ulp_fail
+ # flag fires at 6.0; the hard cap is set at twice that so late-step natural
+@@ -440,7 +448,7 @@ def decide(*, step_indices, p_values, sampling_noise, logit_severity) -> FullGat
+     step_indices    generation-step index of every replayed step
+     p_values        the existing per-step best-p p-values (same order)
+     sampling_noise  the existing selected sampling_noise per step (same order)
+-    logit_severity  per step: sigma severity of the existing best-p candidate,
++    logit_severity  per step: sigma severity of the unperturbed batch-1 replay,
+                     or a SEVERITY_COLUMNS row (see ``logit_severity``)
+ 
+     Raises FullGateUnableToVerify before any statistic is compared when the
+@@ -478,7 +486,7 @@ def decide(*, step_indices, p_values, sampling_noise, logit_severity) -> FullGat
+         reasons.append(f"selected sampling-noise residual |{noise[i_noise]:.4f}| at step "
+                        f"{int(steps[i_noise])} exceeds the probability hard cap {PROB_RESIDUAL_HARD_CAP:g}")
+     if max_sev > LOGIT_SEVERITY_HARD_CAP:
+-        reasons.append(f"best-p candidate logit severity {max_sev:.2f} sigma at step "
++        reasons.append(f"reference replay logit severity {max_sev:.2f} sigma at step "
+                        f"{int(steps[i_sev])} exceeds the hard cap {LOGIT_SEVERITY_HARD_CAP:g}")
+ 
+     return FullGateDecision(
 diff --git a/services/verification-api/src/main.py b/services/verification-api/src/main.py
 index c4c4b5b..7857377 100644
 --- a/services/verification-api/src/main.py
@@ -963,7 +1020,7 @@ index d6507e9..16b666e 100644
          )
          self.vocab_size = self.config.vocab_size
 diff --git a/services/verification-api/src/proof_verifier.py b/services/verification-api/src/proof_verifier.py
-index 722c5fe..e94fd95 100644
+index 722c5fe..2f01f08 100644
 --- a/services/verification-api/src/proof_verifier.py
 +++ b/services/verification-api/src/proof_verifier.py
 @@ -90,7 +90,8 @@ from torch.backends.cuda import sdp_kernel as old_sdp
@@ -1181,7 +1238,28 @@ index 722c5fe..e94fd95 100644
                          self.model_name, revision=self.commit_hash
                      )
                  except Exception:
-@@ -8384,13 +8353,25 @@ class ProofVerifier:
+@@ -6924,7 +6893,8 @@ class ProofVerifier:
+             #---- count ULP 6-sigma failures and rank swaps
+             p_values.append(best['p_value'])
+             ulp_fails.append(best['ulp_fail'])
+-            v4_logit_severity.append(best['v4_severity'])
++            # v4 Full gate: severity of the unperturbed batch-1 replay (full_gates.py).
++            v4_logit_severity.append(out_base['v4_severity'])
+             rank_error_actual.append(best['R_obs'])
+ 
+             #---- add sampling noise and platform shift
+@@ -7062,8 +7032,8 @@ class ProofVerifier:
+         # a tail that does not cover steps 224..255 all abstain through
+         # FullGateUnableToVerify: never GREEN, never a numerical RED), then
+         # the tail p-value rule over steps 224..255 and the whole-window
+-        # catastrophic caps on the existing best-p logit severity and the
+-        # existing selected sampling_noise. A RED returns here: the
++        # catastrophic caps on the logit severity of the unperturbed batch-1
++        # replay and the existing selected sampling_noise. A RED returns here: the
+         # whole-window quantile rules, the adaptive bucket allowances and the
+         # final status logic below never see it and cannot soften it.
+         if getattr(self, '_v4', None) is not None:
+@@ -8384,13 +8354,25 @@ class ProofVerifier:
                  context_lengths = _mca_context_lengths_from_mask(batched_mask)
  
                  head = self._gumbel_head_mode()
@@ -1208,7 +1286,7 @@ index 722c5fe..e94fd95 100644
                              )
                          else:
                              # Gumbel h1/h2: same body forward (same MCA
-@@ -8417,7 +8398,8 @@ class ProofVerifier:
+@@ -8417,7 +8399,8 @@ class ProofVerifier:
                  if mca_noise_value is None and batch_size == 1:
                      self._prompt_gibberish_capture(outputs.logits[0])
                  # Gather along sequence axis -> (B,S,V)
@@ -1218,7 +1296,7 @@ index 722c5fe..e94fd95 100644
              else:
                  hidden = outputs.last_hidden_state                                          # (B,L,H) post final norm
                  if mca_noise_value is None and batch_size == 1:
-@@ -8500,6 +8482,15 @@ class ProofVerifier:
+@@ -8500,6 +8483,15 @@ class ProofVerifier:
          the engine's early exit and full_verify's fail-safe agree and the
          shadow log fires once.
          """
@@ -1234,7 +1312,25 @@ index 722c5fe..e94fd95 100644
          cached = getattr(self, "_last_prompt_gibberish_decision", None)
          if cached is not None:
              return ("RED", cached["reason"]) if cached["red"] else None
-@@ -9404,8 +9395,11 @@ class ProofVerifier:
+@@ -8721,6 +8713,7 @@ class ProofVerifier:
+                         best_result = result
+                         best_p_value = result['p_value']
+                     if jj == 0:
++                        ref_result = result     # cand_order[0]: batch 1, no MCA
+                         ref_sampling = copy.deepcopy(result['sampling_noise'])
+                     if jj == 1:
+                         ref_sampling_noise.append(result['sampling_noise']-ref_sampling)
+@@ -8732,7 +8725,8 @@ class ProofVerifier:
+                 # Store final results (using best values across batch sizes)
+                 p_values.append(best_result['p_value'])
+                 ulp_fails.append(best_result['ulp_fail'])
+-                v4_logit_severity.append(best_result['v4_severity'])
++                # v4 Full gate: severity of the unperturbed batch-1 replay (full_gates.py).
++                v4_logit_severity.append(ref_result['v4_severity'])
+                 rank_error_actual.append(best_result['R_obs'])
+                 all_sampling_noise.append(best_sampling_noise)
+                 all_two_edge.append(best_two_edge)
+@@ -9404,8 +9398,11 @@ class ProofVerifier:
          self.logger.debug(f"Using device: {model_device}")
          if model_device == torch.device("cpu"):
              MCA_NOISE = 12.0
@@ -1248,7 +1344,32 @@ index 722c5fe..e94fd95 100644
  
          # ---------------- Error covariance calibration (unchanged) -----------------
          logits_cov      = RunningMeanCov(dim=1, device=model_device)
-@@ -9577,8 +9571,11 @@ class ProofVerifier:
+@@ -9494,10 +9491,11 @@ class ProofVerifier:
+ 
+         p_values        = gather_cs(P)                    # (S,)
+         ulp_fails       = gather_cs(ULP)                  # (S,)
+-        # Same best-p selection (best_c), gathered with an explicit expand so
+-        # all SEVERITY_COLUMNS survive: the shared gather_cs lambda indexes
+-        # trailing dimensions with size 1 and would keep only column 0.
+-        v4_sev_best     = SEV.gather(0, best_c.view(1, -1, 1).expand(1, -1, SEV.shape[-1])).squeeze(0)  # (S,3)
++        # v4 Full gate severity: the unperturbed batch-1 replay (cand_keys[0]),
++        # not the best-p candidate, whose MCA noise grows with model depth
++        # (full_gates.py). All SEVERITY_COLUMNS are kept.
++        assert cand_keys[0] == 1
++        v4_sev_ref      = SEV[0]                          # (S,3)
+         rank_error_act  = gather_cs(ROBS)                 # (S,)
+         delta_mean_best = gather_cs(DMEAN)                # (S,4)
+         delta_raw_best  = gather_cs(DRAW)                 # (S,70)
+@@ -9538,7 +9536,7 @@ class ProofVerifier:
+             gumbel_race         = self._gumbel_race_summary(results_by_cand, cand_keys),
+             support_check       = self._support_integrity_summary(results_by_cand, cand_keys),
+             v4_step_indices     = step_indices.tolist(),
+-            v4_logit_severity   = v4_sev_best.detach().cpu().tolist(),
++            v4_logit_severity   = v4_sev_ref.detach().cpu().tolist(),
+             two_edge_resid      = all_two_edge.tolist(),
+             candidate_two_edge_resid = TWO.detach().cpu().tolist(),
+         )
+@@ -9577,8 +9575,11 @@ class ProofVerifier:
          self.logger.debug(f"Using device: {model_device}")
          if model_device == torch.device("cpu"):
              MCA_NOISE = 12.0
@@ -1262,7 +1383,28 @@ index 722c5fe..e94fd95 100644
  
          self.logger.debug("Computing all logits with efficient prefix method (streamed/compact)...")
          all_logits = {}
-@@ -10236,7 +10233,7 @@ class ProofVerifier:
+@@ -9656,8 +9657,9 @@ class ProofVerifier:
+ 
+         p_values        = gather_cs(P)
+         ulp_fails       = gather_cs(ULP)
+-        # Explicit expand (see v2): gather_cs would keep only column 0.
+-        v4_sev_best     = SEV.gather(0, best_c.view(1, -1, 1).expand(1, -1, SEV.shape[-1])).squeeze(0)
++        # v4 Full gate severity: the unperturbed batch-1 replay (see v2).
++        assert cand_keys[0] == 1
++        v4_sev_ref      = SEV[0]
+         rank_error_act  = gather_cs(ROBS)
+         delta_mean_best = gather_cs(DMEAN)
+         delta_raw_best  = gather_cs(DRAW)
+@@ -9694,7 +9696,7 @@ class ProofVerifier:
+             gumbel_race         = self._gumbel_race_summary(results_by_cand, cand_keys),
+             support_check       = self._support_integrity_summary(results_by_cand, cand_keys),
+             v4_step_indices     = step_indices.tolist(),
+-            v4_logit_severity   = v4_sev_best.detach().cpu().tolist(),
++            v4_logit_severity   = v4_sev_ref.detach().cpu().tolist(),
+             two_edge_resid      = all_two_edge.tolist(),
+             candidate_two_edge_resid = TWO.detach().cpu().tolist(),
+         )
+@@ -10236,7 +10238,7 @@ class ProofVerifier:
                  f"no model resident for full verify of {proof_identifier}")
          exp_name, _, exp_commit = proof_identifier.partition("@")
          try:
@@ -1271,6 +1413,91 @@ index 722c5fe..e94fd95 100644
                  exp_name,
                  revision=exp_commit or None,
                  trust_remote_code=False,
+diff --git a/services/verification-api/src/tests/test_full_gates.py b/services/verification-api/src/tests/test_full_gates.py
+index 85db0b9..b9f868b 100644
+--- a/services/verification-api/src/tests/test_full_gates.py
++++ b/services/verification-api/src/tests/test_full_gates.py
+@@ -21,8 +21,9 @@ Three layers:
+      gate from the v4 carrier only (v3 byte-identical, with or without the
+      new keywords), an UNABLE decision propagates as an exception, and all
+      four Full engines (scalar, parallel v1, vectorized v2, v2 streamed)
+-     reach the gate with generation-step indices and the best-p candidate's
+-     severity. The candidate-selection regression drives a fixture where the
++     reach the gate with generation-step indices and the unperturbed batch-1
++     replay's severity (full-r2), also when an MCA-noised candidate wins
++     best-p. The candidate-selection regression drives a fixture where the
+      best-p selection and the minimum-|sampling_noise| selection pick
+      DIFFERENT candidates and checks the reductions the engines hand to the
+      final validator are exactly the pre-existing ones.
+@@ -447,7 +448,7 @@ class _FakeModel:
+         return iter([self._p])
+ 
+ 
+-def _fixture(torch, *, p1=None, noise255=None):
++def _fixture(torch, *, p1=None, noise255=None, noised_best=False, sev1=2.0, sev2=5.0):
+     """Per-candidate per-step statistics.
+ 
+     Candidate 1 has the highest p-value at every step (the best-p selection
+@@ -455,15 +456,18 @@ def _fixture(torch, *, p1=None, noise255=None):
+     the smallest |sampling_noise| (the minimum-|noise| reduction picks it
+     everywhere) with a lower p; spda sits in between on both. The severity
+     differs per candidate so the gate's input proves which candidate it
+-    came from.
++    came from. ``noised_best`` gives the MCA-noised candidate 2 the highest
++    p-value instead, so best-p and the unperturbed replay differ.
+     """
+     p1 = _probe_p() if p1 is None else np.asarray(p1, dtype=float)
+     P = {1: p1, 2: p1 - 0.001, "spda": p1 - 0.002}
++    if noised_best:
++        P[2] = p1 + 0.001
+     N = {1: np.full(S, 0.004), 2: np.full(S, 0.001), "spda": np.full(S, 0.002)}
+     if noise255 is not None:
+         for c, val in zip(CANDS, noise255):
+             N[c][255] = val
+-    SEV = {1: np.full(S, 2.0), 2: np.full(S, 5.0), "spda": np.full(S, 3.0)}
++    SEV = {1: np.full(S, sev1), 2: np.full(S, sev2), "spda": np.full(S, 3.0)}
+     MU = {1: np.full(S, 0.001), 2: np.full(S, 0.003), "spda": np.full(S, 0.002)}
+     out = {}
+     for c in CANDS:
+@@ -729,7 +733,7 @@ def test_every_full_engine_reaches_the_gate_with_step_indices_and_severity(pv_en
+     assert seen["v4_step_indices"] == list(range(S))
+     sev = np.asarray(seen["v4_logit_severity"], dtype=float)
+     assert sev.shape == (S, 3)
+-    assert np.allclose(sev[:, 0], fx[1]["v4_severity"][:, 0].numpy())    # best-p candidate (1), not 2 / spda
++    assert np.allclose(sev[:, 0], fx[1]["v4_severity"][:, 0].numpy())    # unperturbed replay (1), not 2 / spda
+     assert v._last_full_gate["tail"]["counts"] == [4, 4, 0]
+     # the same engine, v3 carrier: no gate, pre-existing verdict on the same fixture
+     v = _bare_verifier(pv, torch, v4=False, fx=fx)
+@@ -738,6 +742,29 @@ def test_every_full_engine_reaches_the_gate_with_step_indices_and_severity(pv_en
+     assert not hasattr(v, "_last_full_gate")
+ 
+ 
++@pytest.mark.parametrize("engine", ENGINES)
++def test_logit_severity_reads_the_unperturbed_replay_when_a_noised_candidate_wins_best_p(
++        pv_env, monkeypatch, engine):
++    """full-r2: an MCA-noised candidate that wins best-p (12 of 7,680 honest
++    Qwen3-14B steps) does not bring its injected noise to the logit cap. The
++    gate reads the unperturbed batch-1 replay in every engine, while p-values
++    still come from best-p; a reference replay above the cap is still RED."""
++    pv, torch = pv_env
++    fx = _fixture(torch, p1=np.full(S, 0.9), noised_best=True, sev2=20.0)
++    seen = _spy(monkeypatch, pv)
++    v = _bare_verifier(pv, torch, v4=True, fx=fx)
++    status, msg = getattr(v, engine)(bootstrap=100, charting=False)
++    assert "logit severity" not in str(msg), (engine, msg)
++    sev = np.asarray(seen["v4_logit_severity"], dtype=float)
++    assert np.allclose(sev[:, 0], fx[1]["v4_severity"][:, 0].numpy()), engine
++    got_p = np.asarray([float(x) for x in seen["p_values"]])
++    assert np.allclose(got_p, fx[2]["p_value"].numpy()), engine
++    fx = _fixture(torch, p1=np.full(S, 0.9), noised_best=True, sev1=20.0, sev2=2.0)
++    v = _bare_verifier(pv, torch, v4=True, fx=fx)
++    status, msg = getattr(v, engine)(bootstrap=100, charting=False)
++    assert status == "RED" and "reference replay logit severity 20.00" in msg, (engine, msg)
++
++
+ @pytest.mark.parametrize("engine", ENGINES)
+ def test_every_full_engine_applies_the_probability_cap(pv_env, monkeypatch, engine):
+     pv, torch = pv_env
 diff --git a/services/verification-api/src/utils/shared_utils.py b/services/verification-api/src/utils/shared_utils.py
 index 5812372..264188b 100644
 --- a/services/verification-api/src/utils/shared_utils.py
@@ -1516,6 +1743,21 @@ index 5812372..264188b 100644
  
  def inspect_model_dtype(
      repo_id: str,
+diff --git a/services/verification-api/src/v4_dispatch.py b/services/verification-api/src/v4_dispatch.py
+index 6105980..50108f0 100644
+--- a/services/verification-api/src/v4_dispatch.py
++++ b/services/verification-api/src/v4_dispatch.py
+@@ -102,7 +102,9 @@ except ImportError:  # pow-utils checkout on sys.path (tests, tooling)
+ # Legacy/v3 deciding behavior is unchanged; invalidate prior cached verdicts.
+ # "+rank-null-declared-r1": withdraw the experimental v4 independent rank
+ # null and its tie-order changes; keep the established null in every mode.
+-RULES_REVISION = ("r1-2026-09-09+full-r1-2026-09-10+credit-k1-2026-09-11"
++# "full-r2": the Full logit-severity cap reads the unperturbed batch-1 replay,
++# not the best-p candidate (full_gates.py).
++RULES_REVISION = ("r1-2026-09-09+full-r2-2026-10-21+credit-k1-2026-09-11"
+                   "+structure-r1-2026-09-12+race-k5+xyz-r2-2026-09-13"
+                   "+candidate-band-r1-k6-2026-09-13+support-r4-race2-core10-2026-09-16"
+                   "+rank-null-declared-r1-2026-09-16+sunset-admission-r1-2026-09-18")
 diff --git a/shared-utils/pow-utils/common_sampler_helper.py b/shared-utils/pow-utils/common_sampler_helper.py
 index 098eaad..50bf599 100644
 --- a/shared-utils/pow-utils/common_sampler_helper.py

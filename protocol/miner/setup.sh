@@ -37,8 +37,8 @@ fi
 cat > mine.sh <<EOF
 #!/usr/bin/env bash
 # Start mining: ./mine.sh noet1yourwalletaddress
-exec env PYTHONPATH="$HERE/build" python3 "$HERE/app/noet_miner.py" --engine "$HERE/build/engine/build/bin/llama-server" \\
-  --model "$HERE/models/qwen3-0.6b-bf16.gguf" --out "$HERE/work" --address "\$@"
+exec env PYTHONPATH="$HERE/build" NOET_MODEL_DIR="$HERE/models" python3 "$HERE/app/noet_miner.py" \\
+  --engine "$HERE/build/engine/build/bin/llama-server" --out "$HERE/work" --address "\$@"
 EOF
 chmod +x mine.sh
 echo "Ready. Start mining with: ./mine.sh <your noet1 address>"

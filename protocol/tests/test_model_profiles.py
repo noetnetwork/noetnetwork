@@ -63,6 +63,15 @@ class ModelProfileTests(unittest.TestCase):
         with mock.patch.dict('os.environ', {}, clear=True):
             self.assertEqual(load('exercise', 'cpu/exercise.py').MODEL, MAINNET_ID)
 
+    def test_switch_model_pins_match_its_profile(self):
+        # design/MODEL-SWITCH.md: the miner converts and checks Qwen3-14B with these pins.
+        switch = json.loads((ROOT / 'models/profiles.json').read_text())['qwen3-14b']
+        convert = (ROOT / 'miner/convert.sh').read_text()
+        for value in (switch['ggufSha256'], switch['manifestSha256'], switch['gguf']):
+            self.assertIn(value, convert)
+        self.assertEqual(load('miner', 'miner/noet_miner.py').MODELS[switch['model'] + '@' + switch['revision']]['sha256'],
+                         switch['ggufSha256'])
+
     def test_producer_model_comes_only_from_a_well_formed_identifier(self):
         candidate = PROFILES['qwen3-8b']
         with mock.patch.dict('os.environ', {'NOET_MODEL_ID': candidate['model'] + '@' + candidate['revision']}):
@@ -192,6 +201,10 @@ class ModelProfileTests(unittest.TestCase):
             stage.load_profile('qwen3-999b')
         with tempfile.TemporaryDirectory() as folder, self.assertRaises(ValueError):
             stage.stage(Path(folder) / 'out', 'builder@sha256:' + 'a' * 64, Path(folder), None, 'qwen3-8b')
+        for switch_profile, height in (('qwen3-0.6b', 12), ('qwen3-14b', 1), ('qwen3-14b', None)):
+            with tempfile.TemporaryDirectory() as folder, self.assertRaisesRegex(ValueError, 'switch rehearsal'):
+                stage.stage(Path(folder) / 'out', 'builder@sha256:' + 'a' * 64, None, None, 'qwen3-0.6b',
+                            switch_profile, height)
 
 
 if __name__ == '__main__':

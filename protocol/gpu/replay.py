@@ -44,6 +44,12 @@ def run(args):
         elif args.case=='forged-logits':
             for row in block.powBlob.topkLogits:
                 row.values=list(row.values);row.values[0]+=50
+        elif args.case=='nudged-logit':
+            # One step's top logit raised by 4 and kept on the bf16 grid: far
+            # beyond honest arithmetic error (under 0.5 for Qwen3-14B), far
+            # below forged-logits, and inside the MCA candidates' noise.
+            row=block.powBlob.topkLogits[100];row.values=list(row.values)
+            row.values[0]=torch.tensor(row.values[0]+4).bfloat16().float().item()
         builder=flatbuffers.Builder(1024);builder.Finish(message.Pack(builder));raw=bytes(builder.Output())
     parsed=pfunpack.unpack_validation_request(raw)
     height,ruleset=read_block_validation_fields(raw)
@@ -104,7 +110,7 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--request',type=Path,required=True);p.add_argument('--sha256',required=True)
     p.add_argument('--out',type=Path,required=True);p.add_argument('--seed',type=int,default=2342964126)
-    p.add_argument('--case',choices=('bound','wrong-parent','missing-height','missing-ruleset','different-model','corrupt-vdf','forged-logits'),default='bound')
+    p.add_argument('--case',choices=('bound','wrong-parent','missing-height','missing-ruleset','different-model','corrupt-vdf','forged-logits','nudged-logit'),default='bound')
     a=p.parse_args()
     if not 0<=a.seed<2**32:p.error('Seed must be uint32')
     raise SystemExit(0 if run(a) else 2)

@@ -3,6 +3,9 @@
 # revision (every file hash-checked), convert it to bf16 GGUF with the pinned
 # engine's converter and pinned packages, then require the pinned SHA-256.
 #   ./convert.sh <context dir> <output dir>
+# The model NOET switches to at an announced height (design/MODEL-SWITCH.md),
+# 29.6 GB; the conversion needs about 90 GB of free disk:
+#   ./convert.sh <context dir> <output dir> qwen3-14b
 # A research host converts another candidate (protocol/models/profiles.json):
 #   ./convert.sh <context dir> <output dir> <manifest> <manifest sha256> <gguf name> [<gguf sha256>]
 # Without a pinned GGUF digest it records the result's digest instead of checking it.
@@ -12,7 +15,12 @@ OUT=$2
 NAME=qwen3-0.6b-bf16.gguf
 GGUF_SHA256=8fa11f4d815167c4f6e3c91b25aebde25d8346a8f11228e744016592532b0700
 FETCH=(python3 "$CONTEXT/app/fetch_model.py")
-if [[ $# -ge 5 ]]; then
+if [[ $# -eq 3 && $3 == qwen3-14b ]]; then
+  NAME=qwen3-14b-bf16.gguf
+  GGUF_SHA256=b4ac198af720a0d4359a084f162f75553a1050e82869c96e583d3104f599dbe9
+  FETCH+=(--manifest "$CONTEXT/app/qwen3-14b.candidate.json"
+          --sha256 ad4e82761ed0febab48cd12752acfa9705d7bc3b579f9fec810ec2c6de4efb5e --max-gb 80)
+elif [[ $# -ge 5 ]]; then
   NAME=$5
   GGUF_SHA256=${6:-}
   FETCH+=(--manifest "$3" --sha256 "$4" --max-gb 80)
