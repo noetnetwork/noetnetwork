@@ -3,32 +3,36 @@
   "date": "2026-10-24",
   "productionReady": false,
   "question": "Does protocol/miner/cloud-start.sh, run as a rented-GPU user would run it, build and mine on mainnet on a compute capability 8.9 GPU, and how long do Qwen3-0.6B and Qwen3-14B attempts take on a 48 GB card?",
+  "answer": "Yes. Run 3 cloned the public repository, built both models and mined block 1,673, which the network verifier passed (Full GREEN).",
   "host": {
     "gpu": "NVIDIA RTX 6000 Ada Generation, 49,140 MiB, compute capability 8.9",
     "driver": "595.91.07 (CUDA 13.2)",
     "system": "Ubuntu 24.04, Python 3.12.3, 128 CPUs, rented research pod (runpod/pytorch image, no network volume)",
-    "runs": "two pods of the same type, one after the other"
+    "runs": "three pods of the same type, one after the other"
   },
-  "source": "The public export (noet-open) as a git bundle in place of the public URL: cloud-start.sh clones it, runs bootstrap.py --engines and prepare.py, then setup.sh, setup.sh --build and mine.sh",
+  "source": "Runs 1 and 2: the public export as a git bundle in place of the public URL. Run 3: the public repository itself at cb95b91, cloned by cloud-start.sh's default NOET_REPO. cloud-start.sh then runs bootstrap.py --engines and prepare.py, then setup.sh, setup.sh --build and mine.sh",
   "build": {
     "run1": "setup.sh lacked the engine server's build dependencies: pkg-config, flatbuffers-compiler and libflatbuffers-dev, libssl-dev, libzmq3-dev (with cppzmq-dev on Ubuntu 24.04) and libargon2-dev. Installed by hand on the pod, after which the build passed for sm_89. Fixed in setup.sh and the image's Dockerfile (both stages); the image CI now fails on a missing shared library (ldd).",
     "run2": "With the fixed setup.sh, cloud-start.sh built everything with no manual step: 5 min 40 s from start to the first finished attempt (Qwen3-0.6B only, NOET_14B=0).",
+    "run3": "From the public repository with the default NOET_14B=1 and no manual step: Qwen3-0.6B and Qwen3-14B rebuilt from Hugging Face and verified 11 min 22 s after start, first finished attempt at 12 min 2 s (fast host network).",
     "run1With14B": "After the last restart, the engine, the VDF binding, Qwen3-0.6B and Qwen3-14B were built and verified and the first attempt finished 12 min later (fast host network).",
-    "models": "Both GGUF files rebuilt from Hugging Face matched their pins: qwen3-0.6b-bf16.gguf in both runs, qwen3-14b-bf16.gguf in run 1",
-    "check": "mine.sh --check passed every item in both runs"
+    "models": "Both GGUF files rebuilt from Hugging Face matched their pins: qwen3-0.6b-bf16.gguf in all three runs, qwen3-14b-bf16.gguf in runs 1 and 3",
+    "check": "mine.sh --check passed every item in every run"
   },
   "mining": {
-    "network": "mainnet, Qwen3-0.6B (heights 1633-1637 in run 1, 1649-1660 in run 2)",
+    "network": "mainnet, Qwen3-0.6B (heights 1633-1637 in run 1, 1649-1660 in run 2, 1672-1673 in run 3)",
     "payout": "Every lease's coinbase was checked against the configured address before mining (payoutVerified on every attempt)",
-    "attempts": 251,
-    "secondsPerAttempt": "about 21 for a miss (two 256-token windows checked; the producer exits 1 when neither meets the target)",
+    "attempts": 264,
+    "secondsPerAttempt": "about 21 for a miss (two 256-token windows checked; the producer exits 1 when neither meets the target); 11.7 for the run 3 block, whose first window met the target",
     "outcomes": {
-      "no-eligible-proof": 250,
-      "eligibleProof": 1
+      "no-eligible-proof": 262,
+      "eligibleProofLostRace": 1,
+      "green": 1
     },
-    "expectedEligible": "Each window meets the target with probability 0.99%-1.04% (job targets 028cce... to 02a825...), so 502 windows give about 5.0 raw hits, fewer after the v4 priced gate. One proof is a low count (about 4% at 5.0) but shows the producer finds and emits proofs on compute 8.9.",
-    "theProof": "Run 2, attempt 6, height 1650 on parent fcd3e36f...: the node answered accepted_pending_connect about 3 s after another miner's block at height 1650 received its Full GREEN verdict and was connected. The proof had lost the race; the node never ran Full on it, so no verdict exists for a compute 8.9 block.",
-    "minerFault": "The miner waited the full 15 minutes for a verdict on the stale block before mining again. Fixed: settle() returns 'stale' once the chain holds another block at the proof's height on two polls in a row (tests in test_public_miner.py SettleTests).",
+    "expectedEligible": "Each window meets the target with probability 0.99%-1.04% (job targets 028cce... to 02a825...), so 528 windows give about 5.3 raw hits, fewer after the v4 priced gate. Two eligible proofs is a low count but within chance.",
+    "verifiedBlock": "Run 3, attempt 12: block 1,673 (e4c066f55a477d77953b91b0b3b3e8ccd3a6ad07129762bb8da1b6511fbfb935). The node answered accepted_pending_connect with this block hash; the network verifier's Full verdict was GREEN and the block is in the best chain, with its reward of 190.25875190 NOET paid to the configured address (public chain API).",
+    "lostRace": "Run 2, attempt 6, height 1650 on parent fcd3e36f...: the node answered accepted_pending_connect about 3 s after another miner's block at height 1650 received its Full GREEN verdict and was connected. The node never ran Full on it.",
+    "minerFault": "In run 2 the miner waited the full 15 minutes for a verdict on the stale block before mining again. Fixed: settle() returns 'stale' once the chain holds another block at the proof's height on two polls in a row (tests in test_public_miner.py SettleTests).",
     "eligibleTargetCheck": "One generate.py run on a copy of a real job at the easiest target the engine accepts (header bits 0x207fffff) exited 0 and wrote a proof (window 2 of 2). Offline; nothing submitted."
   },
   "timing": {
@@ -37,7 +41,6 @@
     "qwen3-14b": {"runs": 1, "seconds": [40.0], "tokensPerSecond": [20.72], "peakGpuMemoryMiB": 28026}
   },
   "notEstablished": [
-    "A Full GREEN verdict on a block produced on a compute 8.9 GPU (the only proof lost its race before verification)",
     "Qwen3-14B mining on mainnet (it starts at block 3,500); 14B was timed offline only",
     "Vast.ai itself: the same image layout and start script were run on another provider"
   ]
