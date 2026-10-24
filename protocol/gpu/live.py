@@ -9,7 +9,9 @@ loopback. Configuration lives in /workspace/noet-live (mode 0700):
   live.json        {"node": "IP", "verdictPort": 17443, "rpcPort": 18443,
                     "rewardAddress": "nwrk1...", "gateway": "https://..." (optional),
                     "network": "dev" | "testnet" | "mainnet" (default dev),
-                    "producerGpu": 0, "verifierGpu": 1 (optional, a two-GPU Pod)}
+                    "producerGpu": 0, "verifierGpu": 1 (optional, a two-GPU Pod),
+                    "mine": false (optional: a verifier host, such as an 80 GB GPU
+                    holding the Qwen3-14B replay, runs no miner)}
   shared-secret    64 hex characters, identical to the node's verdict secret
   miner-credentials  "miner:<password>" matching the node's rpcauth entry
 """
@@ -33,6 +35,9 @@ PREFIXES = {'dev': 'nwrk1', 'testnet': 'tnoet1', 'mainnet': 'noet1'}
 # checksum and runs the one each height needs, across a model switch too
 # (design/MODEL-SWITCH.md).
 GGUFS = ('qwen3-0.6b-bf16.gguf', 'qwen3-14b-bf16.gguf')
+# A service that ran this long before exiting starts again at once; only a
+# crash loop waits longer (2, 4, ... 120 s) between starts.
+HEALTHY_SECONDS = 600
 
 
 def log(**event):
@@ -62,6 +67,8 @@ def load(live=LIVE):
     for key in ('producerGpu', 'verifierGpu'):
         if key in settings and (type(settings[key]) is not int or not 0 <= settings[key] <= 9):
             raise ValueError(key + ' must be a GPU index from 0 to 9')
+    if type(settings.setdefault('mine', True)) is not bool:
+        raise ValueError('live.json mine must be true or false')
     secret = (live / 'shared-secret').read_text().strip()
     if not re.fullmatch('[0-9a-f]{64}', secret):
         raise ValueError('shared-secret must be 64 lowercase hex characters')
@@ -100,13 +107,15 @@ def worker(command, env=None):
 class Service:
     def __init__(self, name, command, env, log_name):
         self.name, self.command, self.env, self.log_name = name, command, env, log_name
-        self.process, self.failures, self.next_start = None, 0, 0.0
+        self.process, self.failures, self.next_start, self.started_at = None, 0, 0.0, 0.0
 
     def poll(self, now):
         if self.process and self.process.poll() is None:
             return
         if self.process:
             log(service=self.name, event='exited', code=self.process.returncode)
+            if now - self.started_at >= HEALTHY_SECONDS:
+                self.failures = 0
             self.failures += 1
             self.next_start = now + min(120, 2 ** min(self.failures, 7))
             self.process = None
@@ -115,6 +124,7 @@ class Service:
             self.process = subprocess.Popen(self.command(), env=self.env, stdin=subprocess.DEVNULL,
                                             stdout=stream, stderr=subprocess.STDOUT, start_new_session=True)
             stream.close()
+            self.started_at = now
             log(service=self.name, event='started', pid=self.process.pid)
 
     def stop(self):
@@ -154,7 +164,8 @@ def services(settings, secret, configs):
     else:
         miner = ['bash', str(ROOT / 'run.sh'), str(ROOT / 'checks/miner.py'), '--out', str(OUT / 'miner'),
                  '--credentials', str(LIVE / 'worker/miner-credentials'), '--reward-address', settings['rewardAddress']]
-    items.append(Service('miner', lambda: miner, {'PATH': '/usr/bin:/bin', **gpus}, 'miner.log'))
+    if settings.get('mine', True):
+        items.append(Service('miner', lambda: miner, {'PATH': '/usr/bin:/bin', **gpus}, 'miner.log'))
     return items
 
 

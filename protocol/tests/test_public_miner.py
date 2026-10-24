@@ -273,6 +273,22 @@ class PublicMinerTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'not found'):
                     noet_miner.models_given([Path(tmp) / 'missing.gguf'])
 
+    def test_model_files_are_found_across_the_image_and_work_directories(self):
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            image, work = Path(tmp) / 'models', Path(tmp) / 'work-models'
+            image.mkdir()
+            work.mkdir()
+            small = image / noet_miner.MODELS[noet_miner.MODEL]['gguf']
+            large = work / noet_miner.MODELS[noet_miner.SWITCH_MODEL]['gguf']
+            small.write_bytes(b'0.6b')
+            with mock.patch.dict('os.environ', {'NOET_MODEL_DIR': f'{image}:{work}'}):
+                self.assertEqual(noet_miner.default_models(), [small])
+                large.write_bytes(b'14b')  # built into the volume on first start
+                self.assertEqual(noet_miner.default_models(), [small, large])
+            with mock.patch.dict('os.environ', {'NOET_MODEL_DIR': str(work)}):
+                self.assertEqual(noet_miner.default_models(), [large])
+
     def test_the_miner_pins_each_network_model_schedule(self):
         spec = json.loads((Path(__file__).resolve().parents[1] / 'mainnet/network.json').read_text())
         switch = spec['modelSwitch']

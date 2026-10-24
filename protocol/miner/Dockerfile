@@ -1,6 +1,8 @@
 # NOET miner image. Build from the context made by protocol/miner/prepare.py:
 #   docker build -t noet-miner .
 #   docker run --gpus all -v noet-mining:/work noet-miner --address tnoet1...
+# An image built without WITH_14B builds Qwen3-14B into the /work volume on its
+# first start when run with -e NOET_14B=1 (start.sh).
 #
 # Every base image is pinned by digest. The model is rebuilt from the pinned
 # Hugging Face revision with the engine's own converter and must hash to the
@@ -41,18 +43,19 @@ RUN cd chiavdf/src \
 # 3. Runtime: CUDA runtime, Python, the two binaries, the model and the miner.
 FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04@sha256:ebef3c171eeef0298e4eb2e4be843105edf3b8b0ac45e0b43acee358e8046867
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends python3 libgmp10 libgmpxx4ldbl libgomp1 ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv libgmp10 libgmpxx4ldbl libgomp1 ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 miner && mkdir /work && chown miner /work
 COPY --from=build /build/engine/build/bin/llama-server /opt/noet/bin/llama-server
 COPY --from=build /build/chiavdf*.so /opt/noet/lib/
 COPY --from=model /models/ /models/
 COPY app/ /opt/noet/app/
+COPY engine.tar convert.sh start.sh /opt/noet/
 COPY README.md LICENSE-NOTICE.md /opt/noet/
 COPY licenses/ /opt/noet/licenses/
 ENV PYTHONPATH=/opt/noet/lib PYTHONDONTWRITEBYTECODE=1 NOET_ENGINE=/opt/noet/bin/llama-server \
-    NOET_MODEL_DIR=/models NOET_WORK_DIR=/work
+    NOET_MODEL_DIR=/models:/work/models NOET_WORK_DIR=/work
 USER miner
 WORKDIR /work
 VOLUME /work
-ENTRYPOINT ["python3", "/opt/noet/app/noet_miner.py"]
+ENTRYPOINT ["/opt/noet/start.sh"]

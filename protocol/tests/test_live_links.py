@@ -211,6 +211,41 @@ class LiveLinkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(miner[miner.index('--network') + 1], 'testnet')
         self.assertEqual([miner[i + 1] for i, part in enumerate(miner) if part == '--model'],
                          [str(live.ROOT / 'qwen3-0.6b-bf16.gguf')])
+        # A verifier host (the 80 GB GPU for the 14B replay) runs the verifier and relays only.
+        with mock.patch.object(live, 'OUT', Path('/tmp/out')):
+            names = [item.name for item in live.services({**settings, 'mine': False}, 'a' * 64, {})]
+        self.assertEqual(names, ['verifier'])
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'gpu-bundle.b64').write_text((self.root / 'certs/gpu-bundle.b64').read_text())
+            (root / 'shared-secret').write_text('a' * 64)
+            (root / 'miner-credentials').write_text('miner:' + 'x' * 32)
+            (root / 'live.json').write_text(json.dumps({**mainnet, 'mine': 'no'}))
+            with self.assertRaisesRegex(ValueError, 'mine must be true or false'):
+                live.load(root)
+            (root / 'live.json').write_text(json.dumps({**mainnet, 'mine': False}))
+            self.assertIs(live.load(root)[0]['mine'], False)
+
+    def test_gpu_supervisor_restarts_quickly_after_a_long_run_and_backs_off_in_a_crash_loop(self):
+        class Exited:
+            pid, returncode = 1, 1
+
+            def poll(self):
+                return 1
+        service = live.Service('verifier', lambda: ['true'], {}, 'verifier.log')
+        delays = []
+        with mock.patch.object(live, 'log'), mock.patch.object(live.subprocess, 'Popen', return_value=Exited()), \
+                mock.patch.object(live, 'OUT', Path(self.enterContext(tempfile.TemporaryDirectory()))):
+            now = 0.0
+            service.poll(now)  # first start
+            for ran in (5, 5, 5, live.HEALTHY_SECONDS, 5):
+                now += ran
+                service.poll(now)  # notices the exit
+                delays.append(service.next_start - now)
+                now = service.next_start
+                service.poll(now)  # starts again
+        # Crash loop: 2, 4, 8 s; after ten healthy minutes the delay starts over.
+        self.assertEqual(delays, [2, 4, 8, 2, 4])
 
     def test_gpu_supervisor_crosses_a_model_switch_on_two_gpus(self):
         # design/MODEL-SWITCH.md: both GGUF files go to the miner; producer and verifier get their own GPU.

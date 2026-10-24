@@ -44,9 +44,13 @@ model file from the pinned Hugging Face revision. It fails if the result
 differs by a single byte from the pinned SHA-256
 `8fa11f4d815167c4f6e3c91b25aebde25d8346a8f11228e744016592532b0700`.
 
-To build on GitHub instead (an x86 runner compiles CUDA without a GPU), copy
-`protocol/ci/miner-image.yml` to `.github/workflows/` and run it from the
-Actions tab; it pushes to `ghcr.io/<owner>/noet-miner` only when asked.
+To build on GitHub instead (an x86 runner compiles CUDA without a GPU), run
+the "NOET miner image" workflow from the public repository's Actions tab
+(`protocol/ci/miner-image.yml`); it pushes to `ghcr.io/<owner>/noet-miner`
+only when asked. That image carries Qwen3-0.6B. Run it with `-e NOET_14B=1`
+and it builds Qwen3-14B into the `/work` volume on its first start (a 31 GB
+download and about 90 GB of free disk on the volume while it converts), then
+mines across block 3,500.
 
 ## Run without Docker
 

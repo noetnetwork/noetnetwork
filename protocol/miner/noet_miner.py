@@ -524,10 +524,16 @@ def models_given(paths, check=True):
 
 
 def default_models():
-    """The GGUF files for the models of the image (/models), or the genesis model's path."""
-    root = Path(os.environ.get('NOET_MODEL_DIR', '/models'))
-    found = [root / pin['gguf'] for pin in MODELS.values() if (root / pin['gguf']).is_file()]
-    return found or [Path(os.environ.get('NOET_MODEL', root / MODELS[MODEL]['gguf']))]
+    """The GGUF files for the models in NOET_MODEL_DIR, one or more directories
+    separated by ':' (the image: /models, then /work/models for a model built on
+    first start), or the genesis model's path."""
+    roots = [Path(part) for part in os.environ.get('NOET_MODEL_DIR', '/models').split(':') if part]
+    found = []
+    for pin in MODELS.values():
+        path = next((root / pin['gguf'] for root in roots if (root / pin['gguf']).is_file()), None)
+        if path:
+            found.append(path)
+    return found or [Path(os.environ.get('NOET_MODEL', roots[0] / MODELS[MODEL]['gguf']))]
 
 
 def main(argv=None):

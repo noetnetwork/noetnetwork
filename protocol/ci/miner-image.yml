@@ -46,9 +46,10 @@ jobs:
         run: docker build -t noet-miner:ci /tmp/noet-miner
       - name: Smoke test without a GPU
         run: |
-          docker run --rm --entrypoint python3 noet-miner:ci /opt/noet/app/noet_miner.py --help
+          docker run --rm noet-miner:ci --help
           docker run --rm --entrypoint sh noet-miner:ci -c \
-            'test -x /opt/noet/bin/llama-server && ls /opt/noet/licenses && sha256sum /models/qwen3-0.6b-bf16.gguf'
+            'test -x /opt/noet/bin/llama-server && test -x /opt/noet/start.sh && test -f /opt/noet/engine.tar \
+             && python3 -m venv /tmp/venv-check && ls /opt/noet/licenses && sha256sum /models/qwen3-0.6b-bf16.gguf'
       - name: Push
         if: ${{ inputs.push }}
         env:

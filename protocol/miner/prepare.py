@@ -36,6 +36,7 @@ FILES = {
     'miner/Dockerfile': 'Dockerfile',
     'miner/setup.sh': 'setup.sh',
     'miner/convert.sh': 'convert.sh',
+    'miner/start.sh': 'start.sh',
     'miner/README.md': 'README.md',
     'miner/LICENSE-NOTICE.md': 'LICENSE-NOTICE.md',
 }
@@ -90,6 +91,7 @@ def prepare(out):
     generate.write_text(generate.read_text().replace("sys.path.insert(0, '/cpu')\n", ''))
     (out / 'setup.sh').chmod(0o755)
     (out / 'convert.sh').chmod(0o755)
+    (out / 'start.sh').chmod(0o755)
     files = sorted(p.relative_to(out).as_posix() for p in out.rglob('*') if p.is_file())
     manifest = {'format': 'noet-miner-context-v1', 'files': {name: digest(out / name) for name in files}}
     (out / 'context.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
