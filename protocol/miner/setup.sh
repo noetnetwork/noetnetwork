@@ -11,8 +11,13 @@ if [[ "${1:-}" != "--build" ]]; then
   [[ $EUID -eq 0 ]] || { echo "Run 'sudo ./setup.sh' for system packages, then './setup.sh --build'."; exit 1; }
   export DEBIAN_FRONTEND=noninteractive
   apt-get update
-  apt-get install -y --no-install-recommends build-essential cmake ninja-build python3-dev python3-venv \
-    pybind11-dev libgmp-dev ca-certificates
+  # The engine's proof server needs FlatBuffers (flatc regenerates its headers for
+  # the installed library), OpenSSL, ZeroMQ and argon2 (the proof's admission puzzle).
+  # Ubuntu 24.04 ships the C++ ZeroMQ header separately (cppzmq-dev); 22.04 has none.
+  cppzmq=$(apt-cache show cppzmq-dev >/dev/null 2>&1 && echo cppzmq-dev || true)
+  apt-get install -y --no-install-recommends build-essential cmake ninja-build pkg-config python3-dev python3-venv \
+    pybind11-dev libgmp-dev ca-certificates flatbuffers-compiler libflatbuffers-dev libssl-dev libzmq3-dev \
+    libargon2-dev $cppzmq
   echo "System packages installed. Now run ./setup.sh --build as your normal user."
   exit 0
 fi

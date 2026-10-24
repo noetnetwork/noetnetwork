@@ -47,6 +47,10 @@ jobs:
       - name: Smoke test without a GPU
         run: |
           docker run --rm noet-miner:ci --help
+          # Every shared library the engine needs is in the image; only the GPU driver's
+          # libcuda comes from the host at run time.
+          docker run --rm --entrypoint sh noet-miner:ci -c \
+            'ldd /opt/noet/bin/llama-server | grep "not found" | grep -v libcuda.so; test $? = 1'
           docker run --rm --entrypoint sh noet-miner:ci -c \
             'test -x /opt/noet/bin/llama-server && test -x /opt/noet/start.sh && test -f /opt/noet/engine.tar \
              && python3 -m venv /tmp/venv-check && ls /opt/noet/licenses && sha256sum /models/qwen3-0.6b-bf16.gguf'

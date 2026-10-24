@@ -24,7 +24,8 @@ FROM nvidia/cuda:12.8.1-devel-ubuntu24.04@sha256:520292dbb4f755fd360766059e62956
 ARG CUDA_ARCHITECTURES="80;86;89;90;120"
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      build-essential cmake ninja-build python3-dev pybind11-dev libgmp-dev \
+      build-essential cmake ninja-build pkg-config python3-dev pybind11-dev libgmp-dev \
+      flatbuffers-compiler libflatbuffers-dev libssl-dev libzmq3-dev cppzmq-dev libargon2-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 COPY engine.tar ./
@@ -43,7 +44,10 @@ RUN cd chiavdf/src \
 # 3. Runtime: CUDA runtime, Python, the two binaries, the model and the miner.
 FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04@sha256:ebef3c171eeef0298e4eb2e4be843105edf3b8b0ac45e0b43acee358e8046867
 ENV DEBIAN_FRONTEND=noninteractive
+# libssl3t64, libzmq5 and libargon2-1: the engine's proof server links them (ldd on
+# a native build, 24 Oct 2026); FlatBuffers is linked statically.
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv libgmp10 libgmpxx4ldbl libgomp1 ca-certificates \
+      libssl3t64 libzmq5 libargon2-1 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 10001 miner && mkdir /work && chown miner /work
 COPY --from=build /build/engine/build/bin/llama-server /opt/noet/bin/llama-server
