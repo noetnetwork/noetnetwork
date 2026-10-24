@@ -249,9 +249,13 @@ def checked_address(address, network):
     return address
 
 
-def settle(gateway, block, timeout, sleep=time.sleep, clock=time.monotonic):
-    """Wait for the node's Full verdict on our block."""
+def settle(gateway, block, timeout, height=None, sleep=time.sleep, clock=time.monotonic):
+    """Wait for the node's Full verdict on our block at this height. Once the chain
+    holds another block at our height, ours has lost the race (the node extends
+    only its tip): "stale", seen on two polls in a row so that our own block
+    connecting between the two lookups is not taken for a loss."""
     until = clock() + timeout
+    behind = 0
     while clock() < until:
         try:
             verdict = gateway.block(block)
@@ -259,6 +263,15 @@ def settle(gateway, block, timeout, sleep=time.sleep, clock=time.monotonic):
             verdict = {}
         if verdict.get('full') in ('red', 'amber') or (verdict.get('full') == 'green' and verdict.get('inBestChain')):
             return verdict
+        tip = None
+        if height is not None and verdict and not verdict.get('inBestChain'):
+            try:
+                tip = gateway.info().get('height')
+            except GatewayError:
+                pass
+        behind = behind + 1 if isinstance(tip, int) and tip >= height else 0
+        if behind >= 2:
+            return {**verdict, 'full': 'stale', 'tipHeight': tip}
         sleep(5)
     return None
 
@@ -356,7 +369,7 @@ def attempt(gateway, network, info, address, paths, out, number, flash_attention
         result['submissions'].append(entry)
         if submitted.get('status') not in ('accepted', 'accepted_pending_connect'):
             continue
-        verdict = settle(gateway, submitted['block_hash'], 900)
+        verdict = settle(gateway, submitted['block_hash'], 900, job['height'])
         entry['fullValidation'] = verdict
         result['outcome'] = 'timeout' if verdict is None else verdict['full']
         if verdict and verdict['full'] == 'green':

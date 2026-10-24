@@ -44,6 +44,7 @@ The height rule is explicit, small and testable.
 | Producer GPU memory | 6 GiB required | 28 GiB peak; 34 GiB required |
 | 516 tokens | 11.7 s (A40) | 19.2 s (A100) |
 | Attempt with engine start, A100 | 24 s | 36 s |
+| Attempt with engine start, RTX 6000 Ada (48 GB, 8.9) | 21 s | 40 s |
 
 24 GB cards (RTX 3090, RTX 4090) cannot run the 14B producer. Miners need a 48 GB card (A40, RTX A6000, L40S) or larger.
 

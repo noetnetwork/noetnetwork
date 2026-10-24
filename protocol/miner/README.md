@@ -8,9 +8,11 @@ paid by consensus directly to your own address.
 ## What you need
 
 - An NVIDIA GPU with 8 GB or more of memory, and from block 3,500 at least
-  34 GiB (see below). Tested on RTX A5000 and A40
-  (compute capability 8.6). Other architectures (8.0, 8.9, 9.0, 12.0) are
-  built but not yet validated against the network verifier.
+  34 GiB (see below). Validated against the network verifier on RTX A5000
+  and A40 (compute capability 8.6). On an RTX 6000 Ada (8.9) the miner built,
+  mined and found a proof, but that proof lost its race before verification
+  (`protocol/validation/cloud-start-20261024.json`). Other architectures (8.0,
+  9.0, 12.0) are built but not yet validated.
 - NVIDIA driver 570 or newer.
 - A NOET address starting with `noet1`. Create one in
   [Companion](https://www.noet.network/#wallet/app), the NOET wallet.
@@ -75,7 +77,9 @@ is built on the machine itself by `cloud-start.sh`:
 2. Set `NOET_ADDRESS=noet1...` in the instance environment and use
    `cloud-start.sh` as its on-start script.
 3. Follow the first build with `tail -f /root/noet.log`. Later starts skip
-   the finished steps and go straight to mining.
+   the finished steps and go straight to mining. On a 128-CPU Runpod host the
+   first build took 6 minutes with `NOET_14B=0`; Qwen3-14B adds its 29.6 GB
+   download and conversion. It has not yet been run on Vast.ai itself.
 
 With the Vast.ai command line:
 

@@ -369,6 +369,38 @@ class ProducerFailureTests(unittest.TestCase):
         self.assertEqual(noet_miner.backoff(1, 0), 15)
         self.assertEqual(noet_miner.backoff(9, 0), 300)
 
+class SettleTests(unittest.TestCase):
+    class Gateway:
+        def __init__(self, blocks, tips):
+            self.blocks, self.tips = list(blocks), list(tips)
+
+        def block(self, block_hash):
+            return self.blocks.pop(0)
+
+        def info(self):
+            return {'height': self.tips.pop(0)}
+
+    def settle(self, gateway, timeout=900):
+        clock = iter(range(0, 10 ** 6, 5))
+        return noet_miner.settle(gateway, BLOCK, timeout, 12, sleep=lambda s: None, clock=lambda: next(clock))
+
+    def test_a_block_that_lost_the_race_is_stale_at_once(self):
+        # 24 Oct 2026, height 1650: our proof reached the node 3 s after another
+        # block at that height was connected; the miner then waited 15 minutes.
+        pending = {'block': BLOCK, 'height': 12, 'inBestChain': False, 'full': None}
+        verdict = self.settle(self.Gateway([pending, pending], [12, 12]))
+        self.assertEqual((verdict['full'], verdict['tipHeight']), ('stale', 12))
+
+    def test_our_block_connecting_between_lookups_is_not_a_loss(self):
+        verified = {'block': BLOCK, 'height': 12, 'inBestChain': False, 'full': 'green'}
+        connected = {**verified, 'inBestChain': True}
+        self.assertIs(self.settle(self.Gateway([verified, connected], [12]))['inBestChain'], True)
+
+    def test_a_block_still_ahead_of_the_chain_keeps_waiting(self):
+        pending = {'block': BLOCK, 'height': 12, 'inBestChain': False, 'full': None}
+        self.assertIsNone(self.settle(self.Gateway([pending] * 3, [11] * 3), timeout=15))
+
+
 class NetworkCoverageTests(unittest.TestCase):
     def test_the_proof_producer_accepts_every_network_the_miner_mines(self):
         # generate.py once lacked noet-mainnet-1: every mainnet attempt failed at
