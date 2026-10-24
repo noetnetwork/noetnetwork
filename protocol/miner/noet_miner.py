@@ -448,8 +448,8 @@ def preflight(args, network, gateway, run=subprocess.run):
 
     def python():
         version = sys.version.split()[0]
-        if sys.version_info < (3, 11):  # hashlib.file_digest
-            raise RuntimeError(f'Python {version}; 3.11 or newer is needed')
+        if sys.version_info < (3, 10):
+            raise RuntimeError(f'Python {version}; 3.10 or newer is needed')
         return version
 
     state = {}
@@ -498,8 +498,11 @@ def backoff(failures, status):
 
 
 def file_sha256(path):
+    digest = hashlib.sha256()
     with open(path, 'rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+        for block in iter(lambda: stream.read(1 << 20), b''):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def models_given(paths, check=True):

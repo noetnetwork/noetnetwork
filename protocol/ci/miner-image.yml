@@ -40,7 +40,7 @@ jobs:
       - name: Pinned sources and miner build context
         run: |
           git lfs version
-          python3 protocol/bootstrap.py
+          python3 protocol/bootstrap.py --engines
           python3 protocol/miner/prepare.py --out /tmp/noet-miner
       - name: Build (fails unless the model matches its pinned SHA-256)
         run: docker build -t noet-miner:ci /tmp/noet-miner

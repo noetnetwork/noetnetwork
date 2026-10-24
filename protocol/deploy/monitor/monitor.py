@@ -18,6 +18,9 @@ Configuration (environment; secrets as Fly secrets):
   NOET_MONITOR_INTERVAL  seconds between checks (default 120)
   NOET_MONITOR_POD       Runpod pod ID of the mainnet verifier (with RUNPOD_API_KEY;
                          a read-only key is enough)
+  NOET_MONITOR_SWITCH_HEIGHT  mainnet's model switch height (mainnet/network.json):
+                         a daily reminder in the three days before it, until
+  NOET_MONITOR_SWITCH_READY=1 says a verifier with the new model serves first
   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, RUNPOD_API_KEY
   SMTP_HOST, SMTP_PORT (465 = TLS, else STARTTLS), SMTP_USER, SMTP_PASSWORD,
   ALERT_EMAIL_FROM, ALERT_EMAIL_TO
@@ -35,6 +38,8 @@ import urllib.request
 CERT_DAYS = 14
 REMIND_SECONDS = 3 * 3600
 CREDIT_DAYS = 7
+SWITCH_DAYS = 3
+BLOCKS_PER_DAY = 144
 RUNPOD_API = 'https://api.runpod.io/graphql'
 
 
@@ -75,6 +80,22 @@ def credit_problems(account, days=CREDIT_DAYS):
     # Whole days, so the text (and with it an alert) changes once a day.
     return [f'Runpod credit runs out in about {int(left)} days at ${account["currentSpendPerHr"]:.3f}/h; '
             'add credit or the pod stops']
+
+
+def switch_problems(health, switch_height, ready):
+    """A reminder in the days before the model switch, until the operator confirms
+    that a verifier with the new model is the first relay endpoint."""
+    if ready or not switch_height or not health or health.get('height') is None:
+        return []
+    left = switch_height - health['height']
+    if not 0 < left <= SWITCH_DAYS * BLOCKS_PER_DAY:
+        return []
+    # Whole days at the 600-second target, so the text (and with it an alert) changes once a day.
+    days = left // BLOCKS_PER_DAY
+    when = f'in about {days} day{"s" if days > 1 else ""}' if days else 'within a day'
+    return [f'the switch to Qwen3-14B at block {switch_height:,} comes {when}; no block after it is final '
+            'unless a verifier with the 14B snapshot is first in NOET_VERIFIER_ENDPOINT '
+            '(then set NOET_MONITOR_SWITCH_READY=1)']
 
 
 class Watch:
@@ -184,6 +205,9 @@ def main():
     stall = int(os.environ.get('NOET_MONITOR_STALL', '5400'))
     interval = int(os.environ.get('NOET_MONITOR_INTERVAL', '120'))
     watches = {name: Watch(name) for name, _ in watched}
+    switch_height = int(os.environ.get('NOET_MONITOR_SWITCH_HEIGHT') or 0)
+    switch_ready = os.environ.get('NOET_MONITOR_SWITCH_READY') == '1'
+    switch_watch = Watch('model switch', remind=86400)
     key, pod = os.environ.get('RUNPOD_API_KEY'), os.environ.get('NOET_MONITOR_POD')
     names = [name for name, _ in watched]
     if key and pod:
@@ -192,7 +216,9 @@ def main():
         reported = False
     log(event='monitor-started', targets=names, channels=send('NOET monitor started: watching ' + ', '.join(names)))
     while True:
-        checks = [(watches[name], problems(fetch(url), stall)) for name, url in watched]
+        health = {name: fetch(url) for name, url in watched}
+        checks = [(watches[name], problems(health[name], stall)) for name, _ in watched]
+        checks.append((switch_watch, switch_problems(health.get('mainnet'), switch_height, switch_ready)))
         if key and pod:
             account = runpod(key)
             if account and not reported:

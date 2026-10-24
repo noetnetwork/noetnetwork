@@ -66,6 +66,29 @@ class MonitorTests(unittest.TestCase):
         self.assertIn('about 5 days', sent[0])
         self.assertIn('about 4 days', sent[1])
 
+    def test_switch_reminder_in_the_last_three_days_until_ready(self):
+        health = {'ok': True, 'height': 3500 - 433, 'lastBlockAgeSeconds': 60}
+        self.assertEqual(monitor.switch_problems(health, 3500, False), [])
+        for height, when in ((3500 - 432, 'in about 3 days'), (3500 - 200, 'in about 1 day'),
+                             (3499, 'within a day')):
+            found = monitor.switch_problems({**health, 'height': height}, 3500, False)
+            self.assertEqual(len(found), 1)
+            self.assertIn(f'block 3,500 comes {when};', found[0])
+        self.assertEqual(monitor.switch_problems({**health, 'height': 3400}, 3500, True), [])
+        self.assertEqual(monitor.switch_problems({**health, 'height': 3500}, 3500, False), [])
+        self.assertEqual(monitor.switch_problems({**health, 'height': 3400}, 0, False), [])
+        self.assertEqual(monitor.switch_problems(None, 3500, False), [])
+        # Two-minute checks over two days of 10-minute blocks: one alert as each day begins.
+        now = [0.0]
+        watch = monitor.Watch('model switch', clock=lambda: now[0], remind=86400)
+        sent = []
+        for i in range(24 * 30 * 2):
+            sent.append(watch.update(monitor.switch_problems({**health, 'height': 3500 - 300 + i // 5}, 3500, False)))
+            now[0] += 120
+        sent = [a for a in sent if a]
+        self.assertEqual([a.split(' comes ')[1].split(';')[0] for a in sent],
+                         ['in about 2 days', 'in about 1 day', 'within a day'])
+
     def test_runpod_reply_is_parsed_and_failures_are_none(self):
         reply = {'data': {'myself': {'clientBalance': 224.1118, 'currentSpendPerHr': 0.281,
                                      'pods': [{'id': 'pod1', 'desiredStatus': 'RUNNING'}]}}}

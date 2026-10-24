@@ -12,6 +12,9 @@ primary_region = "ams"
 [env]
   NOET_MONITOR_TARGETS = "mainnet=https://noet-mainnet.fly.dev"
   NOET_MONITOR_STALL = "5400"
+  # mainnet/network.json modelSwitch.height; set NOET_MONITOR_SWITCH_READY=1
+  # (fly secrets set) once the 14B verifier is the first relay endpoint.
+  NOET_MONITOR_SWITCH_HEIGHT = "3500"
 
 [[vm]]
   size = "shared-cpu-1x"

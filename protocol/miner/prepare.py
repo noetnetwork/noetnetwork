@@ -6,6 +6,7 @@ cpu/prepare_source.py), the pinned chiavdf sources for the VDF binding, the
 proof generator and the gateway client. No keys, wallets or credentials. Both
 the Dockerfile and setup.sh build from exactly this directory.
 
+  python3 protocol/bootstrap.py --engines
   python3 protocol/miner/prepare.py --out /tmp/noet-miner
   docker build -t noet-miner /tmp/noet-miner
 """
@@ -51,8 +52,11 @@ LICENSES = {
 
 
 def digest(path):
+    value = hashlib.sha256()
     with open(path, 'rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+        for block in iter(lambda: stream.read(1 << 20), b''):
+            value.update(block)
+    return value.hexdigest()
 
 
 def chiavdf(out):
@@ -69,6 +73,8 @@ def chiavdf(out):
 
 def prepare(out):
     from cpu.prepare_source import prepare as engine_source
+    if not (ROOT / '.upstream/services/miner-api/llama.cpp/CMakeLists.txt').is_file():
+        raise SystemExit('The pinned engine sources are missing. Run: python3 protocol/bootstrap.py --engines')
     out = Path(out)
     out.mkdir(parents=True, exist_ok=False)
     engine_source(out / 'engine.tar')

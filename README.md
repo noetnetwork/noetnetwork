@@ -9,10 +9,11 @@ Qwen3-14B; blocks before it use Qwen3-0.6B. Mainnet has been live since
 
 You need an NVIDIA GPU with at least 34 GiB of memory (a 48 GB card such as
 the A40, RTX A6000 or L40S, or an 80 GB card), driver 570 or newer, Docker,
-about 90 GB of free disk for the model build, and a `noet1...` address from the
-wallet at https://www.noet.network.
+about 90 GB of free disk for the model build, git, Python 3.10 or newer, and a
+`noet1...` address from the wallet at https://www.noet.network.
 
 ```sh
+python3 protocol/bootstrap.py --engines            # pinned engine and node sources, about 1.4 GB
 python3 protocol/miner/prepare.py --out noet-miner
 docker build --build-arg WITH_14B=1 -t noet-miner noet-miner
 docker run --rm --gpus all noet-miner --address noet1... --check
@@ -21,7 +22,8 @@ docker run --gpus all --restart unless-stopped -v noet-mining:/work noet-miner -
 
 `--check` tests the GPU, driver, model and gateway and tells you what to fix.
 The image carries both models and moves to Qwen3-14B at block 3,500 by
-itself. Mining without Docker: [protocol/miner/README.md](protocol/miner/README.md).
+itself. Mining without Docker or on a rented GPU (Vast.ai, Runpod):
+[protocol/miner/README.md](protocol/miner/README.md).
 The switch: [protocol/design/MODEL-SWITCH.md](protocol/design/MODEL-SWITCH.md).
 
 ## Build and test

@@ -15,10 +15,19 @@ paid by consensus directly to your own address.
 - A NOET address starting with `noet1`. Create one in
   [Companion](https://www.noet.network/#wallet/app), the NOET wallet.
 
+## Get the miner
+
+You need git and Python 3.10 or newer.
+
+```sh
+git clone https://github.com/noetnetwork/noetnetwork noet && cd noet
+python3 protocol/bootstrap.py --engines            # pinned engine and node sources, about 1.4 GB
+python3 protocol/miner/prepare.py --out noet-miner  # the build context below
+```
+
 ## Run with Docker (recommended)
 
 ```sh
-python3 protocol/miner/prepare.py --out noet-miner
 docker build -t noet-miner noet-miner
 docker run --rm --gpus all noet-miner --address noet1... --check    # GPU, driver, model, gateway
 docker run --gpus all --restart unless-stopped -v noet-mining:/work noet-miner --address noet1...
@@ -50,6 +59,31 @@ sudo ./setup.sh          # build tools (once)
 ./mine.sh noet1... --check
 ./mine.sh noet1...
 ```
+
+## Rented GPUs (Vast.ai, Runpod and similar)
+
+These hosts run your container but cannot build Docker images, so the miner
+is built on the machine itself by `cloud-start.sh`:
+
+1. Rent a single-GPU instance with the image
+   `nvidia/cuda:12.8.1-devel-ubuntu24.04`, 150 GB of disk and a driver for
+   CUDA 12.8 or newer (570+).
+2. Set `NOET_ADDRESS=noet1...` in the instance environment and use
+   `cloud-start.sh` as its on-start script.
+3. Follow the first build with `tail -f /root/noet.log`. Later starts skip
+   the finished steps and go straight to mining.
+
+With the Vast.ai command line:
+
+```sh
+vastai search offers 'num_gpus=1 gpu_ram>=46 compute_cap>=800 cuda_vers>=12.8 disk_space>=150 reliability>0.98 rentable=true' -o 'dph'
+vastai create instance <offer id> --image nvidia/cuda:12.8.1-devel-ubuntu24.04 --disk 150 --ssh --direct \
+  --env '-e NOET_ADDRESS=noet1...' --onstart protocol/miner/cloud-start.sh
+```
+
+The miner uses one GPU, so rent one GPU per instance. The gateway allows each
+IPv4 address 360 work leases an hour, and instances on the same machine share
+its address: run at most two there before block 3,500 and three after.
 
 ## Model switch to Qwen3-14B
 
