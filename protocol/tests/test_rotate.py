@@ -3,6 +3,7 @@ import base64
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -56,6 +57,15 @@ class RotateTests(unittest.TestCase):
                 rotate.apply(secrets, 'noet-mainnet', rotate.gpu_hosts(['ssh'], ['root@a', 'root@b']))
         self.assertEqual(calls[0][:5], ['fly', 'secrets', 'import', '--app', 'noet-mainnet'])
         self.assertEqual([c[1] for c in calls[1:]], ['root@a', 'root@a', 'root@b', 'root@b'])
+
+    def test_gpu_restart_spares_the_container_start_shell(self):
+        # The start shell's command line contains "python3 checks/live.py";
+        # only the anchored pattern may select processes.
+        self.assertEqual(rotate.RESTART_GPU.count('live[.]py'), 1)
+        self.assertIn("LIVE='^python3 checks/live[.]py'", rotate.RESTART_GPU)
+        self.assertNotIn('checks/live.py"', rotate.RESTART_GPU)
+        self.assertIn('setsid nohup bash output/live/rotate-restart.sh', rotate.RESTART_GPU)
+        self.assertEqual(subprocess.run(['bash', '-n'], input=rotate.RESTART_GPU, text=True).returncode, 0)
 
 
 if __name__ == '__main__':

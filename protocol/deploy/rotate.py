@@ -26,11 +26,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from certs import NODE, issue  # noqa: E402
 
 WARN_DAYS = 7
-RESTART_GPU = '''set -e; cd /workspace/noet-gpu
-pkill -TERM -f "^python3 checks/live[.]py" || true
-for i in $(seq 1 60); do pgrep -f "checks/live[.]py" >/dev/null || break; sleep 2; done
-nohup python3 checks/live.py > output/live/live-stdout.log 2>&1 < /dev/null &
-sleep 15; tail -3 output/live/supervisor.jsonl'''
+# The container's start shell also contains "python3 checks/live.py" and
+# killing it restarts the container, so only the anchored pattern is used. The
+# restart runs detached on the host (as control.py LIVE_START starts live.py),
+# so a dropped SSH session cannot leave the host without its supervisor.
+RESTART_GPU = '''set -e; cd /workspace/noet-gpu; mkdir -p output/live
+tag="rotate-$(date +%s)"
+cat > output/live/rotate-restart.sh <<'EOF'
+cd /workspace/noet-gpu || exit 1
+LIVE='^python3 checks/live[.]py'
+pkill -TERM -f "$LIVE"
+for _ in $(seq 1 90); do pgrep -f "$LIVE" >/dev/null || break; sleep 2; done
+if pgrep -f "$LIVE" >/dev/null; then echo "$1: did not stop"; exit 1; fi
+install -d -o 10001 -g 10001 -m 700 /tmp/noet-gpu-home
+(umask 022; PATH=/usr/bin:/bin setsid nohup python3 checks/live.py >> output/live/live-stdout.log 2>&1 < /dev/null &)
+sleep 5; echo "$1: started $(pgrep -f "$LIVE")"
+EOF
+setsid nohup bash output/live/rotate-restart.sh "$tag" >> output/live/restart.log 2>&1 < /dev/null &
+for _ in $(seq 1 60); do grep -q "^$tag: " output/live/restart.log && break; sleep 5; done
+grep "^$tag: started [0-9]" output/live/restart.log
+sleep 20; tail -3 output/live/supervisor.jsonl'''
 
 
 def days_left(certs, now=None):
