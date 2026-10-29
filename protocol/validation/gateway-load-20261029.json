@@ -1,0 +1,75 @@
+{
+  "format": "noet-gateway-load-v1",
+  "date": "2026-10-29",
+  "productionReady": false,
+  "question": "Does the mining gateway's lease path keep its limits and enough throughput at 10x, 100x and 250x the roughly four miners mainnet has today?",
+  "method": "analysis/gateway_load.py: the real Gateway class in one process, a stub node answering every RPC after 2 ms, 128 threads; each miner leases and releases five times. tests/test_gateway_load.py checks the caps with nobody releasing.",
+  "host": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "python": "3.14.8",
+  "runs": [
+    {
+      "miners": 40,
+      "rounds": 5,
+      "nodeMs": 2.0,
+      "workers": 128,
+      "leased": 200,
+      "capacity": 0,
+      "limited": 0,
+      "other": 0,
+      "seconds": 0.029,
+      "leasesPerSecond": 6823.4,
+      "peakOpen": 71,
+      "peakPerClient": 3,
+      "limits": {
+        "openTotal": 512,
+        "openPerClient": 8
+      }
+    },
+    {
+      "miners": 400,
+      "rounds": 5,
+      "nodeMs": 2.0,
+      "workers": 128,
+      "leased": 2000,
+      "capacity": 0,
+      "limited": 0,
+      "other": 0,
+      "seconds": 0.263,
+      "leasesPerSecond": 7605.6,
+      "peakOpen": 117,
+      "peakPerClient": 1,
+      "limits": {
+        "openTotal": 512,
+        "openPerClient": 8
+      }
+    },
+    {
+      "miners": 1000,
+      "rounds": 5,
+      "nodeMs": 2.0,
+      "workers": 128,
+      "leased": 5000,
+      "capacity": 0,
+      "limited": 0,
+      "other": 0,
+      "seconds": 0.764,
+      "leasesPerSecond": 6544.6,
+      "peakOpen": 124,
+      "peakPerClient": 1,
+      "limits": {
+        "openTotal": 512,
+        "openPerClient": 8
+      }
+    }
+  ],
+  "findings": [
+    "Every lease succeeded at all three sizes; no miner went over its open-lease cap.",
+    "Lease throughput stayed in the thousands per second, while the hourly limit per miner is 360 (0.1 a second).",
+    "With nobody releasing, the total cap stops new leases exactly at the limit under 48 parallel requests (test)."
+  ],
+  "notEstablished": [
+    "The real node's create_mining_work_unit latency under load: the stub answers in 2 ms; the node's own time per work unit is the likely bottleneck.",
+    "Fly's proxy, TLS and the 100-connection hard limit on port 9443.",
+    "Submit path, proof size and the verifier queue."
+  ]
+}

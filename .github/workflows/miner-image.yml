@@ -74,3 +74,11 @@ jobs:
         #   cosign verify <image>@sha256:... --certificate-oidc-issuer https://token.actions.githubusercontent.com \
         #     --certificate-identity-regexp '^https://github.com/<owner>/<repo>/.github/workflows/miner-image.yml@'
         run: cosign sign --yes "$(cat /tmp/noet-miner-digest)"
+      - name: SBOM
+        if: ${{ inputs.push }}
+        # A software bill of materials (SPDX) for the pushed image, attached as a
+        # signed attestation: cosign verify-attestation --type spdxjson <image>@sha256:...
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock anchore/syft:v1.18.1 \
+            "$(cat /tmp/noet-miner-digest)" -o spdx-json > /tmp/noet-miner.spdx.json
+          cosign attest --yes --type spdxjson --predicate /tmp/noet-miner.spdx.json "$(cat /tmp/noet-miner-digest)"

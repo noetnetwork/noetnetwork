@@ -101,7 +101,7 @@ class MainnetTests(unittest.TestCase):
 
     def test_mainnet_genesis_is_pinned_by_clients(self):
         spec = json.loads((prepare.ROOT / 'mainnet/network.json').read_text())
-        for path in ('protocol/miner/noet_miner.py', 'protocol/noet/indexer.py', 'web/src/wallet/core.ts'):
+        for path in ('protocol/miner/noet_miner.py', 'protocol/noet/indexer.py', 'web/src/wallet/networks.ts'):
             if not (prepare.ROOT.parent / path).exists():  # the protocol-only export has no website
                 continue
             self.assertIn(spec['genesisHash'], (prepare.ROOT.parent / path).read_text(), path)

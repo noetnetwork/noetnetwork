@@ -1,0 +1,15 @@
+# Weekly update pull requests for the pinned GitHub Actions and the miner
+# image's base. Each one must pass the tests workflow before it is merged;
+# nothing merges itself.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directory: /protocol/miner
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2

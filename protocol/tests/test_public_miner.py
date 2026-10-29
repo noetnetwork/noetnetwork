@@ -380,6 +380,79 @@ class PublicMinerTests(unittest.TestCase):
 
 
 
+class WatchingTests(unittest.TestCase):
+    def test_gpu_pin_reaches_the_engine_and_the_gateway_counts_the_version(self):
+        node = Node()
+        service = Service(node, 'tnoet', GENESIS)
+        server = ThreadingHTTPServer(('127.0.0.1', 0), handler_for(service, False))
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        gateway = noet_miner.Gateway(f'http://127.0.0.1:{server.server_address[1]}')
+        info = noet_miner.checked_info(gateway, NETWORK)
+        with tempfile.TemporaryDirectory() as tmp:
+            producer = Producer()
+            noet_miner.attempt(gateway, NETWORK, info, ADDRESS,
+                               {'engine': 'e', 'models': {noet_miner.MODEL: 'm'}, 'gpu': 2}, Path(tmp), 0, runner=producer)
+        self.assertEqual(producer.envs[0]['CUDA_VISIBLE_DEVICES'], '2')
+        self.assertEqual(service.info()['minerVersions'], {noet_miner.VERSION: 1})
+
+    def test_alerts_fire_once_per_event(self):
+        sent = []
+        notify = noet_miner.Notifier('https://hooks.example/x', ADDRESS, post=sent.append)
+        for _ in range(7):
+            notify({'attempt': 1, 'gateway': 0, 'detail': 'Gateway unreachable'})
+        notify({'attempt': 2, 'height': 9, 'outcome': 'no-eligible-proof', 'note': ''})
+        notify({'attempt': 3, 'height': 9, 'outcome': 'no-eligible-proof', 'note': ''})
+        notify({'attempt': 4, 'height': 10, 'outcome': 'green', 'block': BLOCK, 'note': ''})
+        notify({'event': 'waiting-for-verdict', 'detail': 'x'})
+        notify({'event': 'switch-ahead', 'detail': 'From height 3500 blocks need Qwen3-14B.'})
+        notify.drain()
+        texts = [body['text'] for body in sent]
+        self.assertEqual(len(texts), 4, texts)
+        self.assertIn('stalled: 5 failed attempts', texts[0])
+        self.assertIn('again after the stall', texts[1])
+        self.assertIn('#explorer/block/' + BLOCK, texts[2])
+        self.assertIn('model switch', texts[3])
+        self.assertEqual(sent[2]['content'], texts[2])
+        with self.assertRaises(ValueError):
+            noet_miner.Notifier('http://hooks.example/x', ADDRESS)
+
+    def test_dashboard_serves_this_machine_only(self):
+        import subprocess
+        import urllib.error
+        import urllib.request
+
+        def smi(command, **kwargs):
+            return subprocess.CompletedProcess(command, 0, stdout='0, NVIDIA RTX A5000, 61, 98, 9000, 24564, 180.5\n')
+        tally = noet_miner.Tally(ADDRESS, 'testnet', [noet_miner.MODEL], run=smi)
+        tally.add({'attempt': 0, 'height': 9, 'outcome': 'green', 'blocksFound': 1, 'note': 'found'})
+        tally.add({'attempt': 1, 'gateway': 429, 'detail': 'Hourly lease limit reached'})
+        server = noet_miner.dashboard(tally, '127.0.0.1', 0)
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        base = f'http://127.0.0.1:{server.server_address[1]}'
+        status = json.loads(urllib.request.urlopen(base + '/status.json').read())
+        self.assertEqual((status['blocksFound'], status['attempts'], status['outcomes']), (1, 1, {'green': 1}))
+        self.assertEqual(status['gpus'][0]['temperatureC'], '61')
+        self.assertEqual(len(status['events']), 1)
+        self.assertIn(b'NOET miner', urllib.request.urlopen(base + '/').read())
+        rebound = urllib.request.Request(base + '/status.json', headers={'Host': 'attacker.example'})
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(rebound)
+        self.assertEqual(caught.exception.code, 403)
+
+    def test_every_check_has_a_fix(self):
+        import argparse
+        args = argparse.Namespace(address='bad', engine=Path('/missing'), model=[], out=Path('/'))
+        gateway = noet_miner.Gateway('http://127.0.0.1:9')
+        names = {name for name, _, _ in noet_miner.preflight(args, NETWORK, gateway)}
+        self.assertEqual(names, set(noet_miner.FIXES))
+        self.assertEqual(noet_miner.host_port('127.0.0.1:8090'), ('127.0.0.1', 8090))
+        with self.assertRaises(argparse.ArgumentTypeError):
+            noet_miner.host_port('8090')
+
+
 class ProducerFailureTests(unittest.TestCase):
     def test_only_a_crashed_producer_counts_as_a_failure(self):
         failed = noet_miner.producer_failed

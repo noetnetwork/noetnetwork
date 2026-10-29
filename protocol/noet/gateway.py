@@ -46,6 +46,8 @@ BLOCK = re.compile(r"[0-9a-f]{64}")
 LEASE = re.compile(r"[0-9a-f]{32}")
 SITE_CLIENT = re.compile(r"[0-9a-f]{16,64}")
 TASK_PATH = re.compile(r"/tasks/([0-9a-f]{24})")
+MINER_AGENT = re.compile(r"noet-miner/(\d{1,3}\.\d{1,3}\.\d{1,3})")
+MINERS_TRACKED = 10_000  # clients remembered for the version counts
 # Everything the gateway may ever ask the node. Nothing else is reachable.
 METHODS = frozenset(('create_mining_work_unit', 'submit_mining_response', 'getrecentvalidations',
                      'getblockchaininfo', 'getblockhash', 'getblockheader', 'getmodelslist',
@@ -107,6 +109,8 @@ class Gateway:
         self.tasks, self.tasks_per_hour, self.site_tasks_per_hour = tasks, tasks_per_hour, site_tasks_per_hour
         self.task_window = Window()
         self.stats = {'leased': 0, 'submitted': 0, 'accepted': 0, 'released': 0}
+        # client -> (miner version, last lease time); only the counts per version are published.
+        self.miner_versions = {}
         # The newest block accepted through this gateway and still awaiting its Full
         # verdict: {'height', 'since'}. Work leased at or below that height can only
         # win if the block fails, so leases say so and miners may wait instead.
@@ -116,6 +120,14 @@ class Gateway:
         if method not in METHODS:
             raise RPCError('Method is not available through the mining gateway')
         return self._rpc(method, *params)
+
+    def _versions(self, now):
+        """Miners that leased in the last day, counted by the version in their User-Agent."""
+        self.miner_versions = {k: v for k, v in self.miner_versions.items() if now - v[1] < 24 * HOUR}
+        counts = {}
+        for version, _ in self.miner_versions.values():
+            counts[version] = counts.get(version, 0) + 1
+        return dict(sorted(counts.items()))
 
     def _expire(self, now):
         self.leases = {k: v for k, v in self.leases.items() if v['expires'] > now}
@@ -139,7 +151,8 @@ class Gateway:
         with self.lock:
             stamp, cached = self.cached_info
             if cached is not None and now - stamp < INFO_SECONDS:
-                return {**cached, 'openLeases': len(self.leases), 'served': dict(self.stats)}
+                return {**cached, 'openLeases': len(self.leases), 'served': dict(self.stats),
+                        'minerVersions': self._versions(now)}
         fresh = self._info()
         with self.lock:
             self.cached_info = (now, fresh)
@@ -159,6 +172,8 @@ class Gateway:
                            'openLeases': self.open_per_client, 'proofBytes': PROOF_LIMIT},
                 'openLeases': open_leases, 'served': dict(self.stats)}
         with self.lock:
+            info['minerVersions'] = self._versions(self.clock())
+        with self.lock:
             awaiting = self._awaiting(chain['blocks'] + 1, self.clock())
         if awaiting:
             # How long the oldest block accepted here has waited for its verdict: the
@@ -174,7 +189,7 @@ class Gateway:
                              'tasksPerHour': self.tasks_per_hour}
         return info
 
-    def lease(self, address, client, group=None, want_task=False):
+    def lease(self, address, client, group=None, want_task=False, agent=None):
         if not isinstance(address, str) or not self.address.fullmatch(address):
             raise Refused(400, f'Enter a reward address starting with {self.hrp}1')
         group = group or client
@@ -201,17 +216,23 @@ class Gateway:
                 raise Refused(400, 'This address is not valid on this network')
             job = self.rpc('create_mining_work_unit', self.chain, info['scriptPubKey'], secrets.token_hex(8))
             req_id = int(job['req_id'])
-        finally:
+            secret = secrets.token_hex(16)
+            expires = min(float(job.get('expires_at', now + 600)), now + 1800)
+            height = job.get('height') if isinstance(job.get('height'), int) else None
+        except BaseException:
             with self.lock:
                 self.leases.pop(slot, None)
-        secret = secrets.token_hex(16)
-        expires = min(float(job.get('expires_at', now + 600)), now + 1800)
-        height = job.get('height') if isinstance(job.get('height'), int) else None
+            raise
         record = {'secret': hashlib.sha256(secret.encode()).digest(), 'client': client,
                   'group': group, 'address': address, 'expires': expires, 'submits': 0, 'height': height}
         with self.lock:
+            # Swap the held slot for the lease in one step; a gap between them let parallel requests overshoot.
+            self.leases.pop(slot, None)
             self.leases[req_id] = record
             self.stats['leased'] += 1
+            version = MINER_AGENT.fullmatch(agent or '')
+            if version and (client in self.miner_versions or len(self.miner_versions) < MINERS_TRACKED):
+                self.miner_versions[client] = (version.group(1), now)
             verifying = self._verifying(height, now) if height is not None else None
         lease = {'lease': secret, 'job': job, 'rewardAddress': address}
         if verifying:
@@ -500,7 +521,8 @@ def handler_for(gateway, trust_proxy, site_token=None):
                     raise Refused(400, 'Invalid request')
                 if self.path == '/mining/work':
                     return self.respond(200, gateway.lease(body.get('address'), client, client_group(client),
-                                                           body.get('tasks') is True))
+                                                           body.get('tasks') is True,
+                                                           self.headers.get('User-Agent', '')[:64]))
                 if self.path == '/mining/release':
                     return self.respond(200, gateway.release(body.get('reqId'), body.get('lease')))
                 if self.path == '/mining/answer':

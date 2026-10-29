@@ -28,7 +28,7 @@ Kept as the record of the launch; every step is done.
    `python3 protocol/testnet/set_allocation_keys.py --network mainnet --team K,K,K --treasury K,K,K --ecosystem K,K,K`.
 3. Genesis: done. `genesis.py --time` fixed it and wrote the hash, which
    `test_mainnet.py` checks against the lab and testnet nodes' own hashes
-   (`--pin` recomputes it). It is pinned in `web/src/wallet/core.ts` (`main`),
+   (`--pin` recomputes it). It is pinned in `web/src/wallet/networks.ts` (`main`),
    `protocol/miner/noet_miner.py` and `protocol/noet/indexer.py`. The time
    cannot change now without re-pinning all of them.
 4. Build the test variant, run `web/src/wallet/testnet.integration.test.ts`

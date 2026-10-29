@@ -21,6 +21,8 @@ Configuration (environment; secrets as Fly secrets):
                          900) for its Full verdict, i.e. the verifier is down
   NOET_MONITOR_POD       Runpod pod ID of the mainnet verifier (with RUNPOD_API_KEY;
                          a read-only key is enough)
+  NOET_MONITOR_BLOCKS    a public blocks list (default https://www.noet.network/api/chain/blocks):
+                         alert when a block the monitor has seen is replaced (a reorganisation)
   NOET_MONITOR_SWITCH_HEIGHT  mainnet's model switch height (mainnet/network.json):
                          a daily reminder in the three days before it, until
   NOET_MONITOR_SWITCH_READY=1 says a verifier with the new model serves first
@@ -60,7 +62,8 @@ def problems(health, stall_seconds):
         found.append('explorer index is stale')
     days = health.get('relayCertificateDaysLeft')
     if days is not None and days < CERT_DAYS:
-        found.append(f'relay certificates expire in {days} days (deploy/rotate.py)')
+        urgent = 'URGENT: ' if days <= 3 else ''
+        found.append(f'{urgent}relay certificates expire in {days} days; rotate with deploy/rotate.py --apply')
     return found
 
 
@@ -87,16 +90,28 @@ def pod_problems(account, pod_id):
     return []
 
 
+# Hours of credit left at which the warning changes, and with it an alert goes out.
+CREDIT_STEPS_HOURS = (24, 12, 6, 3, 1)
+
+
 def credit_problems(account, days=CREDIT_DAYS):
-    """A warning while the Runpod credit lasts less than `days` at the current spend."""
+    """A warning while the Runpod credit lasts less than `days` at the current spend:
+    daily while days are left, then at 24, 12, 6, 3 and 1 hours."""
     if account is None or account['currentSpendPerHr'] <= 0:
         return []
-    left = account['clientBalance'] / account['currentSpendPerHr'] / 24
-    if left >= days:
+    hours = account['clientBalance'] / account['currentSpendPerHr']
+    if hours >= days * 24:
         return []
-    # Whole days, so the text (and with it an alert) changes once a day.
-    return [f'Runpod credit runs out in about {int(left)} days at ${account["currentSpendPerHr"]:.3f}/h; '
-            'add credit or the pod stops']
+    # Only the rate, not the balance: the text must stay the same between steps.
+    spend = f'at ${account["currentSpendPerHr"]:.3f}/h'
+    if hours >= 48:
+        # Whole days, so the text (and with it an alert) changes once a day.
+        return [f'Runpod credit runs out in about {int(hours // 24)} days ({spend}); add credit or the pod stops']
+    under = min((step for step in CREDIT_STEPS_HOURS if hours < step), default=None)
+    if under is None:
+        return [f'Runpod credit runs out within 2 days ({spend}); add credit or the pod stops']
+    return [f'URGENT: Runpod credit runs out in under {under} hour{"s" if under > 1 else ""} ({spend}); '
+            'when it does the pod stops, its disk (verifier and models) is wiped and no block becomes final']
 
 
 def switch_problems(health, switch_height, ready):
@@ -113,6 +128,30 @@ def switch_problems(health, switch_height, ready):
     return [f'the switch to Qwen3-14B at block {switch_height:,} comes {when}; no block after it is final '
             'unless a verifier with the 14B snapshot is first in NOET_VERIFIER_ENDPOINT '
             '(then set NOET_MONITOR_SWITCH_READY=1)']
+
+
+class Reorgs:
+    """Remembers the hash at each recent height and reports when one changes."""
+
+    def __init__(self, keep=200):
+        self.keep, self.seen = keep, {}
+
+    def update(self, blocks):
+        """Problems from one blocks list (newest first); None = unreachable, never an alert."""
+        if not blocks:
+            return []
+        found = []
+        tip = max(b['height'] for b in blocks)
+        replaced = [b['height'] for b in blocks if self.seen.get(b['height'], b['hash']) != b['hash']]
+        if replaced:
+            depth = tip - min(replaced) + 1
+            found.append(f'reorganisation: {len(replaced)} block{"s" if len(replaced) > 1 else ""} replaced '
+                         f'from height {min(replaced):,} (depth {depth}); check the explorer and the verifier')
+        for b in blocks:
+            self.seen[b['height']] = b['hash']
+        for height in [h for h in self.seen if h < tip - self.keep]:
+            del self.seen[height]
+        return found
 
 
 class Watch:
@@ -168,6 +207,17 @@ def runpod(key, timeout=20):
         return {'clientBalance': float(account['clientBalance']),
                 'currentSpendPerHr': float(account['currentSpendPerHr']),
                 'pods': [{'id': pod['id'], 'desiredStatus': pod['desiredStatus']} for pod in account['pods']]}
+    except (urllib.error.URLError, TimeoutError, ConnectionError, ValueError, KeyError, TypeError):
+        return None
+
+
+def fetch_blocks(url, timeout=20):
+    """The newest blocks from a public explorer list, or None."""
+    request = urllib.request.Request(url, headers={'User-Agent': 'noet-monitor'})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            rows = json.loads(response.read(1 << 22))
+        return [{'height': int(r['height']), 'hash': str(r['hash'])} for r in rows]
     except (urllib.error.URLError, TimeoutError, ConnectionError, ValueError, KeyError, TypeError):
         return None
 
@@ -229,7 +279,9 @@ def main():
     verdict_limit = int(os.environ.get('NOET_MONITOR_VERDICT') or VERDICT_SECONDS)
     verdict_watch = Watch('verifier')
     key, pod = os.environ.get('RUNPOD_API_KEY'), os.environ.get('NOET_MONITOR_POD')
-    names = [name for name, _ in watched] + (['verdicts'] if gateway else [])
+    blocks_url = os.environ.get('NOET_MONITOR_BLOCKS', 'https://www.noet.network/api/chain/blocks')
+    reorgs, reorg_watch = Reorgs(), Watch('chain', remind=86400)
+    names = [name for name, _ in watched] + (['verdicts'] if gateway else []) + ['reorganisations']
     if key and pod:
         pod_watch, credit_watch = Watch('GPU pod'), Watch('GPU credit', remind=86400)
         names.append(f'GPU pod {pod}')
@@ -239,6 +291,9 @@ def main():
         health = {name: fetch(url) for name, url in watched}
         checks = [(watches[name], problems(health[name], stall)) for name, _ in watched]
         checks.append((switch_watch, switch_problems(health.get('mainnet'), switch_height, switch_ready)))
+        # A reorganisation is reported once: the next list shows the new chain as seen.
+        reorg_watch.failing = 1
+        checks.append((reorg_watch, reorgs.update(fetch_blocks(blocks_url))))
         if gateway:
             checks.append((verdict_watch, verdict_problems(fetch(gateway, path='/mining/info'), verdict_limit)))
         if key and pod:

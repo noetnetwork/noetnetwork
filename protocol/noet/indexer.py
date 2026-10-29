@@ -296,7 +296,14 @@ class Index:
 
     def statistics(self):
         # Bounded window, labelled as observed samples rather than a target rate.
-        rows = self.db.execute("SELECT b.*, (SELECT COUNT(*) FROM transactions t WHERE t.height=b.height) AS transactions FROM blocks b WHERE b.height>0 ORDER BY height DESC LIMIT 144").fetchall()
+        # Each sample also carries its Full verdict and when it was recorded, and the
+        # address its reward paid first, so charts need no per-block reads.
+        rows = self.db.execute("""SELECT b.*, (SELECT COUNT(*) FROM transactions t WHERE t.height=b.height) AS transactions,
+                v.full_status AS verdict, v.recorded_at AS verdictAt,
+                (SELECT o.address FROM transactions t JOIN outputs o ON o.txid=t.txid
+                 WHERE t.height=b.height AND t.coinbase=1 AND o.atoms>0 ORDER BY o.n LIMIT 1) AS producer
+                FROM blocks b LEFT JOIN verdicts v ON v.block_hash=b.hash
+                WHERE b.height>0 ORDER BY height DESC LIMIT 144""").fetchall()
         intervals = [max(0, rows[i]["timestamp"] - rows[i + 1]["timestamp"]) for i in range(len(rows) - 1)]
         fees = self.db.execute("SELECT fee FROM transactions WHERE height>=? AND coinbase=0", (rows[-1]["height"] if rows else 1,)).fetchall()
         producers = {}

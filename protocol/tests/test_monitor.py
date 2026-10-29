@@ -57,8 +57,37 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(monitor.pod_problems(account, 'missing'), ['pod missing is gone; the verifier and miner are down'])
         low = {**account, 'clientBalance': 40.0}  # 5.9 days at 0.281/h
         self.assertEqual(monitor.credit_problems(low),
-                         ['Runpod credit runs out in about 5 days at $0.281/h; add credit or the pod stops'])
+                         ['Runpod credit runs out in about 5 days (at $0.281/h); add credit or the pod stops'])
         self.assertEqual(monitor.credit_problems({**low, 'currentSpendPerHr': 0}), [])
+
+    def test_credit_warning_escalates_in_the_last_day(self):
+        account = {'clientBalance': 0, 'currentSpendPerHr': 0.601, 'pods': []}
+        texts = [monitor.credit_problems({**account, 'clientBalance': 0.601 * hours})[0] for hours in (30, 20, 10, 5, 2, 0.5)]
+        self.assertIn('within 2 days', texts[0])
+        self.assertIn('under 24 hours', texts[1])
+        self.assertIn('under 12 hours', texts[2])
+        self.assertIn('under 6 hours', texts[3])
+        self.assertIn('under 3 hours', texts[4])
+        self.assertIn('under 1 hour ', texts[5])
+        self.assertTrue(all(t.startswith('URGENT') for t in texts[1:]))
+        self.assertEqual(len(set(texts)), 6)  # each step changes the text, so each one alerts
+
+    def test_reorganisation_reported_once(self):
+        reorgs = monitor.Reorgs()
+        chain = [{'height': h, 'hash': f'a{h}'} for h in range(10, 5, -1)]
+        self.assertEqual(reorgs.update(chain), [])
+        self.assertEqual(reorgs.update(None), [])
+        self.assertEqual(reorgs.update([{'height': 11, 'hash': 'a11'}] + chain), [])
+        forked = [{'height': 11, 'hash': 'b11'}, {'height': 10, 'hash': 'b10'}] + chain[1:]
+        found = reorgs.update(forked)
+        self.assertEqual(len(found), 1)
+        self.assertIn('2 blocks replaced from height 10 (depth 2)', found[0])
+        self.assertEqual(reorgs.update(forked), [])
+
+    def test_certificate_warning_turns_urgent(self):
+        healthy = {'ok': True, 'height': 10, 'lastBlockAgeSeconds': 300}
+        self.assertNotIn('URGENT', monitor.problems({**healthy, 'relayCertificateDaysLeft': 10}, 5400)[0])
+        self.assertIn('URGENT', monitor.problems({**healthy, 'relayCertificateDaysLeft': 3}, 5400)[0])
 
     def test_credit_warning_repeats_daily_not_every_check(self):
         now = [0.0]

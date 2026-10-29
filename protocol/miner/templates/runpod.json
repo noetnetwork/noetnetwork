@@ -1,0 +1,19 @@
+{
+  "name": "NOET miner (cloud-start)",
+  "imageName": "nvidia/cuda:12.8.1-devel-ubuntu24.04",
+  "category": "NVIDIA",
+  "containerDiskInGb": 150,
+  "volumeInGb": 0,
+  "isPublic": false,
+  "readme": "Mines NOET Mainnet on one or more NVIDIA GPUs. Set NOET_ADDRESS to your noet1 address. 48 GB cards (A40, RTX A6000, L40S) or larger keep mining after the switch to Qwen3-14B at block 3,500; on 24 GB cards set NOET_14B=0. The first start builds the engine and models (6 to 12 minutes on a fast host); progress is in /root/noet.log. Source and documentation: https://github.com/noetnetwork/noetnetwork/tree/main/protocol/miner",
+  "env": {
+    "NOET_ADDRESS": "noet1...",
+    "NOET_14B": "1",
+    "NOET_GPUS": "all"
+  },
+  "dockerStartCmd": [
+    "bash",
+    "-c",
+    "apt-get update -qq && apt-get install -y -qq --no-install-recommends curl ca-certificates >/dev/null; curl -fsSL https://raw.githubusercontent.com/noetnetwork/noetnetwork/main/protocol/miner/cloud-start.sh | bash; sleep infinity"
+  ]
+}

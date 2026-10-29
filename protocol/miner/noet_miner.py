@@ -6,6 +6,12 @@ paid by consensus straight to your own address; this program never holds keys.
   python3 noet_miner.py --address tnoet1... [--gateway https://...]
   python3 noet_miner.py --address tnoet1... --check     # test this machine first
 
+Options for watching it: --dashboard 127.0.0.1:8090 serves a status page on this
+machine; --notify https://... posts a JSON message (Slack, Discord and ntfy take
+it as is) when a block is found or rejected, the miner stalls, or a model switch
+is near. --gpu 1 pins this miner to one GPU; run one miner per GPU, each with
+its own --out folder, on a multi-GPU machine.
+
 Each attempt is useful work: the gateway hands out a public AI request (or, when
 nobody is waiting, an open-dataset item), the model's run behind the proof is
 the answer, and the miner sends that answer back before submitting proofs.
@@ -18,7 +24,9 @@ a different seed or target.
 """
 import argparse
 import base64
+from collections import Counter, deque
 import hashlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import ipaddress
 import json
 import os
@@ -28,12 +36,13 @@ import shutil
 import signal
 import subprocess
 import sys
+import threading
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 HERE = Path(__file__).resolve().parent
 MODEL = 'Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca'
 GGUF_SHA256 = '8fa11f4d815167c4f6e3c91b25aebde25d8346a8f11228e744016592532b0700'
@@ -131,12 +140,14 @@ class Gateway:
         if parts.username or parts.password or parts.query or parts.fragment or parts.path not in ('', '/'):
             raise ValueError('Give the gateway as https://host[:port]')
         self.base, self.timeout = url.rstrip('/'), timeout
+        # The gateway publishes only how many miners run each version (--no-version sends none).
+        self.agent = 'noet-miner/' + VERSION
         self.opener = build_opener(ProxyHandler({}), NoRedirect)
 
     def call(self, path, body=None):
         data = None if body is None else json.dumps(body).encode()
         request = Request(self.base + path, data=data, headers={
-            'Content-Type': 'application/json', 'User-Agent': 'noet-miner/' + VERSION})
+            'Content-Type': 'application/json', 'User-Agent': self.agent})
         try:
             with self.opener.open(request, timeout=self.timeout) as response:
                 raw = response.read(1024 * 1024 + 1)
@@ -381,7 +392,8 @@ def attempt(gateway, network, info, address, paths, out, number, flash_attention
                            '--out', str(folder / 'generation'), '--accelerator', 'cuda',
                            '--flash-attention', flash_attention],
                           stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
-                          env={**os.environ, 'NOET_MODEL_ID': model})
+                          env={**os.environ, 'NOET_MODEL_ID': model,
+                               **({'CUDA_VISIBLE_DEVICES': str(paths['gpu'])} if paths.get('gpu') is not None else {})})
         try:
             producer.wait(timeout=900)
         except subprocess.TimeoutExpired:
@@ -428,12 +440,13 @@ def attempt(gateway, network, info, address, paths, out, number, flash_attention
     return result
 
 
-def gpus(run=subprocess.run):
-    """name, driver, memory MiB and compute capability per GPU, from nvidia-smi."""
+def gpus(run=subprocess.run, index=None):
+    """name, driver, memory MiB and compute capability per GPU (or the one at `index`), from nvidia-smi."""
     if not shutil.which('nvidia-smi'):
         raise RuntimeError('nvidia-smi was not found: install the NVIDIA driver (or run Docker with --gpus all)')
     out = run(['nvidia-smi', '--query-gpu=name,driver_version,memory.total,compute_cap',
-               '--format=csv,noheader,nounits'], capture_output=True, text=True, timeout=30, check=True).stdout
+               '--format=csv,noheader,nounits', *(['-i', str(index)] if index is not None else [])],
+              capture_output=True, text=True, timeout=30, check=True).stdout
     rows = []
     for line in out.strip().splitlines():
         name, driver, memory, cap = [field.strip() for field in line.split(',')]
@@ -455,7 +468,7 @@ def preflight(args, network, gateway, run=subprocess.run):
             checks.append((name, False, str(error)[:300]))
 
     def gpu():
-        found = gpus(run)
+        found = gpus(run, getattr(args, 'gpu', None))
         problems = []
         for row in found:
             driver = tuple(int(x) for x in re.findall(r'\d+', row['driver'])[:2])
@@ -515,6 +528,21 @@ def preflight(args, network, gateway, run=subprocess.run):
     check('Disk space', disk)
     order = ('Python', 'Reward address', 'NVIDIA GPU', 'Engine', 'Model', 'Disk space', 'Gateway and network')
     return sorted(checks, key=lambda row: order.index(row[0]))
+
+
+# What to do about each failed --check line.
+FIXES = {
+    'Python': 'Install Python 3.10 or newer, or use the miner image (ghcr.io/noetnetwork/noet-miner).',
+    'Reward address': 'Copy a receive address from app.noet.network/wallet; mainnet addresses start with noet1.',
+    'Gateway and network': 'Check the machine reaches the internet on port 9443. If the gateway is restarting, '
+                           'cloud-start.sh retries every five minutes; status: www.noet.network/network.',
+    'Model': 'Run ./convert.sh . models (and ./convert.sh . models qwen3-14b for the switch), or use the image, '
+             'which carries the pinned files. A checksum mismatch means a partial download: delete and convert again.',
+    'NVIDIA GPU': 'Use an Ampere or newer GPU (RTX 30, A-series, RTX 40, H100, RTX 50) with driver 570 or newer. '
+                  'In Docker, start with --gpus all. Qwen3-14B needs 34 GiB of GPU memory.',
+    'Engine': 'Run ./setup.sh --build in the miner folder, or use the miner image.',
+    'Disk space': 'Free 2 GiB for attempt folders, or point --out at a larger disk. Old attempt-* folders can go.',
+}
 
 
 def next_attempt(out):
@@ -591,6 +619,176 @@ def default_models():
     return found or [Path(os.environ.get('NOET_MODEL', roots[0] / MODELS[MODEL]['gguf']))]
 
 
+class Tally:
+    """What the dashboard shows: totals since start, the latest attempts and events."""
+    def __init__(self, address, network, models, gpu=None, run=subprocess.run, clock=time.time):
+        self.lock, self.run, self.clock = threading.Lock(), run, clock
+        self.state = {'version': VERSION, 'address': address, 'network': network, 'models': sorted(models),
+                      'gpu': gpu, 'startedAt': clock(), 'attempts': 0, 'blocksFound': 0}
+        self.outcomes, self.attempts, self.events = Counter(), deque(maxlen=20), deque(maxlen=10)
+        self.gpu_reading = (0.0, None)
+
+    def add(self, record):
+        with self.lock:
+            if 'outcome' in record:
+                self.state['attempts'] += 1
+                self.state['blocksFound'] = record.get('blocksFound', self.state['blocksFound'])
+                self.outcomes[record['outcome']] += 1
+                self.attempts.appendleft({'at': self.clock(), **record})
+            elif record.get('event') != 'mining':
+                self.events.appendleft({'at': self.clock(), **record})
+
+    def gpu(self):
+        """Temperature, use and memory from nvidia-smi, read at most every 10 s."""
+        stamp, reading = self.gpu_reading
+        if self.clock() - stamp < 10:
+            return reading
+        try:
+            index = [] if self.state['gpu'] is None else ['-i', str(self.state['gpu'])]
+            out = self.run(['nvidia-smi', '--query-gpu=index,name,temperature.gpu,utilization.gpu,memory.used,'
+                            'memory.total,power.draw', '--format=csv,noheader,nounits', *index],
+                           capture_output=True, text=True, timeout=10, check=True).stdout
+            keys = ('index', 'name', 'temperatureC', 'utilizationPercent', 'memoryUsedMiB', 'memoryMiB', 'powerW')
+            reading = [dict(zip(keys, (f.strip() for f in line.split(',')))) for line in out.strip().splitlines()]
+        except (OSError, subprocess.SubprocessError, ValueError):
+            reading = None
+        self.gpu_reading = (self.clock(), reading)
+        return reading
+
+    def snapshot(self):
+        gpu = self.gpu()
+        with self.lock:
+            return {**self.state, 'uptimeSeconds': int(self.clock() - self.state['startedAt']),
+                    'outcomes': dict(self.outcomes), 'recentAttempts': list(self.attempts),
+                    'events': list(self.events), 'gpus': gpu}
+
+
+DASHBOARD = """<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>NOET miner</title><style>
+:root{color-scheme:light dark;--bg:#fbfaf7;--fg:#1d1b17;--muted:#6b665c;--line:#e4e0d6;--good:#1f7a4d;--bad:#b4362a}
+@media (prefers-color-scheme:dark){:root{--bg:#141310;--fg:#ece8df;--muted:#a19b8e;--line:#2c2a25;--good:#58c08b;--bad:#ef7b6e}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}
+main{max-width:960px;margin:0 auto;padding:24px 16px}h1{font-size:20px;margin:0 0 4px}p{color:var(--muted);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.tile{border:1px solid var(--line);border-radius:10px;padding:12px}.tile b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.tile span{color:var(--muted);font-size:13px}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-size:14px}th{color:var(--muted);font-weight:500}
+.green{color:var(--good)}.red,.amber{color:var(--bad)}h2{font-size:16px;margin:24px 0 8px}a{color:inherit}
+.wrap{overflow-x:auto}</style><main><h1>NOET miner</h1><p id="who">Loading</p>
+<div class="grid" id="tiles"></div><h2>GPU</h2><div class="wrap"><table id="gpus"></table></div>
+<h2>Latest attempts</h2><div class="wrap"><table id="attempts"></table></div><h2>Events</h2>
+<div class="wrap"><table id="events"></table></div></main><script>
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const time=t=>new Date(t*1000).toLocaleTimeString();
+const rows=(head,list)=>"<tr>"+head.map(h=>"<th>"+h+"</th>").join("")+"</tr>"+list.join("");
+async function tick(){try{const s=await (await fetch("status.json",{cache:"no-store"})).json();
+document.getElementById("who").innerHTML="Version "+esc(s.version)+" on "+esc(s.network)+", paying <a href=\"https://www.noet.network/#explorer/address/"+encodeURIComponent(s.address)+"\">"+esc(s.address)+"</a>";
+const h=Math.floor(s.uptimeSeconds/3600),m=Math.floor(s.uptimeSeconds%3600/60),o=s.outcomes;
+document.getElementById("tiles").innerHTML=[["Blocks found",s.blocksFound],["Attempts",s.attempts],["No proof",o["no-eligible-proof"]||0],["Stale",o.stale||0],["Rejected",(o.red||0)+(o.amber||0)],["Running",h+" h "+m+" min"]].map(([k,v])=>"<div class=tile><b>"+esc(v)+"</b><span>"+k+"</span></div>").join("");
+document.getElementById("gpus").innerHTML=s.gpus?rows(["GPU","Temperature","Use","Memory","Power"],s.gpus.map(g=>"<tr><td>"+esc(g.index+" "+g.name)+"</td><td>"+esc(g.temperatureC)+" C</td><td>"+esc(g.utilizationPercent)+"%</td><td>"+esc(g.memoryUsedMiB)+" / "+esc(g.memoryMiB)+" MiB</td><td>"+esc(g.powerW)+" W</td></tr>")):"<tr><td>nvidia-smi is not available</td></tr>";
+document.getElementById("attempts").innerHTML=s.recentAttempts.length?rows(["Time","Attempt","Height","Outcome","Note"],s.recentAttempts.map(a=>"<tr><td>"+time(a.at)+"</td><td>"+esc(a.attempt)+"</td><td>"+esc(a.height)+"</td><td class=\""+esc(a.outcome)+"\">"+esc(a.outcome)+"</td><td>"+esc(a.note)+"</td></tr>")):"<tr><td>No attempt has finished yet. The first takes about a minute.</td></tr>";
+document.getElementById("events").innerHTML=s.events.length?rows(["Time","Event"],s.events.map(e=>"<tr><td>"+time(e.at)+"</td><td>"+esc(e.event||e.error||("gateway "+e.gateway))+": "+esc(e.detail)+"</td></tr>")):"<tr><td>Nothing to report.</td></tr>";
+}catch(e){document.getElementById("who").textContent="The miner is not answering."}}
+tick();setInterval(tick,5000);</script></html>"""
+
+
+def dashboard(tally, host, port):
+    """Serve the status page; bound to this machine unless you choose another address."""
+    allowed = {host, 'localhost', '127.0.0.1', '[::1]'}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            # A Host check stops other websites reading the page through DNS rebinding.
+            if self.headers.get('Host', '').rsplit(':', 1)[0] not in allowed:
+                return self.send(403, 'text/plain', b'Forbidden')
+            if self.path == '/':
+                return self.send(200, 'text/html; charset=utf-8', DASHBOARD.encode())
+            if self.path == '/status.json':
+                return self.send(200, 'application/json', json.dumps(tally.snapshot()).encode())
+            self.send(404, 'text/plain', b'Not found')
+
+        def send(self, status, kind, body):
+            self.send_response(status)
+            self.send_header('Content-Type', kind)
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer((host.strip('[]'), port), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
+# Consecutive failed attempts (gateway, producer or other errors) before a stall alert.
+STALL_FAILURES = 5
+
+
+class Notifier:
+    """Posts one JSON message per notable event to a webhook; never blocks mining."""
+    def __init__(self, url, address, post=None):
+        parts = urlsplit(url)
+        if parts.scheme != 'https' or not parts.hostname:
+            raise ValueError('--notify needs an https:// webhook URL')
+        self.url, self.address, self.failures, self.stalled, self.sending = url, address, 0, False, []
+        self.post = post or self._post
+
+    def _post(self, body):
+        request = Request(self.url, data=json.dumps(body).encode(), method='POST',
+                          headers={'Content-Type': 'application/json', 'User-Agent': 'noet-miner/' + VERSION})
+        try:
+            build_opener(NoRedirect).open(request, timeout=10).close()
+        except (OSError, ValueError):
+            pass  # an alert that cannot be sent must not stop the miner
+
+    def message(self, record):
+        """The alert text for this record, or None."""
+        failed = 'gateway' in record or 'error' in record or record.get('event') == 'producer-failed'
+        if failed:
+            self.failures += 1
+            if self.failures >= STALL_FAILURES and not self.stalled:
+                self.stalled = True
+                return (f'NOET miner stalled: {self.failures} failed attempts in a row. '
+                        f'Latest: {record.get("detail", "")[:200]}')
+            return None
+        if 'outcome' in record:
+            recovered = self.stalled
+            self.failures, self.stalled = 0, False
+            if record['outcome'] == 'green':
+                return (f'NOET block found at height {record["height"]}, paid to {self.address}: '
+                        f'https://www.noet.network/#explorer/block/{record.get("block")}')
+            if record['outcome'] in ('red', 'amber'):
+                return f'NOET verifier returned {record["outcome"]} for attempt {record["attempt"]}: {record["note"]}'
+            return 'NOET miner is attempting again after the stall.' if recovered else None
+        if record.get('event') in ('switch-ahead', 'model-switch'):
+            return 'NOET model switch: ' + record['detail']
+        return None
+
+    def __call__(self, record):
+        text = self.message(record)
+        if text:
+            body = {'text': text, 'content': text, 'event': record.get('event') or record.get('outcome') or 'stalled'}
+            sending = threading.Thread(target=self.post, args=(body,), daemon=True)
+            sending.start()
+            self.sending = [t for t in self.sending if t.is_alive()] + [sending]
+
+    def drain(self, timeout=10):
+        """Give alerts still being sent a moment before the miner exits."""
+        for sending in self.sending:
+            sending.join(timeout)
+
+
+def host_port(value):
+    host, _, port = value.rpartition(':')
+    if not host or not port.isdigit() or not 0 < int(port) < 65536:
+        raise argparse.ArgumentTypeError('give HOST:PORT, for example 127.0.0.1:8090')
+    return host, int(port)
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--address', required=True, help='Your NOET address; rewards are paid here')
@@ -604,15 +802,24 @@ def main(argv=None):
     p.add_argument('--max-attempts', type=int, default=0, help='0 runs until stopped')
     p.add_argument('--no-tasks', action='store_true', help='Mine with a fixed prompt instead of public requests')
     p.add_argument('--check', action='store_true', help='Check this machine and the gateway, then exit')
+    p.add_argument('--gpu', type=int, help='Run on this GPU only (nvidia-smi index); one miner per GPU')
+    p.add_argument('--dashboard', type=host_port, metavar='HOST:PORT',
+                   help='Serve a status page, for example 127.0.0.1:8090 (this machine only)')
+    p.add_argument('--notify', metavar='URL', help='Webhook for alerts: block found or rejected, stalled, model switch')
+    p.add_argument('--no-version', action='store_true', help='Do not tell the gateway which miner version runs')
     p.add_argument('--skip-model-check', action='store_true', help=argparse.SUPPRESS)
     args = p.parse_args(argv)
     args.model = args.model or default_models()
     network = NETWORKS[args.network]
     gateway = Gateway(args.gateway or network['gateway'])
+    if args.no_version:
+        gateway.agent = 'noet-miner'
     if args.check:
         results = preflight(args, network, gateway)
         for name, ok, detail in results:
             print(f'{"ok  " if ok else "FAIL"}  {name}: {detail}')
+            if not ok and name in FIXES:
+                print(f'      Fix: {FIXES[name]}')
         failed = [name for name, ok, _ in results if not ok]
         print('Ready to mine.' if not failed else f'Fix {len(failed)} item(s) above before mining.')
         return 1 if failed else 0
@@ -623,6 +830,20 @@ def main(argv=None):
         models = models_given(args.model, check=not args.skip_model_check)
     except RuntimeError as error:
         raise SystemExit(str(error))
+    try:
+        notify = Notifier(args.notify, address) if args.notify else None
+    except ValueError as error:
+        raise SystemExit(str(error))
+    tally = Tally(address, args.network, models, args.gpu)
+    if args.dashboard:
+        dashboard(tally, *args.dashboard)
+
+    def emit(record):
+        print(json.dumps(record), flush=True)
+        tally.add(record)
+        if notify:
+            notify(record)
+
     stopping = []
     signal.signal(signal.SIGTERM, lambda *_: stopping.append(True))
     signal.signal(signal.SIGINT, lambda *_: stopping.append(True))
@@ -634,72 +855,69 @@ def main(argv=None):
             # The gateway may be restarting; a wrong network is fatal (raised as RuntimeError).
             failures += 1
             delay = backoff(failures, error.status)
-            print(json.dumps({'event': 'waiting-for-gateway', 'detail': str(error), 'retryIn': delay}), flush=True)
+            emit({'event': 'waiting-for-gateway', 'detail': str(error), 'retryIn': delay})
             wait(delay, stopping)
             if stopping:
                 return 0
     args.out.mkdir(mode=0o700, parents=True, exist_ok=True)
-    print(json.dumps({'event': 'mining', 'network': args.network, 'height': info['height'],
-                      'rewardAddress': address, 'models': sorted(models)}), flush=True)
+    emit({'event': 'mining', 'network': args.network, 'height': info['height'],
+                      'rewardAddress': address, 'models': sorted(models)})
     number = next_attempt(args.out)
-    paths = {'engine': args.engine, 'models': models}
+    paths = {'engine': args.engine, 'models': models, 'gpu': args.gpu}
     found, failures, noticed = 0, 0, None
     while not stopping and (not args.max_attempts or number < args.max_attempts):
         try:
             outcome = attempt(gateway, network, info, address, paths, args.out, number, args.flash_attention,
                               tasks=not args.no_tasks)
             found += outcome.get('outcome') == 'green'
-            print(json.dumps({'attempt': number, 'height': outcome['height'], 'outcome': outcome['outcome'],
-                              'block': outcome.get('block'), 'blocksFound': found,
-                              'task': outcome.get('task'), 'note': OUTCOME_NOTES.get(outcome['outcome'])}),
-                  flush=True)
+            emit({'attempt': number, 'height': outcome['height'], 'outcome': outcome['outcome'],
+                  'block': outcome.get('block'), 'blocksFound': found,
+                  'task': outcome.get('task'), 'note': OUTCOME_NOTES.get(outcome['outcome'])})
             notice = switch_notice(network, models, outcome['height'])
             if notice and (noticed is None or outcome['height'] - noticed >= 50):
                 noticed = outcome['height']
-                print(json.dumps({'event': 'switch-ahead', 'height': network['switch'][0], 'detail': notice}),
-                      flush=True)
+                emit({'event': 'switch-ahead', 'height': network['switch'][0], 'detail': notice})
             if producer_failed(outcome):
                 # A producer that crashes at once (a broken setup) would otherwise
                 # spend the gateway's hourly leases within a minute.
                 failures += 1
                 delay = backoff(failures, 0)
-                print(json.dumps({'attempt': number, 'event': 'producer-failed',
-                                  'detail': f'see {args.out}/attempt-{number:06d}/producer.log',
-                                  'retryIn': delay}), flush=True)
+                emit({'attempt': number, 'event': 'producer-failed',
+                      'detail': f'see {args.out}/attempt-{number:06d}/producer.log', 'retryIn': delay})
                 wait(delay, stopping)
             else:
                 failures = 0
         except GatewayError as error:
             failures += 1
             delay = backoff(failures, error.status)
-            print(json.dumps({'attempt': number, 'gateway': error.status, 'detail': str(error),
-                              'retryIn': delay}), flush=True)
+            emit({'attempt': number, 'gateway': error.status, 'detail': str(error), 'retryIn': delay})
             wait(delay, stopping)
         except BlockVerifying as error:
             # Its verdict usually lands within three minutes; mining on now could only go stale.
-            print(json.dumps({'event': 'waiting-for-verdict', 'height': error.height, 'detail': str(error),
-                              'retryIn': VERDICT_WAIT}), flush=True)
+            emit({'event': 'waiting-for-verdict', 'height': error.height, 'detail': str(error),
+                  'retryIn': VERDICT_WAIT})
             wait(VERDICT_WAIT, stopping)
             continue
         except ModelUnavailable as error:
             switch = network.get('switch')
             if switch and error.height >= switch[0]:
                 # The network has switched models; this miner cannot help until restarted with the new one.
-                print(json.dumps({'event': 'model-switch', 'height': switch[0], 'model': error.model,
-                                  'detail': 'The network now mines ' + error.model + '. Convert it (convert.sh) '
-                                            'and restart the miner with its GGUF.'}), flush=True)
+                emit({'event': 'model-switch', 'height': switch[0], 'model': error.model,
+                      'detail': 'The network now mines ' + error.model + '. Convert it (convert.sh) '
+                                'and restart the miner with its GGUF.'})
+                if notify:
+                    notify.drain()
                 return 3
             # Given only the switch model before the switch: wait for the switch height.
-            print(json.dumps({'event': 'waiting-for-switch', 'height': error.height, 'detail': str(error),
-                              'retryIn': 60}), flush=True)
+            emit({'event': 'waiting-for-switch', 'height': error.height, 'detail': str(error), 'retryIn': 60})
             wait(60, stopping)
         except Exception as error:
-            print(json.dumps({'attempt': number, 'error': type(error).__name__, 'detail': str(error)[:300]}),
-                  flush=True)
+            emit({'attempt': number, 'error': type(error).__name__, 'detail': str(error)[:300]})
             wait(30, stopping)
         number += 1
+    if notify:
+        notify.drain()
     return 0
-
 
 if __name__ == '__main__':
     sys.exit(main())

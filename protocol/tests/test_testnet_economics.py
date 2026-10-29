@@ -49,7 +49,7 @@ class TestnetEconomicsTests(unittest.TestCase):
     def test_public_genesis_is_pinned_by_clients(self):
         from pathlib import Path
         root = Path(__file__).resolve().parents[2]
-        for path in ('protocol/miner/noet_miner.py', 'web/src/wallet/core.ts'):
+        for path in ('protocol/miner/noet_miner.py', 'web/src/wallet/networks.ts'):
             if not (root / path).exists():  # the protocol-only export has no website
                 continue
             self.assertIn('2da97e8dadb7fe27645263d3e732211cb67650adbc02a016102cc7390785cdaa', (root / path).read_text())

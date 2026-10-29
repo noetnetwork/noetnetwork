@@ -210,6 +210,16 @@ class GatewayTests(unittest.TestCase):
         self.gateway.info()
         self.assertEqual(sum(1 for c in self.node.calls if c[0] == "getblockchaininfo"), 2)
 
+    def test_info_counts_miners_by_version_for_a_day(self):
+        self.gateway.leases_per_hour, self.gateway.open_total = 10, 10
+        self.gateway.lease(ADDRESS, "a", agent="noet-miner/0.1.0")
+        self.gateway.lease(ADDRESS, "a", agent="noet-miner/0.2.0")
+        self.gateway.lease(ADDRESS, "b", agent="noet-miner/0.1.0")
+        self.gateway.lease(ADDRESS, "c", agent="curl/8.0")
+        self.assertEqual(self.gateway.info()["minerVersions"], {"0.1.0": 1, "0.2.0": 1})
+        self.clock.now += 24 * 3600
+        self.assertEqual(self.gateway.info()["minerVersions"], {})
+
     def test_block_lookups_are_rate_limited(self):
         for _ in range(3):
             self.gateway.block(BLOCK, "a", reads_per_hour=3)

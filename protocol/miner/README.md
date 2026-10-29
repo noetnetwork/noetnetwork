@@ -36,7 +36,7 @@ docker run --gpus all --restart unless-stopped -v noet-mining:/work noet-miner -
 
 `--check` tests the GPU (driver 570 or newer, a supported architecture, 6 GiB
 of memory), the engine, the model checksum, free disk and the gateway, and
-says in plain words what to fix. It leases no work. While mining, the miner
+prints a `Fix:` line under each failure. It leases no work. While mining, the miner
 waits out gateway outages with growing pauses (up to five minutes) and stops
 cleanly on Ctrl-C or `docker stop`.
 
@@ -89,9 +89,35 @@ vastai create instance <offer id> --image nvidia/cuda:12.8.1-devel-ubuntu24.04 -
   --env '-e NOET_ADDRESS=noet1...' --onstart protocol/miner/cloud-start.sh
 ```
 
-The miner uses one GPU, so rent one GPU per instance. The gateway allows each
-IPv4 address 360 work leases an hour, and instances on the same machine share
-its address: run at most two there before block 3,500 and three after.
+Templates with these settings: `templates/runpod.json` (the body for
+Runpod's `POST /v1/templates`) and `templates/vast.md`.
+
+Each miner uses one GPU. `NOET_GPUS=all` starts one per GPU (`--gpu n`, with
+its own work folder). The gateway allows each IPv4 address 360 work leases an
+hour, and GPUs and instances on the same machine share its address: run at
+most two miners there before block 3,500 and three after.
+
+## Watching your miner
+
+```sh
+./mine.sh noet1... --dashboard 127.0.0.1:8090 --notify https://ntfy.sh/<your topic>
+```
+
+- `--dashboard` serves a status page on this machine: blocks found, attempts
+  by outcome, the latest attempts and events, and GPU temperature, use,
+  memory and power. It answers only requests addressed to this machine. With
+  Docker, add `-p 127.0.0.1:8090:8090` and `--dashboard 0.0.0.0:8090`; on a
+  rented GPU, use `ssh -L 8090:127.0.0.1:8090`.
+- `--notify` posts a JSON message (`text` and `content`, which Slack, Discord
+  and ntfy show as is) when a block is found, the verifier rejects one, five
+  attempts in a row fail (and again when mining recovers), or a model switch
+  is near or reached.
+- `--gpu n` pins the miner to one GPU by its `nvidia-smi` index.
+
+The miner tells the gateway its version in its User-Agent. The gateway
+publishes only how many miners ran each version in the last day
+(`minerVersions` in `/mining/info`), never per address. `--no-version`
+leaves the version out.
 
 ## Model switch to Qwen3-14B
 
