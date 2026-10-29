@@ -11,7 +11,7 @@
 # 1. Model: fetch the pinned snapshot and convert it to the pinned GGUF. With
 # --build-arg WITH_14B=1 also Qwen3-14B (design/MODEL-SWITCH.md): a 29.6 GB file,
 # so the image can mine across the switch.
-FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c AS model
+FROM python:3.12.15-slim-bookworm@sha256:6a0e06f5ba0b373d051aabd3fffb9b873f27f9a2a3a14bcbe37dee6f0e3bbc70 AS model
 ARG WITH_14B=0
 WORKDIR /build
 COPY engine.tar convert.sh ./
