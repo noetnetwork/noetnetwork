@@ -72,6 +72,40 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(create[1][:2], ("tensor-reg", "0014" + "11" * 20))
         self.assertRegex(lease["lease"], "^[0-9a-f]{32}$")
 
+    def test_leases_behind_a_block_awaiting_its_verdict_say_so(self):
+        self.gateway.leases_per_hour = 10
+        first = self.gateway.lease(ADDRESS, "a")
+        self.assertNotIn("verifying", first)
+        self.gateway.submit(first["job"]["req_id"], first["lease"], proof(), "a")
+        self.clock.now += 40
+        second = self.gateway.lease(ADDRESS, "b")
+        self.assertEqual(second["verifying"], {"height": 7, "seconds": 40})
+        self.assertEqual(self.gateway._info()["verifying"]["height"], 7)
+        # Past the hold the hint goes, whatever the verdict; the wait stays visible for the monitor.
+        self.clock.now += gateway_module.VERIFYING_SECONDS
+        self.assertNotIn("verifying", self.gateway.lease(OTHER, "c"))
+        info = self.gateway._info()
+        self.assertNotIn("verifying", info)
+        self.assertEqual(info["awaitingVerdict"], {"height": 7, "seconds": 460})
+        self.clock.now += 3600
+        self.assertNotIn("awaitingVerdict", self.gateway._info())
+
+    def test_the_hint_clears_once_the_tip_moves_past_the_block(self):
+        self.gateway.leases_per_hour = 10
+        first = self.gateway.lease(ADDRESS, "a")
+        self.gateway.submit(first["job"]["req_id"], first["lease"], proof(), "a")
+        original = self.node.__call__
+
+        class Moved(Node):
+            def __call__(inner, method, *params):
+                result = original(method, *params)
+                if method == "create_mining_work_unit":
+                    result["height"] = 8
+                return result
+        self.gateway._rpc = Moved()
+        self.assertNotIn("verifying", self.gateway.lease(ADDRESS, "b"))
+        self.assertIsNone(self.gateway.verifying)
+
     def test_rejects_other_networks_and_bad_addresses(self):
         for address in ("nwrk1q" + "q" * 38, "tnoet1Q" + "q" * 38, "", None, 5):
             with self.assertRaises(Refused):

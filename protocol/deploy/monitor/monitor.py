@@ -16,6 +16,9 @@ Configuration (environment; secrets as Fly secrets):
                          at 600-second blocks a quiet gap that long happens
                          about once in two months)
   NOET_MONITOR_INTERVAL  seconds between checks (default 120)
+  NOET_MONITOR_GATEWAY   mainnet's mining gateway (https://...:9443): alert when a
+                         block has waited NOET_MONITOR_VERDICT seconds (default
+                         900) for its Full verdict, i.e. the verifier is down
   NOET_MONITOR_POD       Runpod pod ID of the mainnet verifier (with RUNPOD_API_KEY;
                          a read-only key is enough)
   NOET_MONITOR_SWITCH_HEIGHT  mainnet's model switch height (mainnet/network.json):
@@ -41,6 +44,7 @@ CREDIT_DAYS = 7
 SWITCH_DAYS = 3
 BLOCKS_PER_DAY = 144
 RUNPOD_API = 'https://api.runpod.io/graphql'
+VERDICT_SECONDS = 900
 
 
 def problems(health, stall_seconds):
@@ -58,6 +62,19 @@ def problems(health, stall_seconds):
     if days is not None and days < CERT_DAYS:
         found.append(f'relay certificates expire in {days} days (deploy/rotate.py)')
     return found
+
+
+def verdict_problems(info, limit=VERDICT_SECONDS):
+    """A block accepted by the gateway that has waited too long for its verdict,
+    from one /mining/info reply (None = unreachable)."""
+    if info is None:
+        return ['mining gateway unreachable']
+    waiting = info.get('awaitingVerdict') or {}
+    seconds = waiting.get('seconds')
+    if not isinstance(seconds, int) or seconds < limit:
+        return []
+    return [f'block {waiting.get("height")} has waited {seconds // 60} min for its Full verdict; '
+            'the GPU verifier is probably down']
 
 
 def pod_problems(account, pod_id):
@@ -125,8 +142,8 @@ class Watch:
         return None
 
 
-def fetch(url, timeout=20):
-    request = urllib.request.Request(url.rstrip('/') + '/healthz/chain', headers={'User-Agent': 'noet-monitor'})
+def fetch(url, timeout=20, path='/healthz/chain'):
+    request = urllib.request.Request(url.rstrip('/') + path, headers={'User-Agent': 'noet-monitor'})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.loads(response.read(65536))
@@ -208,8 +225,11 @@ def main():
     switch_height = int(os.environ.get('NOET_MONITOR_SWITCH_HEIGHT') or 0)
     switch_ready = os.environ.get('NOET_MONITOR_SWITCH_READY') == '1'
     switch_watch = Watch('model switch', remind=86400)
+    gateway = os.environ.get('NOET_MONITOR_GATEWAY')
+    verdict_limit = int(os.environ.get('NOET_MONITOR_VERDICT') or VERDICT_SECONDS)
+    verdict_watch = Watch('verifier')
     key, pod = os.environ.get('RUNPOD_API_KEY'), os.environ.get('NOET_MONITOR_POD')
-    names = [name for name, _ in watched]
+    names = [name for name, _ in watched] + (['verdicts'] if gateway else [])
     if key and pod:
         pod_watch, credit_watch = Watch('GPU pod'), Watch('GPU credit', remind=86400)
         names.append(f'GPU pod {pod}')
@@ -219,6 +239,8 @@ def main():
         health = {name: fetch(url) for name, url in watched}
         checks = [(watches[name], problems(health[name], stall)) for name, _ in watched]
         checks.append((switch_watch, switch_problems(health.get('mainnet'), switch_height, switch_ready)))
+        if gateway:
+            checks.append((verdict_watch, verdict_problems(fetch(gateway, path='/mining/info'), verdict_limit)))
         if key and pod:
             account = runpod(key)
             if account and not reported:

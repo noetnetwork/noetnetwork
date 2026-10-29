@@ -35,6 +35,10 @@ GROUP_FACTOR = 4  # an IPv6 /48 (one tunnel or site) gets four clients' worth
 # single GPU never waits on this; it still bounds work-unit requests per client.
 LEASES_PER_HOUR = 360
 INFO_SECONDS = 5
+# How long a block accepted at a height is treated as awaiting its Full verdict
+# (about 1.5 min with Qwen3-0.6B, 224-275 s for Qwen3-14B on an A100,
+# validation/model-switch-rehearsal.json); afterwards leases are plain again.
+VERIFYING_SECONDS = 420
 BODY_SECONDS = 30
 LARGE_BODY = 64 * 1024
 LARGE_BODIES = 4  # concurrent large submissions held in memory
@@ -103,6 +107,10 @@ class Gateway:
         self.tasks, self.tasks_per_hour, self.site_tasks_per_hour = tasks, tasks_per_hour, site_tasks_per_hour
         self.task_window = Window()
         self.stats = {'leased': 0, 'submitted': 0, 'accepted': 0, 'released': 0}
+        # The newest block accepted through this gateway and still awaiting its Full
+        # verdict: {'height', 'since'}. Work leased at or below that height can only
+        # win if the block fails, so leases say so and miners may wait instead.
+        self.verifying = None
 
     def rpc(self, method, *params):
         if method not in METHODS:
@@ -111,6 +119,20 @@ class Gateway:
 
     def _expire(self, now):
         self.leases = {k: v for k, v in self.leases.items() if v['expires'] > now}
+
+    def _awaiting(self, height, now):
+        """The block awaiting its verdict at or above `height` (the tip + 1) as {'height',
+        'seconds'}, or None; call with the lock held."""
+        pending = self.verifying
+        if pending is None or now - pending['since'] >= HOUR or (isinstance(height, int) and height > pending['height']):
+            self.verifying = None
+            return None
+        return {'height': pending['height'], 'seconds': int(now - pending['since'])}
+
+    def _verifying(self, height, now):
+        """The hint for miners: only while a verdict is still due soon."""
+        pending = self._awaiting(height, now)
+        return pending if pending and pending['seconds'] < VERIFYING_SECONDS else None
 
     def info(self):
         now = self.clock()
@@ -136,6 +158,14 @@ class Gateway:
                 'limits': {'leasesPerHour': self.leases_per_hour, 'submitsPerHour': self.submits_per_hour,
                            'openLeases': self.open_per_client, 'proofBytes': PROOF_LIMIT},
                 'openLeases': open_leases, 'served': dict(self.stats)}
+        with self.lock:
+            awaiting = self._awaiting(chain['blocks'] + 1, self.clock())
+        if awaiting:
+            # How long the oldest block accepted here has waited for its verdict: the
+            # monitor alerts on a long wait (the verifier is down).
+            info['awaitingVerdict'] = awaiting
+            if awaiting['seconds'] < VERIFYING_SECONDS:
+                info['verifying'] = awaiting
         if self.tasks:
             counts = self.tasks.counts()
             info['tasks'] = {'queued': counts.get('request:queued', 0) + counts.get('request:claimed', 0),
@@ -176,12 +206,16 @@ class Gateway:
                 self.leases.pop(slot, None)
         secret = secrets.token_hex(16)
         expires = min(float(job.get('expires_at', now + 600)), now + 1800)
+        height = job.get('height') if isinstance(job.get('height'), int) else None
         record = {'secret': hashlib.sha256(secret.encode()).digest(), 'client': client,
-                  'group': group, 'address': address, 'expires': expires, 'submits': 0}
+                  'group': group, 'address': address, 'expires': expires, 'submits': 0, 'height': height}
         with self.lock:
             self.leases[req_id] = record
             self.stats['leased'] += 1
+            verifying = self._verifying(height, now) if height is not None else None
         lease = {'lease': secret, 'job': job, 'rewardAddress': address}
+        if verifying:
+            lease['verifying'] = verifying
         if want_task and self.tasks:
             # The miner runs this prompt as the inference behind its proof.
             lease['task'] = self.tasks.claim(task_lease(req_id, record), expires, address)
@@ -225,6 +259,10 @@ class Gateway:
             with self.lock:
                 self.leases.pop(req_id, None)
                 self.stats['accepted'] += status in ACCEPTED
+                if status == 'accepted_pending_connect' and record.get('height') is not None and \
+                        (self.verifying is None or self.verifying['height'] != record['height']):
+                    # A second block at the same height keeps the first one's start time.
+                    self.verifying = {'height': record['height'], 'since': self.clock()}
             if self.tasks and status in ACCEPTED and BLOCK.fullmatch(str(response.get('block_hash', ''))):
                 height = response.get('height')
                 self.tasks.mined(key, response['block_hash'], height if isinstance(height, int) else None)

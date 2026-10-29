@@ -15,6 +15,8 @@ primary_region = "ams"
   # mainnet/network.json modelSwitch.height; set NOET_MONITOR_SWITCH_READY=1
   # (fly secrets set) once the 14B verifier is the first relay endpoint.
   NOET_MONITOR_SWITCH_HEIGHT = "3500"
+  # Alerts when a block waits 15 min for its Full verdict (verifier down).
+  NOET_MONITOR_GATEWAY = "https://noet-mainnet.fly.dev:9443"
 
 [[vm]]
   size = "shared-cpu-1x"

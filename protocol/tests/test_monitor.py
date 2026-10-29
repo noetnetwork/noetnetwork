@@ -38,6 +38,14 @@ class MonitorTests(unittest.TestCase):
         self.assertIsNone(watch.update([]))
         self.assertIsNone(watch.update(['x']))  # a single failed check stays quiet
 
+    def test_a_block_waiting_long_for_its_verdict_alerts(self):
+        self.assertEqual(monitor.verdict_problems({'height': 9}), [])
+        self.assertEqual(monitor.verdict_problems({'awaitingVerdict': {'height': 10, 'seconds': 120}}), [])
+        found = monitor.verdict_problems({'awaitingVerdict': {'height': 10, 'seconds': 960}})
+        self.assertEqual(len(found), 1)
+        self.assertIn('block 10 has waited 16 min', found[0])
+        self.assertEqual(monitor.verdict_problems(None), ['mining gateway unreachable'])
+
     def test_gpu_pod_and_credit_problems(self):
         account = {'clientBalance': 224.11, 'currentSpendPerHr': 0.281,
                    'pods': [{'id': 'pod1', 'desiredStatus': 'RUNNING'}, {'id': 'other', 'desiredStatus': 'EXITED'}]}

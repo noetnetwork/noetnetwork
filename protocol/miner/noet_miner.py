@@ -70,6 +70,38 @@ class ModelUnavailable(RuntimeError):
         self.model, self.height = model, height
 
 
+class BlockVerifying(RuntimeError):
+    """Another block at the leased height awaits its Full verdict, so this work could only go stale."""
+    def __init__(self, height, seconds):
+        super().__init__(f'A block at height {height} is being verified ({seconds} s so far)')
+        self.height, self.seconds = height, seconds
+
+
+# A miner without the switch model is told this many blocks (about two days) ahead.
+SWITCH_NOTICE_BLOCKS = 288
+
+
+def switch_notice(network, models, height):
+    """What to tell a miner that lacks the model the network switches to soon, or None."""
+    switch = network.get('switch')
+    if not switch or switch[1] in models or not switch[0] - SWITCH_NOTICE_BLOCKS <= height < switch[0]:
+        return None
+    return (f'From height {switch[0]} ({switch[0] - height} blocks from now) blocks need {switch[1]}. '
+            'Convert it (convert.sh qwen3-14b) and restart the miner with both --model files, '
+            'or this miner stops at the switch.')
+
+
+# One plain sentence per attempt outcome, next to the machine-readable fields.
+OUTCOME_NOTES = {
+    'green': 'Block found and fully verified; the reward is yours.',
+    'no-eligible-proof': 'No proof met the target this time; this is the usual result.',
+    'stale': 'Another miner\'s block at this height was verified first.',
+    'red': 'The verifier rejected the block; see this attempt\'s folder.',
+    'amber': 'The verifier could not decide on the block; see this attempt\'s folder.',
+    'timeout': 'No verdict within 15 minutes; check the block in the explorer.',
+}
+
+
 def network_model(network, height):
     """The model every block at `height` carries on this network."""
     switch = network.get('switch')
@@ -323,6 +355,14 @@ def attempt(gateway, network, info, address, paths, out, number, flash_attention
         except GatewayError:
             pass
         raise ModelUnavailable(model, job['height'])
+    verifying = lease.get('verifying')
+    if isinstance(verifying, dict) and isinstance(verifying.get('height'), int) and \
+            verifying['height'] >= job['height']:
+        try:
+            gateway.release(job['req_id'], lease['lease'])
+        except GatewayError:
+            pass
+        raise BlockVerifying(verifying['height'], int(verifying.get('seconds') or 0))
     # Check the payout from the node's own coinbase, not the gateway's word.
     payout_proven = verify_payout(job, address, network['hrp'])
     header = bytes.fromhex(job['header_prefix'])
@@ -494,6 +534,8 @@ def wait(seconds, stopping, sleep=time.sleep):
 # result reached only after the model has run (22-29 s on an A5000). A broken
 # setup fails before that (0.1 s for a missing network profile).
 FAST_FAILURE_SECONDS = 5
+# Seconds between leases while another block awaits its verdict.
+VERDICT_WAIT = 15
 
 
 def producer_failed(outcome):
@@ -601,7 +643,7 @@ def main(argv=None):
                       'rewardAddress': address, 'models': sorted(models)}), flush=True)
     number = next_attempt(args.out)
     paths = {'engine': args.engine, 'models': models}
-    found, failures = 0, 0
+    found, failures, noticed = 0, 0, None
     while not stopping and (not args.max_attempts or number < args.max_attempts):
         try:
             outcome = attempt(gateway, network, info, address, paths, args.out, number, args.flash_attention,
@@ -609,7 +651,13 @@ def main(argv=None):
             found += outcome.get('outcome') == 'green'
             print(json.dumps({'attempt': number, 'height': outcome['height'], 'outcome': outcome['outcome'],
                               'block': outcome.get('block'), 'blocksFound': found,
-                              'task': outcome.get('task')}), flush=True)
+                              'task': outcome.get('task'), 'note': OUTCOME_NOTES.get(outcome['outcome'])}),
+                  flush=True)
+            notice = switch_notice(network, models, outcome['height'])
+            if notice and (noticed is None or outcome['height'] - noticed >= 50):
+                noticed = outcome['height']
+                print(json.dumps({'event': 'switch-ahead', 'height': network['switch'][0], 'detail': notice}),
+                      flush=True)
             if producer_failed(outcome):
                 # A producer that crashes at once (a broken setup) would otherwise
                 # spend the gateway's hourly leases within a minute.
@@ -627,6 +675,12 @@ def main(argv=None):
             print(json.dumps({'attempt': number, 'gateway': error.status, 'detail': str(error),
                               'retryIn': delay}), flush=True)
             wait(delay, stopping)
+        except BlockVerifying as error:
+            # Its verdict usually lands within three minutes; mining on now could only go stale.
+            print(json.dumps({'event': 'waiting-for-verdict', 'height': error.height, 'detail': str(error),
+                              'retryIn': VERDICT_WAIT}), flush=True)
+            wait(VERDICT_WAIT, stopping)
+            continue
         except ModelUnavailable as error:
             switch = network.get('switch')
             if switch and error.height >= switch[0]:

@@ -1,0 +1,36 @@
+name: NOET tests
+
+# The protocol unit tests on every push and pull request. CPU only: no GPU,
+# no model download, no network beyond the pinned upstream sources.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: noet-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Pinned upstream sources and patches
+        run: python3 protocol/bootstrap.py
+      - name: Protocol tests
+        env:
+          PYTHONPATH: protocol
+        run: python3 -m unittest discover -s protocol/tests

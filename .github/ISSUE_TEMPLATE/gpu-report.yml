@@ -1,0 +1,52 @@
+name: GPU report
+description: Tell us how the miner ran on your GPU, good or bad, so the GPU table stays accurate.
+labels: [gpu-report]
+body:
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU
+      description: The name and memory from nvidia-smi, e.g. "NVIDIA RTX A5000, 24564 MiB".
+    validations:
+      required: true
+  - type: input
+    id: compute
+    attributes:
+      label: Compute capability and driver
+      description: From `nvidia-smi --query-gpu=compute_cap,driver_version --format=csv`.
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How you installed the miner
+      options:
+        - Docker image
+        - Docker build
+        - setup.sh (native)
+        - cloud-start.sh
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host
+      description: Your own machine, or the provider and image (e.g. Vast.ai, nvidia/cuda:12.8.1-devel-ubuntu24.04).
+  - type: textarea
+    id: check
+    attributes:
+      label: Output of `noet_miner.py --check`
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: attempts
+    attributes:
+      label: Attempts
+      description: A few attempt lines from the miner log, and the producerSeconds from one result.json. Blocks found, if any (height or hash).
+      render: text
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Build problems, errors, what you changed. Never paste keys or wallet words.

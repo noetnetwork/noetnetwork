@@ -111,7 +111,8 @@ docker build --build-arg WITH_14B=1 -t noet-miner .   # with Docker
 ```
 
 With both model files the miner switches at block 3,500 by itself. With only
-the 0.6B file it stops there and says what to do. Miners released before the
+the 0.6B file it warns from about two days before (a `switch-ahead` line in
+its log), then stops at the switch and says what to do. Miners released before the
 switch was set stop when the node upgrade lists Qwen3-14B; update them first.
 
 ## What happens
@@ -119,10 +120,17 @@ switch was set stop when the node upgrade lists Qwen3-14B; update them first.
 1. The miner asks the gateway for work, giving your address. The node builds a
    block template whose reward output pays that address.
 2. Your GPU runs the model and the VDF and searches for a proof below the
-   network target. A typical attempt takes a few minutes.
+   network target. An attempt takes 20 to 30 seconds with Qwen3-0.6B (RTX
+   A5000, RTX 6000 Ada) and about 40 seconds with Qwen3-14B (RTX 6000 Ada,
+   timed on copied jobs).
 3. A winning proof is submitted. The node runs its quick checks, then the
    network verifier replays the inference before the block is final.
 4. Rewards mature after 100 blocks and appear in your wallet.
+
+While another miner's block awaits its verdict (about 1.5 minutes with
+Qwen3-0.6B, about 4 with Qwen3-14B), work on the old tip could only go stale,
+so the miner waits (`waiting-for-verdict`) and starts again on the new block.
+Each attempt line carries a `note` that says in plain words what happened.
 
 Each attempt is recorded in the work directory (`attempt-*/result.json`).
 The miner never retries a rejected proof with a different seed or target.

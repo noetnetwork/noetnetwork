@@ -170,6 +170,31 @@ class PublicMinerTests(unittest.TestCase):
         self.assertIsInstance(result['producerSeconds'], float)
         self.assertEqual(self.gateway.info()['served']['released'], 1)
 
+    def test_work_behind_a_block_awaiting_its_verdict_waits(self):
+        info = noet_miner.checked_info(self.gateway, NETWORK)
+        paths = {'engine': 'e', 'models': {noet_miner.MODEL: 'm'}}
+        with tempfile.TemporaryDirectory() as tmp:
+            noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, paths, Path(tmp), 0, runner=Producer())
+            # The node still extends height 11, so a new lease at 12 could only go stale.
+            producer = Producer()
+            with self.assertRaises(noet_miner.BlockVerifying) as caught:
+                noet_miner.attempt(self.gateway, NETWORK, info, ADDRESS, paths, Path(tmp), 1, runner=producer)
+            self.assertFalse((Path(tmp) / 'attempt-000001').exists())
+        self.assertEqual(caught.exception.height, 12)
+        self.assertEqual(producer.commands, [])
+        self.assertEqual(self.gateway.info()['served']['released'], 1)
+
+    def test_a_miner_without_the_switch_model_is_told_ahead(self):
+        switched = {**NETWORK, 'switch': (3500, noet_miner.SWITCH_MODEL)}
+        small = {noet_miner.MODEL: 'm'}
+        self.assertIsNone(noet_miner.switch_notice(switched, small, 3000))
+        self.assertIn('3500 (12 blocks from now)', noet_miner.switch_notice(switched, small, 3488))
+        self.assertIsNone(noet_miner.switch_notice(switched, {**small, noet_miner.SWITCH_MODEL: 'l'}, 3488))
+        self.assertIsNone(noet_miner.switch_notice(switched, small, 3500))
+        self.assertIsNone(noet_miner.switch_notice(NETWORK, small, 3488))
+        self.assertEqual(set(noet_miner.OUTCOME_NOTES), {'green', 'no-eligible-proof', 'stale', 'red', 'amber',
+                                                         'timeout'})
+
     def test_attempts_continue_after_the_highest_folder(self):
         with tempfile.TemporaryDirectory() as tmp:
             self.assertEqual(noet_miner.next_attempt(Path(tmp)), 0)
