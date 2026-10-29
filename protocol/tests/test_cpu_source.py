@@ -8,8 +8,10 @@ import unittest
 from cpu.prepare_source import prepare
 
 ROOT = Path(__file__).resolve().parents[1]
+ENGINE = ROOT/'.upstream/services/miner-api/llama.cpp'
 
 
+@unittest.skipUnless((ENGINE/'tools/server/server-task.cpp').exists(), 'Run protocol/bootstrap.py --engines first')
 class CpuSourceTests(unittest.TestCase):
     def test_engine_patch_is_in_the_export_and_provenance(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -21,7 +23,7 @@ class CpuSourceTests(unittest.TestCase):
                 self.assertEqual(record['engine']['patchSha256'], hashlib.sha256(
                     (ROOT/'patches/noet-engine.patch').read_bytes()).hexdigest())
                 # The actual Git-object export must contain every reviewed edit.
-                source = ROOT/'.upstream/services/miner-api/llama.cpp'
+                source = ENGINE
                 for name in ('server-task.h', 'server-task.cpp', 'server-context.cpp'):
                     relative = 'tools/server/'+name
                     self.assertEqual(archive.extractfile('llama/'+relative).read(),
