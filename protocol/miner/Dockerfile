@@ -20,7 +20,7 @@ COPY app/noet/ app/noet/
 RUN ./convert.sh /build /models && if [ "$WITH_14B" = 1 ]; then ./convert.sh /build /models qwen3-14b; fi
 
 # 2. Engine and VDF binding, compiled for current NVIDIA architectures.
-FROM nvidia/cuda:12.8.1-devel-ubuntu24.04@sha256:520292dbb4f755fd360766059e62956e9379485d9e073bbd2f6e3c20c270ed66 AS build
+FROM nvidia/cuda:12.8.2-devel-ubuntu24.04@sha256:7fc48a36965c6d0e5c9717dd899b2851cabb2dfef43d95dd12046a2d40bdc90f AS build
 ARG CUDA_ARCHITECTURES="80;86;89;90;120"
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -42,7 +42,7 @@ RUN cd chiavdf/src \
       -o /build/chiavdf$(python3-config --extension-suffix)
 
 # 3. Runtime: CUDA runtime, Python, the two binaries, the model and the miner.
-FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04@sha256:ebef3c171eeef0298e4eb2e4be843105edf3b8b0ac45e0b43acee358e8046867
+FROM nvidia/cuda:12.8.2-runtime-ubuntu24.04@sha256:7e62235c5d6f22a57ec8ba51f1583634fdbbf4b08a15b42dc1a60f086145c210
 ENV DEBIAN_FRONTEND=noninteractive
 # libssl3t64, libzmq5 and libargon2-1: the engine's proof server links them (ldd on
 # a native build, 24 Oct 2026); FlatBuffers is linked statically.
