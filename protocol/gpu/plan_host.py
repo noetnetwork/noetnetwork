@@ -6,7 +6,9 @@ verifier replays in fp32, twice the weights. With two GPUs that fit, the
 producer gets GPU 0 and the verifier GPU 1; otherwise both share GPU 0. The
 headroom figures are estimates until a test records peak memory
 (gpu-memory.csv). Prints "<producer GPU> <verifier GPU>"; exits 1 with what
-the model needs when the host is too small. Runs as root with system Python.
+the model needs when the host is too small. --verifier-only plans a live
+verifier host that runs no producer (live.json "mine": false): the first GPU
+that holds the verifier serves both slots. Runs as root with system Python.
 """
 import argparse
 import json
@@ -28,12 +30,19 @@ def needs(weights):
             'disk': 4 * weights + DISK_HEADROOM}
 
 
-def plan(weights, gpus, free_disk, converted):
+def plan(weights, gpus, free_disk, converted, verifier_only=False):
     """gpus: total memory of each GPU in bytes, by index. Returns (producer, verifier)."""
     need = needs(weights)
     if not converted and free_disk < need['disk']:
         raise ValueError(f'needs {need["disk"] / GB:.1f} GB free disk for download and conversion; '
                          f'{free_disk / GB:.1f} GB free')
+    if verifier_only:
+        for index, memory in enumerate(gpus):
+            if memory >= need['verifier']:
+                return index, index
+        found = ', '.join(f'{memory / GB:.1f}' for memory in gpus) or 'none'
+        raise ValueError(f'needs one GPU with {need["verifier"] / GB:.1f} GB for the verifier; '
+                         f'found GPUs with {found} GB')
     if len(gpus) >= 2 and gpus[0] >= need['producer'] and gpus[1] >= need['verifier']:
         return 0, 1
     if gpus and gpus[0] >= need['producer'] + need['verifier']:
@@ -59,6 +68,7 @@ def main():
     parser.add_argument('--manifest', required=True, help='candidate model manifest')
     parser.add_argument('--disk', required=True, help='folder the model is downloaded and converted in')
     parser.add_argument('--converted', action='store_true', help='the GGUF is already in place')
+    parser.add_argument('--verifier-only', action='store_true', help='a live verifier host: no producer')
     parser.add_argument('--out', required=True, help='write the plan here as JSON')
     args = parser.parse_args()
     with open(args.manifest) as stream:
@@ -66,9 +76,10 @@ def main():
     gpus = gpu_memory()
     free_disk = shutil.disk_usage(args.disk).free
     record = {'weightsBytes': weights, 'gpuMemoryBytes': gpus, 'freeDiskBytes': free_disk,
-              'converted': args.converted, 'needs': needs(weights)}
+              'converted': args.converted, 'verifierOnly': args.verifier_only, 'needs': needs(weights)}
     try:
-        record['producerGpu'], record['verifierGpu'] = plan(weights, gpus, free_disk, args.converted)
+        record['producerGpu'], record['verifierGpu'] = plan(weights, gpus, free_disk, args.converted,
+                                                                  args.verifier_only)
     except ValueError as error:
         record['error'] = str(error)
         print('This host is too small for the model: ' + str(error), file=sys.stderr)

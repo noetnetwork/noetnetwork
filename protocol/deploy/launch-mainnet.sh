@@ -5,7 +5,8 @@
 #   protocol/deploy/launch-mainnet.sh check SECRETS_DIR
 #   protocol/deploy/launch-mainnet.sh node  SECRETS_DIR
 #   protocol/deploy/launch-mainnet.sh gpu   SECRETS_DIR SSH_WRAPPER USER@HOST GPU_IP:PORT[,STANDBY_IP:PORT]
-#     (for a standby verifier, run it against the standby host with the full list, first verifier first)
+#     (for a standby verifier, run it against the standby host with the full list, first verifier first;
+#      NOET_GPU_MINE=0 makes it a verifier host that runs no miner: live.json "mine": false)
 #   protocol/deploy/launch-mainnet.sh web   SECRETS_DIR
 #
 # SECRETS_DIR comes from `network_secrets.py --no-faucet`. The real allocation
@@ -96,8 +97,9 @@ gpu)
   "$SSH" "$HOST" 'cat > /workspace/noet-live/gpu-bundle.b64' < "$SECRETS/certs/gpu-bundle.b64"
   "$SSH" "$HOST" 'cat > /workspace/noet-live/shared-secret' < "$SECRETS/shared-secret"
   "$SSH" "$HOST" 'cat > /workspace/noet-live/miner-credentials' < "$SECRETS/miner-credentials"
-  printf '{"node": "%s", "verdictPort": 17443, "rpcPort": 18443, "rewardAddress": "%s", "network": "mainnet", "gateway": "https://%s.fly.dev:9443"}\n' \
-    "$NODE_IP" "$REWARD" "$APP" | "$SSH" "$HOST" 'cat > /workspace/noet-live/live.json'
+  case ${NOET_GPU_MINE:-1} in 1) MINE=true ;; 0) MINE=false ;; *) echo "NOET_GPU_MINE must be 0 or 1"; exit 1 ;; esac
+  printf '{"node": "%s", "verdictPort": 17443, "rpcPort": 18443, "rewardAddress": "%s", "network": "mainnet", "gateway": "https://%s.fly.dev:9443", "mine": %s}\n' \
+    "$NODE_IP" "$REWARD" "$APP" "$MINE" | "$SSH" "$HOST" 'cat > /workspace/noet-live/live.json'
   for pair in miner/noet_miner.py:noet_miner.py gpu/live.py:live.py realwork/generate.py:generate.py realwork/verify.py:verify.py; do
     "$SSH" "$HOST" "cat > /workspace/noet-gpu/checks/${pair#*:}" < "$ROOT/protocol/${pair%%:*}"
   done
@@ -106,8 +108,11 @@ gpu)
     pkill -TERM -f "^python3 checks/live[.]py" || true
     # Anchored: the start command of a live Pod mentions checks/live.py too.
     for i in $(seq 1 60); do pgrep -f "^python3 checks/live[.]py" >/dev/null || break; sleep 2; done
+    pgrep -f "^python3 checks/live[.]py" >/dev/null && { echo "live.py did not stop within 2 minutes"; exit 1; }
+    install -d -o 10001 -g 10001 -m 700 /tmp/noet-gpu-home
     mkdir -p output/live
-    nohup python3 checks/live.py > output/live/live-stdout.log 2>&1 < /dev/null &
+    # Detached, as the container start command does: a dropped SSH session cannot stop it.
+    (umask 022; PATH=/usr/bin:/bin setsid nohup python3 checks/live.py >> output/live/live-stdout.log 2>&1 < /dev/null &)
     sleep 15; tail -5 output/live/supervisor.jsonl'
   echo "NOET_VERIFIER_ENDPOINT=$VERIFIER" | fly secrets import --app "$APP"
   echo "GPU attached to $APP; rewards go to the ecosystem vault $REWARD."

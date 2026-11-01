@@ -124,6 +124,12 @@ class ModelProfileTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'free disk'):
             plan.plan(weights['qwen3-32b'], [h200, h200], need - 1, False)
         self.assertEqual(plan.plan(weights['qwen3-32b'], [h200, h200], 0, True), (0, 1))
+        # A live 14B verifier host (no producer): one 80 GB card is enough, a 48 GB A40 is not.
+        a40 = 46068 * mib
+        self.assertEqual(plan.plan(weights['qwen3-14b'], [a100], disk, False, verifier_only=True), (0, 0))
+        self.assertEqual(plan.plan(weights['qwen3-14b'], [a40, a100], disk, False, verifier_only=True), (1, 1))
+        with self.assertRaisesRegex(ValueError, 'for the verifier'):
+            plan.plan(weights['qwen3-14b'], [a40], disk, False, verifier_only=True)
 
     def test_host_plan_reads_nvidia_smi_and_records_its_decision(self):
         with tempfile.TemporaryDirectory() as folder:
