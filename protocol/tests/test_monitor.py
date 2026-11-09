@@ -38,12 +38,27 @@ class MonitorTests(unittest.TestCase):
         self.assertIsNone(watch.update([]))
         self.assertIsNone(watch.update(['x']))  # a single failed check stays quiet
 
+    def test_a_long_stall_reminds_every_few_hours_not_every_check(self):
+        now = [0.0]
+        watch = monitor.Watch('mainnet', clock=lambda: now[0])
+        health = {'ok': True, 'height': 3446, 'lastBlockAgeSeconds': 6000}
+        sent = []
+        for _ in range(30 * 6):  # two-minute checks for six hours
+            sent.append(watch.update(monitor.problems(health, 5400)))
+            now[0] += 120
+            health['lastBlockAgeSeconds'] += 120
+        sent = [a for a in sent if a]
+        self.assertEqual(len(sent), 2)  # the alert, then one reminder three hours on
+        self.assertTrue(sent[1].startswith('NOET mainnet: still: '))
+        waiting = {'awaitingVerdict': {'height': 10, 'seconds': 960}}
+        self.assertEqual(monitor.verdict_problems(waiting), monitor.verdict_problems({'awaitingVerdict': {'height': 10, 'seconds': 1500}}))
+
     def test_a_block_waiting_long_for_its_verdict_alerts(self):
         self.assertEqual(monitor.verdict_problems({'height': 9}), [])
         self.assertEqual(monitor.verdict_problems({'awaitingVerdict': {'height': 10, 'seconds': 120}}), [])
         found = monitor.verdict_problems({'awaitingVerdict': {'height': 10, 'seconds': 960}})
         self.assertEqual(len(found), 1)
-        self.assertIn('block 10 has waited 16 min', found[0])
+        self.assertIn('block 10 has waited over 15 min', found[0])
         self.assertEqual(monitor.verdict_problems(None), ['mining gateway unreachable'])
 
     def test_gpu_pod_and_credit_problems(self):

@@ -56,8 +56,9 @@ def problems(health, stall_seconds):
     found = []
     age = health.get('lastBlockAgeSeconds')
     if age is None or age > stall_seconds:
-        minutes = 'never' if age is None else f'{age // 60} min ago'
-        found.append(f'no block for over {stall_seconds // 60} min (last: {minutes}, height {health.get("height")})')
+        # No running count in the text: a text that changes every check is
+        # an alert every check (7 Nov: one every two minutes for two days).
+        found.append(f'no block for over {stall_seconds // 60} min (height {health.get("height")})')
     if 'index stale' in (health.get('problems') or []):
         found.append('explorer index is stale')
     days = health.get('relayCertificateDaysLeft')
@@ -76,7 +77,7 @@ def verdict_problems(info, limit=VERDICT_SECONDS):
     seconds = waiting.get('seconds')
     if not isinstance(seconds, int) or seconds < limit:
         return []
-    return [f'block {waiting.get("height")} has waited {seconds // 60} min for its Full verdict; '
+    return [f'block {waiting.get("height")} has waited over {limit // 60} min for its Full verdict; '
             'the GPU verifier is probably down']
 
 

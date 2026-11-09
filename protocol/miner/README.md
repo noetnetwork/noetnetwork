@@ -40,6 +40,9 @@ prints a `Fix:` line under each failure. It leases no work. While mining, the mi
 waits out gateway outages with growing pauses (up to five minutes) and stops
 cleanly on Ctrl-C or `docker stop`.
 
+`--address` (and `NOET_ADDRESS`) also takes several addresses separated by
+commas, `noet1aaa...,noet1bbb...`: each attempt pays the next one in turn.
+
 The build compiles the engine for current GPU architectures and rebuilds the
 model file from the pinned Hugging Face revision. It fails if the result
 differs by a single byte from the pinned SHA-256

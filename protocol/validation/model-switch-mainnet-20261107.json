@@ -1,0 +1,90 @@
+{
+ "format": "noet-model-switch-mainnet-v1",
+ "date": "2026-11-07",
+ "productionReady": false,
+ "question": "Did mainnet change to Qwen/Qwen3-14B at block 3500, and do its blocks reach a GREEN Full verdict like the blocks before?",
+ "method": "analysis/model_switch_mainnet.py read every block from the public explorer API, from 144 blocks before the switch height in mainnet/network.json to the tip, and summarised each side of the switch: the model each proof names, Full verdicts, seconds from block time to the GREEN verdict, output tokens, reward addresses and intervals.",
+ "source": "https://www.noet.network/api/chain/block/<height>",
+ "readAt": "2026-11-07T22:07:12Z",
+ "switch": {
+  "height": 3500,
+  "model": "Qwen/Qwen3-14B@40c069824f4251a91eefaf281ebe4c544efd3e18"
+ },
+ "tip": 3568,
+ "span": {
+  "firstSwitchBlockTime": 1794059434,
+  "tipTime": 1794088740,
+  "hours": 8.1
+ },
+ "everyBlockFromSwitchNamesTheModel": true,
+ "findings": [
+  "All 69 blocks from 3500 to 3568 name Qwen/Qwen3-14B@40c069824f4251a91eefaf281ebe4c544efd3e18; all 144 blocks before name Qwen3-0.6B at its pinned revision.",
+  "All 69 blocks after the switch have a GREEN Full verdict; none was RED or still waiting when read.",
+  "Block to GREEN verdict after the switch: median 306 s, p90 336 s, max 416 s; before it: median 65.5 s.",
+  "One reward address produced every block after the switch (8 addresses in the 144 blocks before)."
+ ],
+ "notEstablished": [
+  "Sustained operation: 69 blocks over about 8.1 hours, not days or weeks.",
+  "More than one 14B miner: a single reward address has mined since the switch, so other hardware and setups are not shown on mainnet.",
+  "Independent verification: one verifier, run by the same operator, replayed every block.",
+  "A forged or wrong 14B proof refused on mainnet: no RED block since the switch; refusal is covered only by the offline rehearsal (model-switch-rehearsal.json).",
+  "Why time to final rose about fivefold, and whether that matters to users; the record measures it, it does not explain it.",
+  "Miner and verifier hardware, memory and cost: not visible from the chain."
+ ],
+ "before": {
+  "from": 3356,
+  "to": 3499,
+  "blocks": 144,
+  "proofModels": {
+   "Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca": 144
+  },
+  "fullVerdicts": {
+   "green": 144
+  },
+  "secondsToGreen": {
+   "median": 65.5,
+   "p90": 94,
+   "max": 212,
+   "blocks": 144
+  },
+  "outputTokens": {
+   "median": 256.0,
+   "min": 256,
+   "max": 256
+  },
+  "producers": 8,
+  "intervalSeconds": {
+   "median": 159.0,
+   "mean": 1535.7,
+   "max": 182298
+  }
+ },
+ "after": {
+  "from": 3500,
+  "to": 3568,
+  "blocks": 69,
+  "proofModels": {
+   "Qwen/Qwen3-14B@40c069824f4251a91eefaf281ebe4c544efd3e18": 69
+  },
+  "fullVerdicts": {
+   "green": 69
+  },
+  "secondsToGreen": {
+   "median": 306,
+   "p90": 336,
+   "max": 416,
+   "blocks": 69
+  },
+  "outputTokens": {
+   "median": 256,
+   "min": 256,
+   "max": 256
+  },
+  "producers": 1,
+  "intervalSeconds": {
+   "median": 339,
+   "mean": 429.7,
+   "max": 3209
+  }
+ }
+}

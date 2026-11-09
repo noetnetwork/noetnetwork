@@ -5,6 +5,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import unittest.mock
 from noet.gateway import Gateway as Service, handler_for
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'miner'))
@@ -211,6 +212,38 @@ class PublicMinerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 noet_miner.Gateway(url)
         noet_miner.Gateway('https://example.com:9443')
+
+    def test_several_addresses_take_turns(self):
+        second = 'tnoet1q' + 'p' * 38
+        self.assertEqual(noet_miner.checked_addresses(ADDRESS, NETWORK), [ADDRESS])
+        self.assertEqual(noet_miner.checked_addresses(f'{ADDRESS}, {second}', NETWORK), [ADDRESS, second])
+        for bad in (f'{ADDRESS},{ADDRESS}', f'{ADDRESS},', 'nwrk1q' + 'q' * 38):
+            with self.assertRaises(ValueError):
+                noet_miner.checked_addresses(bad, NETWORK)
+        sent = []
+        notify = noet_miner.Notifier('https://hooks.example/x', f'{ADDRESS},{second}', post=sent.append)
+        notify({'attempt': 1, 'height': 10, 'outcome': 'green', 'block': BLOCK, 'note': '', 'rewardAddress': second})
+        notify.drain()
+        self.assertIn('paid to ' + second, sent[0]['text'])
+
+    def test_each_attempt_pays_the_next_address(self):
+        second = 'tnoet1q' + 'p' * 38
+        paid = []
+
+        def attempt(gateway, network, info, address, *rest, **kwargs):
+            paid.append(address)
+            return {'height': 5, 'outcome': 'no-eligible-proof'}
+        with tempfile.TemporaryDirectory() as out, \
+                unittest.mock.patch.object(noet_miner, 'attempt', attempt), \
+                unittest.mock.patch.object(noet_miner, 'checked_info', lambda *a: {'height': 4}), \
+                unittest.mock.patch.object(noet_miner, 'models_given', lambda *a, **k: {noet_miner.MODEL: 'm'}), \
+                unittest.mock.patch.object(noet_miner, 'NETWORKS', {'mainnet': NETWORK}), \
+                unittest.mock.patch('builtins.print'):
+            engine = Path(out) / 'engine'
+            engine.write_text('')
+            noet_miner.main(['--address', f'{ADDRESS},{second}', '--engine', str(engine), '--gateway', 'https://example.com',
+                             '--out', str(Path(out) / 'work'), '--max-attempts', '3'])
+        self.assertEqual(paid, [ADDRESS, second, ADDRESS])
 
     def test_gateway_errors_carry_status(self):
         with self.assertRaises(noet_miner.GatewayError) as caught:

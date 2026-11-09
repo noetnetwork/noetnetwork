@@ -292,6 +292,15 @@ def checked_address(address, network):
     return address
 
 
+def checked_addresses(value, network):
+    """One address, or several separated by commas: each attempt pays the next
+    one in turn, so the rewards spread across them."""
+    addresses = [checked_address(item.strip(), network) for item in (value or '').split(',')]
+    if len(set(addresses)) != len(addresses):
+        raise ValueError('An address is listed twice')
+    return addresses
+
+
 def settle(gateway, block, timeout, height=None, sleep=time.sleep, clock=time.monotonic):
     """Wait for the node's Full verdict on our block at this height. Once the chain
     holds another block at our height, ours has lost the race (the node extends
@@ -520,7 +529,7 @@ def preflight(args, network, gateway, run=subprocess.run):
 
     state = {}
     check('Python', python)
-    check('Reward address', lambda: checked_address(args.address, network))
+    check('Reward address', lambda: ', '.join(checked_addresses(args.address, network)))
     check('Gateway and network', network_check)
     check('Model', model)
     check('NVIDIA GPU', gpu)
@@ -759,7 +768,7 @@ class Notifier:
             recovered = self.stalled
             self.failures, self.stalled = 0, False
             if record['outcome'] == 'green':
-                return (f'NOET block found at height {record["height"]}, paid to {self.address}: '
+                return (f'NOET block found at height {record["height"]}, paid to {record.get("rewardAddress", self.address)}: '
                         f'https://www.noet.network/#explorer/block/{record.get("block")}')
             if record['outcome'] in ('red', 'amber'):
                 return f'NOET verifier returned {record["outcome"]} for attempt {record["attempt"]}: {record["note"]}'
@@ -791,7 +800,8 @@ def host_port(value):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('--address', required=True, help='Your NOET address; rewards are paid here')
+    p.add_argument('--address', required=True,
+                   help='Your NOET address; rewards are paid here. Several, separated by commas, take turns')
     p.add_argument('--network', choices=sorted(NETWORKS), default='mainnet')
     p.add_argument('--gateway', help='Override the network gateway URL')
     p.add_argument('--engine', type=Path, default=Path(os.environ.get('NOET_ENGINE', '/opt/noet/bin/llama-server')))
@@ -823,7 +833,8 @@ def main(argv=None):
         failed = [name for name, ok, _ in results if not ok]
         print('Ready to mine.' if not failed else f'Fix {len(failed)} item(s) above before mining.')
         return 1 if failed else 0
-    address = checked_address(args.address, network)
+    addresses = checked_addresses(args.address, network)
+    address = ','.join(addresses)
     if not args.engine.is_file():
         raise SystemExit(f'Engine not found at {args.engine}. Run setup.sh or use the Docker image.')
     try:
@@ -867,10 +878,12 @@ def main(argv=None):
     found, failures, noticed = 0, 0, None
     while not stopping and (not args.max_attempts or number < args.max_attempts):
         try:
-            outcome = attempt(gateway, network, info, address, paths, args.out, number, args.flash_attention,
+            paying = addresses[number % len(addresses)]
+            outcome = attempt(gateway, network, info, paying, paths, args.out, number, args.flash_attention,
                               tasks=not args.no_tasks)
             found += outcome.get('outcome') == 'green'
             emit({'attempt': number, 'height': outcome['height'], 'outcome': outcome['outcome'],
+                  **({'rewardAddress': paying} if len(addresses) > 1 else {}),
                   'block': outcome.get('block'), 'blocksFound': found,
                   'task': outcome.get('task'), 'note': OUTCOME_NOTES.get(outcome['outcome'])})
             notice = switch_notice(network, models, outcome['height'])
