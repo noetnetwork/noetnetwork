@@ -51,7 +51,7 @@ MINERS_TRACKED = 10_000  # clients remembered for the version counts
 # Everything the gateway may ever ask the node. Nothing else is reachable.
 METHODS = frozenset(('create_mining_work_unit', 'submit_mining_response', 'getrecentvalidations',
                      'getblockchaininfo', 'getblockhash', 'getblockheader', 'getmodelslist',
-                     'validateaddress'))
+                     'validateaddress', 'getmininginfo'))
 ACCEPTED = ('accepted', 'accepted_pending_connect')
 
 
@@ -108,7 +108,7 @@ class Gateway:
         self.cached_info = (0.0, None)
         self.tasks, self.tasks_per_hour, self.site_tasks_per_hour = tasks, tasks_per_hour, site_tasks_per_hour
         self.task_window = Window()
-        self.stats = {'leased': 0, 'submitted': 0, 'accepted': 0, 'released': 0}
+        self.stats = {'leased': 0, 'submitted': 0, 'accepted': 0, 'released': 0, 'builtAhead': 0}
         # client -> (miner version, last lease time); only the counts per version are published.
         self.miner_versions = {}
         # The newest block accepted through this gateway and still awaiting its Full
@@ -139,12 +139,34 @@ class Gateway:
         if pending is None or now - pending['since'] >= HOUR or (isinstance(height, int) and height > pending['height']):
             self.verifying = None
             return None
+        if isinstance(height, int) and height > pending.get('base', pending['height']):
+            # The block it was built ahead on is final now: from here on only this block is
+            # awaited, so its wait starts again rather than adding up along a run of blocks.
+            pending['since'], pending['base'] = now, height
         return {'height': pending['height'], 'seconds': int(now - pending['since'])}
 
-    def _verifying(self, height, now):
-        """The hint for miners: only while a verdict is still due soon."""
-        pending = self._awaiting(height, now)
-        return pending if pending and pending['seconds'] < VERIFYING_SECONDS else None
+    def _verifying(self, height, now, ahead=False):
+        """The hint for miners: only while a verdict is still due soon. A lease built
+        ahead sits one above the tip + 1, so the tip + 1 is `height - 1` for it."""
+        pending = self._awaiting(height - 1 if ahead else height, now)
+        return pending if pending and pending['height'] >= height and pending['seconds'] < VERIFYING_SECONDS else None
+
+    def _build_ahead(self):
+        """The block the node will let work build on while it awaits its Full verdict, or None.
+
+        A block submitted here is stored only once its verdict lands (several
+        minutes with Qwen3-14B, longer behind a queue); until then the node keeps
+        leasing work on the tip below it, and every block found on that work is a
+        rival that can only win if the first one fails. The node names such a
+        block (getmininginfo build_ahead_parent_hash: submitted through this
+        node, its Quick and smell checks passed, no Full verdict yet, one above
+        the tip) and builds work on it when asked, so miners mine the next
+        height instead. A peer's block is never named."""
+        try:
+            parent = self.rpc('getmininginfo').get('build_ahead_parent_hash')
+        except (RPCError, AttributeError):
+            return None
+        return parent if isinstance(parent, str) and BLOCK.fullmatch(parent) else None
 
     def info(self):
         now = self.clock()
@@ -214,7 +236,18 @@ class Gateway:
             info = self.rpc('validateaddress', address)
             if not info.get('isvalid') or not re.fullmatch(r'[0-9a-f]{4,200}', info.get('scriptPubKey', '')):
                 raise Refused(400, 'This address is not valid on this network')
-            job = self.rpc('create_mining_work_unit', self.chain, info['scriptPubKey'], secrets.token_hex(8))
+            job, parent = None, self._build_ahead()
+            if parent:
+                try:
+                    job = self.rpc('create_mining_work_unit', self.chain, info['scriptPubKey'], secrets.token_hex(8),
+                                   parent)
+                except RPCError:
+                    # The block got its verdict or lost its place between the two calls; if the
+                    # node is down instead, the plain call below says so.
+                    job = None
+            ahead = job is not None
+            if job is None:
+                job = self.rpc('create_mining_work_unit', self.chain, info['scriptPubKey'], secrets.token_hex(8))
             req_id = int(job['req_id'])
             secret = secrets.token_hex(16)
             expires = min(float(job.get('expires_at', now + 600)), now + 1800)
@@ -224,16 +257,18 @@ class Gateway:
                 self.leases.pop(slot, None)
             raise
         record = {'secret': hashlib.sha256(secret.encode()).digest(), 'client': client,
-                  'group': group, 'address': address, 'expires': expires, 'submits': 0, 'height': height}
+                  'group': group, 'address': address, 'expires': expires, 'submits': 0, 'height': height,
+                  'ahead': ahead}
         with self.lock:
             # Swap the held slot for the lease in one step; a gap between them let parallel requests overshoot.
             self.leases.pop(slot, None)
             self.leases[req_id] = record
             self.stats['leased'] += 1
+            self.stats['builtAhead'] += ahead
             version = MINER_AGENT.fullmatch(agent or '')
             if version and (client in self.miner_versions or len(self.miner_versions) < MINERS_TRACKED):
                 self.miner_versions[client] = (version.group(1), now)
-            verifying = self._verifying(height, now) if height is not None else None
+            verifying = self._verifying(height, now, ahead) if height is not None else None
         lease = {'lease': secret, 'job': job, 'rewardAddress': address}
         if verifying:
             lease['verifying'] = verifying
@@ -282,8 +317,14 @@ class Gateway:
                 self.stats['accepted'] += status in ACCEPTED
                 if status == 'accepted_pending_connect' and record.get('height') is not None and \
                         (self.verifying is None or self.verifying['height'] != record['height']):
-                    # A second block at the same height keeps the first one's start time.
-                    self.verifying = {'height': record['height'], 'since': self.clock()}
+                    # A second block at the same height keeps the first one's start time, and so
+                    # does a block built ahead on it while that one still awaits its verdict: the
+                    # wait the monitor sees is the oldest one. 'base' is the tip + 1 at the time.
+                    ahead = bool(record.get('ahead'))
+                    since = self.verifying['since'] if self.verifying and ahead and \
+                        self.verifying['height'] == record['height'] - 1 else self.clock()
+                    self.verifying = {'height': record['height'], 'since': since,
+                                      'base': record['height'] - 1 if ahead else record['height']}
             if self.tasks and status in ACCEPTED and BLOCK.fullmatch(str(response.get('block_hash', ''))):
                 height = response.get('height')
                 self.tasks.mined(key, response['block_hash'], height if isinstance(height, int) else None)

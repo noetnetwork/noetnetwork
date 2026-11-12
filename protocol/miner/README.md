@@ -42,6 +42,9 @@ cleanly on Ctrl-C or `docker stop`.
 
 `--address` (and `NOET_ADDRESS`) also takes several addresses separated by
 commas, `noet1aaa...,noet1bbb...`: each attempt pays the next one in turn.
+End an address in `:N` (a whole number from 1 to 1000) to weigh it:
+`noet1aaa...:3,noet1bbb...` pays the first about three times as often, each
+attempt picking an address at random by weight.
 
 The build compiles the engine for current GPU architectures and rebuilds the
 model file from the pinned Hugging Face revision. It fails if the result

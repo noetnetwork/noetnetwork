@@ -46,6 +46,8 @@ class StubNode:
                 req = self.req
             return {'req_id': req, 'height': 7, 'header_prefix': '00' * 76, 'target': 'ff' * 32,
                     'expires_at': time.time() + 600}
+        if method == 'getmininginfo':
+            return {'blocks': 6}  # no block awaiting its verdict to build ahead on
         raise AssertionError(method)
 
 

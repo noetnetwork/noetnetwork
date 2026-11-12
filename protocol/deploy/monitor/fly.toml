@@ -2,7 +2,7 @@
 # verifier's GPU pod stops or its credit runs low (never stops anything).
 # Secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, SMTP_HOST, SMTP_PORT,
 # SMTP_USER, SMTP_PASSWORD, ALERT_EMAIL_FROM, ALERT_EMAIL_TO,
-# RUNPOD_API_KEY (read-only is enough), NOET_MONITOR_POD.
+# RUNPOD_API_KEY (read-only is enough), NOET_MONITOR_POD, TELEGRAM_ADMIN_IDS (optional).
 app = "noet-monitor"
 primary_region = "ams"
 
@@ -17,6 +17,11 @@ primary_region = "ams"
   NOET_MONITOR_SWITCH_HEIGHT = "3500"
   # Alerts when a block waits 15 min for its Full verdict (verifier down).
   NOET_MONITOR_GATEWAY = "https://noet-mainnet.fly.dev:9443"
+
+# The chats the owner approved for alerts (chats.json); one small volume.
+[mounts]
+  source = "monitor_data"
+  destination = "/data"
 
 [[vm]]
   size = "shared-cpu-1x"

@@ -1,3 +1,4 @@
+from collections import Counter
 from http.server import ThreadingHTTPServer
 import json
 from pathlib import Path
@@ -42,6 +43,8 @@ class Node:
             return [{'block_hash': BLOCK, 'type': 'full', 'full_status': 'green'}]
         if method == 'getblockheader':
             return {'confirmations': 1, 'height': 12}
+        if method == 'getmininginfo':
+            return {'blocks': 11, 'tip_hash': 'ee' * 32}
         raise AssertionError(method)
 
 
@@ -213,6 +216,26 @@ class PublicMinerTests(unittest.TestCase):
                 noet_miner.Gateway(url)
         noet_miner.Gateway('https://example.com:9443')
 
+    def test_weighted_addresses_pick_by_weight(self):
+        second, third = 'tnoet1q' + 'p' * 38, 'tnoet1q' + 'z' * 38
+        pairs = noet_miner.address_weights(f'{ADDRESS}:5, {second}, {third}:2', NETWORK)
+        self.assertEqual(pairs, [(ADDRESS, 5), (second, 1), (third, 2)])
+        self.assertEqual(noet_miner.checked_addresses(f'{ADDRESS}:5,{second}', NETWORK), [ADDRESS, second])
+        for bad in (f'{ADDRESS}:0', f'{ADDRESS}:1001', f'{ADDRESS}:', f'{ADDRESS}:2.5', f'{ADDRESS}:x',
+                    f'{ADDRESS}:2,{ADDRESS}:3'):
+            with self.assertRaises(ValueError):
+                noet_miner.address_weights(bad, NETWORK)
+        seen = []
+        choose = lambda items, weights: seen.append((items, weights)) or [items[-1]]
+        self.assertEqual(noet_miner.payee(pairs, 0, choose), third)
+        self.assertEqual(seen, [([ADDRESS, second, third], [5, 1, 2])])
+        equal = noet_miner.address_weights(f'{ADDRESS}:2,{second}:2', NETWORK)
+        self.assertEqual([noet_miner.payee(equal, n, choose) for n in range(3)], [ADDRESS, second, ADDRESS])
+        self.assertEqual(len(seen), 1)
+        counts = Counter(noet_miner.payee(pairs, n) for n in range(8000))
+        self.assertGreater(counts[ADDRESS], 3 * counts[second])
+        self.assertGreater(counts[third], counts[second])
+
     def test_several_addresses_take_turns(self):
         second = 'tnoet1q' + 'p' * 38
         self.assertEqual(noet_miner.checked_addresses(ADDRESS, NETWORK), [ADDRESS])
@@ -361,6 +384,9 @@ class PublicMinerTests(unittest.TestCase):
     def test_backoff_grows_and_stops_promptly(self):
         self.assertEqual([noet_miner.backoff(n, 0) for n in (1, 2, 3, 7, 20)], [15, 30, 60, 300, 300])
         self.assertEqual(noet_miner.backoff(5, 429), 60)
+        # Gateway errors (a node restart) retry within a minute; a failing producer keeps 300 s.
+        self.assertEqual([noet_miner.backoff(n, 503, noet_miner.GATEWAY_RETRY_CAP) for n in (1, 2, 3, 9)],
+                         [15, 30, 60, 60])
         slept = []
         stopping = []
 

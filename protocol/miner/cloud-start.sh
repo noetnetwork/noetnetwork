@@ -7,7 +7,7 @@
 #   Image   nvidia/cuda:12.8.1-devel-ubuntu24.04 (any image with the CUDA 12.4+
 #           toolkit, git and Python 3.10+ works), driver 570 or newer
 #   Disk    150 GB; 50 GB with NOET_14B=0
-#   Env     NOET_ADDRESS=noet1...  your reward address (required); several, comma-separated, take turns
+#   Env     NOET_ADDRESS=noet1...  your reward address (required); several, comma-separated, take turns (noet1...:N weighs one)
 #           NOET_14B=0             24 GB cards: Qwen3-0.6B only, which mines
 #                                  until block 3,500
 #           NOET_GPUS=all          one miner per GPU (default: one miner, GPU 0)

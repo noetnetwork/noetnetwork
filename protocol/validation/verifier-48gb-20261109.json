@@ -1,0 +1,46 @@
+{
+ "format": "noet-verifier-48gb-v1",
+ "date": "2026-11-09",
+ "productionReady": false,
+ "question": "Can the Qwen3-14B Full verifier run on a 48 GB GPU by keeping the weights in bf16 in GPU memory while every operation still computes in fp32, and does it reach the same verdicts as the 80 GB verifier?",
+ "method": "A research patch (off unless NOET_REPLAY_WEIGHTS=bf16) keeps linear and embedding weights in bf16 and widens them to fp32 at each call; bf16 to fp32 is exact, so each layer sees the same fp32 values as a model loaded in fp32. First, Qwen3-0.6B logits were compared between an fp32 load and the patch. Then 23 recorded Qwen3-14B Full verification requests (heights 8 to 61 of a recorded test set; 20 GREEN and 3 RED by the 80 GB verifier) were verified again on one GPU with the recorded replay seed, one after another in a single process.",
+ "hardware": {"gpu": "NVIDIA RTX A6000", "memoryMiB": 49140, "host": "Runpod secure cloud", "usdPerHour": 0.59, "spendUsd": 4.95},
+ "exactness": {
+  "model": "Qwen/Qwen3-0.6B",
+  "prompts": [
+   {"tokens": 17, "identical": true, "maxAbsDiff": 0.0},
+   {"tokens": 300, "identical": true, "maxAbsDiff": 0.0}
+  ]
+ },
+ "replay": {
+  "model": "Qwen/Qwen3-14B",
+  "requests": 23,
+  "completed": 12,
+  "completedVerdicts": {"GREEN": 10, "RED": 2},
+  "agreeWithRecordedVerdict": 12,
+  "disagreeWithRecordedVerdict": 0,
+  "failedToRun": 11,
+  "failure": "needs ~29306MB but no GPU has room after eviction",
+  "failurePattern": "strictly alternating: every request after a completed one failed (about 165 s), the next one completed (about 300 s)",
+  "medianSecondsCompleted": 310.5,
+  "maxLogitSeverity": 112.58,
+  "peakCudaAllocatedBytes": 40970376192,
+  "peakCudaReservedBytes": 47531950080,
+  "peakNvidiaSmiUsedMiB": 45692
+ },
+ "findings": [
+  "bf16 weight storage with fp32 compute gave bit-identical Qwen3-0.6B logits (maximum difference 0.0).",
+  "Every Qwen3-14B request that ran reached the verdict the 80 GB verifier recorded: 10 GREEN and 2 RED.",
+  "Peak GPU memory in use was 45,692 MiB (about 44.6 GiB) of the card's 49,140 MiB, against about 70 GiB for the fp32 replay.",
+  "11 of 23 requests could not run: the model cache does not free the previous request's memory before loading again, so every second request fails."
+ ],
+ "notEstablished": [
+  "That the alternating eviction failure can be fixed; until it is, half of all blocks would get no verdict.",
+  "Bit-identical Qwen3-14B logits against an fp32 load (exactness was measured on Qwen3-0.6B only).",
+  "The third recorded RED request: it fell on a failed run and was not replayed.",
+  "Long-running operation as the live verifier, with the relays, on mainnet.",
+  "Headroom under longer prompts or outputs than the 23 recorded requests (peak reserved memory was 44.3 GiB of 48).",
+  "Other 48 GB cards (A40, L40S) and community hosts."
+ ],
+ "evidence": "Pod output (exactness.json, replay-bf16.jsonl, replay-bf16/summary.json and failure reports, gpu-memory-test.csv) is kept privately with the session records."
+}

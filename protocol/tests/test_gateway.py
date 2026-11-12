@@ -10,7 +10,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from noet import gateway as gateway_module
 from noet.gateway import Gateway, Refused, client_group, client_key, handler_for
-from noet.rpc import RPCError
+from noet.rpc import RPCError, RPCRejected
 
 GENESIS = "ab" * 32
 ADDRESS = "tnoet1q" + "q" * 38
@@ -21,6 +21,8 @@ BLOCK = "cd" * 32
 class Node:
     def __init__(self):
         self.calls, self.req, self.status, self.expires = [], 0, "accepted_pending_connect", 10_000
+        # The block the node offers to build ahead on (getmininginfo), and whether it then refuses it.
+        self.ahead, self.refuse_ahead = None, False
 
     def __call__(self, method, *params):
         self.calls.append((method, params))
@@ -28,9 +30,15 @@ class Node:
             ok = params[0].startswith("tnoet1")
             return {"isvalid": ok, "scriptPubKey": "0014" + "11" * 20} if ok else {"isvalid": False}
         if method == "create_mining_work_unit":
+            if len(params) > 3 and self.refuse_ahead:
+                raise RPCRejected("Node rejected RPC: create_mining_work_unit")
             self.req += 1
-            return {"req_id": self.req, "height": 7, "header_prefix": "00" * 76, "target": "ff" * 32,
-                    "expires_at": self.expires}
+            return {"req_id": self.req, "height": 8 if len(params) > 3 else 7, "header_prefix": "00" * 76,
+                    "target": "ff" * 32, "expires_at": self.expires,
+                    "tip_hash": params[3] if len(params) > 3 else "ef" * 32}
+        if method == "getmininginfo":
+            return {"blocks": 6, "tip_hash": "ef" * 32,
+                    **({"build_ahead_parent_hash": self.ahead, "build_ahead_parent_height": 7} if self.ahead else {})}
         if method == "submit_mining_response":
             return {"status": self.status, "accepted": False, "block_hash": BLOCK}
         if method == "getblockchaininfo":
@@ -105,6 +113,89 @@ class GatewayTests(unittest.TestCase):
         self.gateway._rpc = Moved()
         self.assertNotIn("verifying", self.gateway.lease(ADDRESS, "b"))
         self.assertIsNone(self.gateway.verifying)
+
+    def test_work_builds_on_our_block_while_it_awaits_its_verdict(self):
+        self.gateway.leases_per_hour = 10
+        first = self.gateway.lease(ADDRESS, "a")
+        self.assertEqual(first["job"]["height"], 7)
+        self.gateway.submit(first["job"]["req_id"], first["lease"], proof(), "a")
+        # The node names the submitted block as the build-ahead parent: work goes on top of it,
+        # and that work is not behind a pending block, so it carries no hint to wait.
+        self.node.ahead = BLOCK
+        self.clock.now += 40
+        second = self.gateway.lease(ADDRESS, "b")
+        create = [c for c in self.node.calls if c[0] == "create_mining_work_unit"][-1]
+        self.assertEqual(create[1][3], BLOCK)
+        self.assertEqual((second["job"]["height"], second["job"]["tip_hash"]), (8, BLOCK))
+        self.assertNotIn("verifying", second)
+        self.assertEqual(self.gateway.stats["builtAhead"], 1)
+        # The wait on the first block stays visible for the monitor.
+        self.assertEqual(self.gateway._info()["awaitingVerdict"], {"height": 7, "seconds": 40})
+        # A block found on that work keeps the first one's start time; later work at its
+        # height is behind it and says so.
+        self.clock.now += 20
+        self.gateway.submit(second["job"]["req_id"], second["lease"], proof(), "b")
+        self.assertEqual(self.gateway._info()["awaitingVerdict"], {"height": 8, "seconds": 60})
+        third = self.gateway.lease(OTHER, "c")
+        self.assertEqual(third["verifying"], {"height": 8, "seconds": 60})
+
+    def test_a_built_ahead_block_waits_from_when_its_parent_is_final(self):
+        # Blocks built ahead one after another must not add their waits together: once the
+        # parent is final the chain has moved, and the child's wait starts then.
+        self.gateway.leases_per_hour = 10
+        first = self.gateway.lease(ADDRESS, "a")
+        self.gateway.submit(first["job"]["req_id"], first["lease"], proof(), "a")
+        self.node.ahead = BLOCK
+        self.clock.now += 200
+        second = self.gateway.lease(ADDRESS, "b")
+        self.gateway.submit(second["job"]["req_id"], second["lease"], proof(), "b")
+        self.assertEqual(self.gateway._info()["awaitingVerdict"], {"height": 8, "seconds": 200})
+        original = self.node.__call__
+
+        class Final(Node):
+            def __call__(inner, method, *params):
+                result = original(method, *params)
+                if method in ("getmininginfo", "getblockchaininfo"):
+                    result["blocks"] = 7
+                return result
+        self.gateway._rpc = Final()
+        self.gateway.cached_info = (0.0, None)
+        self.clock.now += 30
+        self.assertEqual(self.gateway._info()["awaitingVerdict"], {"height": 8, "seconds": 0})
+        self.clock.now += 50
+        self.gateway.cached_info = (0.0, None)
+        self.assertEqual(self.gateway._info()["awaitingVerdict"], {"height": 8, "seconds": 50})
+
+    def test_without_a_build_ahead_block_work_stays_on_the_tip(self):
+        self.gateway.lease(ADDRESS, "a")
+        creates = [c for c in self.node.calls if c[0] == "create_mining_work_unit"]
+        self.assertEqual([len(c[1]) for c in creates], [3])
+        self.assertEqual(self.gateway.stats["builtAhead"], 0)
+        # Malformed hashes are never passed on.
+        self.node.ahead = "../" + "a" * 61
+        self.gateway.lease(ADDRESS, "b")
+        self.assertEqual(len([c for c in self.node.calls if c[0] == "create_mining_work_unit"][-1][1]), 3)
+
+    def test_a_refused_build_ahead_falls_back_to_the_tip(self):
+        # The block got its verdict between the two calls: the node refuses, the lease is plain.
+        self.node.ahead, self.node.refuse_ahead = BLOCK, True
+        lease = self.gateway.lease(ADDRESS, "a")
+        self.assertEqual(lease["job"]["height"], 7)
+        creates = [c for c in self.node.calls if c[0] == "create_mining_work_unit"]
+        self.assertEqual([len(c[1]) for c in creates], [4, 3])
+        self.assertEqual(self.gateway.stats["builtAhead"], 0)
+        self.assertEqual(len(self.gateway.leases), 1)
+
+    def test_a_node_without_build_ahead_still_leases(self):
+        original = self.node.__call__
+
+        class Old(Node):
+            def __call__(inner, method, *params):
+                if method == "getmininginfo":
+                    raise RPCRejected("Node rejected RPC: getmininginfo")
+                return original(method, *params)
+        self.gateway._rpc = Old()
+        self.assertEqual(self.gateway.lease(ADDRESS, "a")["job"]["height"], 7)
 
     def test_rejects_other_networks_and_bad_addresses(self):
         for address in ("nwrk1q" + "q" * 38, "tnoet1Q" + "q" * 38, "", None, 5):

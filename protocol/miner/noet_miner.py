@@ -31,6 +31,7 @@ import ipaddress
 import json
 import os
 from pathlib import Path
+import random
 import re
 import shutil
 import signal
@@ -42,7 +43,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 HERE = Path(__file__).resolve().parent
 MODEL = 'Qwen/Qwen3-0.6B@c1899de289a04d12100db370d81485cdf75e47ca'
 GGUF_SHA256 = '8fa11f4d815167c4f6e3c91b25aebde25d8346a8f11228e744016592532b0700'
@@ -292,13 +293,31 @@ def checked_address(address, network):
     return address
 
 
-def checked_addresses(value, network):
-    """One address, or several separated by commas: each attempt pays the next
-    one in turn, so the rewards spread across them."""
-    addresses = [checked_address(item.strip(), network) for item in (value or '').split(',')]
-    if len(set(addresses)) != len(addresses):
+def address_weights(value, network):
+    """One address, or several separated by commas, as (address, weight) pairs.
+    An address may end in :N, a whole number from 1 to 1000, to weigh it N
+    against 1 for an address without one."""
+    pairs = []
+    for item in (value or '').split(','):
+        address, colon, weight = item.strip().partition(':')
+        if colon and not (weight.isdigit() and 1 <= int(weight) <= 1000):
+            raise ValueError(f'After the colon give a whole number from 1 to 1000: {item.strip()}')
+        pairs.append((checked_address(address, network), int(weight) if colon else 1))
+    if len({address for address, _ in pairs}) != len(pairs):
         raise ValueError('An address is listed twice')
-    return addresses
+    return pairs
+
+
+def checked_addresses(value, network):
+    return [address for address, _ in address_weights(value, network)]
+
+
+def payee(pairs, number, choose=random.choices):
+    """The address attempt `number` pays: with equal weights each takes its
+    turn; otherwise each attempt picks one at random in proportion to the weights."""
+    if len({weight for _, weight in pairs}) == 1:
+        return pairs[number % len(pairs)][0]
+    return choose([address for address, _ in pairs], weights=[weight for _, weight in pairs])[0]
 
 
 def settle(gateway, block, timeout, height=None, sleep=time.sleep, clock=time.monotonic):
@@ -582,11 +601,17 @@ def producer_failed(outcome):
             and outcome.get('producerSeconds', 0) < FAST_FAILURE_SECONDS)
 
 
-def backoff(failures, status):
-    """Seconds to wait after the nth consecutive gateway failure."""
+def backoff(failures, status, cap=300):
+    """Seconds to wait after the nth consecutive failure: 15, 30, 60 ... up to `cap`.
+    Gateway errors use GATEWAY_RETRY_CAP: a node restart takes a minute or two, and
+    a five-minute wait kept miners away for ten (11 Nov). A producer that fails at
+    once keeps the full cap so a broken setup cannot spend the hourly leases."""
     if status == 429:
         return 60
-    return min(300, 15 * 2 ** min(failures - 1, 5))
+    return min(cap, 15 * 2 ** min(failures - 1, 5))
+
+
+GATEWAY_RETRY_CAP = 60
 
 
 def file_sha256(path):
@@ -801,7 +826,8 @@ def host_port(value):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--address', required=True,
-                   help='Your NOET address; rewards are paid here. Several, separated by commas, take turns')
+                   help='Your NOET address; rewards are paid here. Several, separated by commas, take turns; '
+                        'end one in :N to weigh it N to 1 (each attempt then picks at random by weight)')
     p.add_argument('--network', choices=sorted(NETWORKS), default='mainnet')
     p.add_argument('--gateway', help='Override the network gateway URL')
     p.add_argument('--engine', type=Path, default=Path(os.environ.get('NOET_ENGINE', '/opt/noet/bin/llama-server')))
@@ -833,7 +859,8 @@ def main(argv=None):
         failed = [name for name, ok, _ in results if not ok]
         print('Ready to mine.' if not failed else f'Fix {len(failed)} item(s) above before mining.')
         return 1 if failed else 0
-    addresses = checked_addresses(args.address, network)
+    pairs = address_weights(args.address, network)
+    addresses = [item for item, _ in pairs]
     address = ','.join(addresses)
     if not args.engine.is_file():
         raise SystemExit(f'Engine not found at {args.engine}. Run setup.sh or use the Docker image.')
@@ -865,7 +892,7 @@ def main(argv=None):
         except GatewayError as error:
             # The gateway may be restarting; a wrong network is fatal (raised as RuntimeError).
             failures += 1
-            delay = backoff(failures, error.status)
+            delay = backoff(failures, error.status, GATEWAY_RETRY_CAP)
             emit({'event': 'waiting-for-gateway', 'detail': str(error), 'retryIn': delay})
             wait(delay, stopping)
             if stopping:
@@ -878,7 +905,7 @@ def main(argv=None):
     found, failures, noticed = 0, 0, None
     while not stopping and (not args.max_attempts or number < args.max_attempts):
         try:
-            paying = addresses[number % len(addresses)]
+            paying = payee(pairs, number)
             outcome = attempt(gateway, network, info, paying, paths, args.out, number, args.flash_attention,
                               tasks=not args.no_tasks)
             found += outcome.get('outcome') == 'green'
@@ -902,7 +929,7 @@ def main(argv=None):
                 failures = 0
         except GatewayError as error:
             failures += 1
-            delay = backoff(failures, error.status)
+            delay = backoff(failures, error.status, GATEWAY_RETRY_CAP)
             emit({'attempt': number, 'gateway': error.status, 'detail': str(error), 'retryIn': delay})
             wait(delay, stopping)
         except BlockVerifying as error:

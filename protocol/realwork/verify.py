@@ -3,14 +3,19 @@
 Actual Quick and Full run on the unmodified native envelope. Prompt calibration
 remains unapproved/shadow: this is expressly NOT the guarded production service.
 Only computed verdicts are returned; exceptions and incomplete evidence abstain.
+
+Requests are taken best first, not in arrival order (see Pending): a reader
+thread keeps the socket drained while a replay runs, so the newest candidate
+never waits behind re-sent requests for heights the chain has already passed.
 """
 import argparse
-from collections import OrderedDict
+from collections import OrderedDict, deque
 import hashlib
 import hmac
 import json
 import os
 from pathlib import Path
+import threading
 import time
 
 
@@ -26,6 +31,82 @@ def native_height(height):
     """A block height the node may ask about: any positive 32-bit height. (The
     research bound of 1,000 stopped the testnet at height 1,001.)"""
     return type(height) is int and 1 <= height < 2 ** 31
+
+
+class Pending:
+    """The requests waiting for this verifier, best first.
+
+    The node re-sends every unanswered request with a doubling delay, and keeps
+    re-sending Full requests for competing blocks at heights the chain has
+    passed (a block without its Full verdict is never stale to the node). In
+    arrival order the one request the chain is waiting on, a candidate one
+    above the tip, queued behind hours of those. Taken here, in order:
+
+      1. heights above the highest block this verifier has answered GREEN
+         (a candidate at or below it can no longer extend the chain), before
+         heights at or below it;
+      2. the highest height first;
+      3. Quick before Full at the same height (about 20 s against 220 s);
+      4. arrival order.
+
+    Nothing gets a different verdict: the order only decides what is replayed
+    next. A request already waiting is not queued twice (the node's re-send is
+    byte-identical, and one answer serves both). Over the limit the worst
+    request is let go unanswered, which the node treats as no answer yet: it
+    sends it again later. A higher height can only come from a block whose
+    parent is indexed, so pushing a request ahead costs a mined block each time
+    and can delay, never stop, the candidate behind it.
+    """
+
+    def __init__(self, limit=256):
+        self.limit = limit
+        self.items = {}
+        self.seq = 0
+        self.green = 0
+
+    def __len__(self):
+        return len(self.items)
+
+    def rank(self, entry):
+        height = entry['height'] if type(entry['height']) is int else 0
+        return (height <= self.green, -height, entry['kind'] == 2, entry['seq'])
+
+    def add(self, sha, raw, height, kind, now):
+        """Queue one request. Returns 'duplicate', or the entries let go (the
+        new one included, when it ranks worst)."""
+        if sha in self.items:
+            return 'duplicate'
+        self.items[sha] = {'sha': sha, 'raw': raw, 'height': height, 'kind': kind, 'seq': self.seq, 'arrived': now}
+        self.seq += 1
+        dropped = []
+        while len(self.items) > self.limit:
+            worst = max(self.items.values(), key=self.rank)
+            dropped.append(self.items.pop(worst['sha']))
+        return dropped
+
+    def pop(self):
+        if not self.items:
+            return None
+        return self.items.pop(min(self.items.values(), key=self.rank)['sha'])
+
+    def answered(self, height, kind, verdict):
+        if kind == 2 and verdict == 'GREEN' and type(height) is int:
+            self.green = max(self.green, height)
+
+
+def request_fields(raw, unpack, block_fields):
+    """(height, validation kind) of a native request, None for a part that does
+    not parse: such a request still runs, ranked as height 0, and its exception
+    is recorded as before."""
+    try:
+        height, _ = block_fields(raw)
+    except Exception:
+        height = None
+    try:
+        kind = unpack(raw)['validation_type']
+    except Exception:
+        kind = None
+    return height, kind
 
 
 def run(output, deadline_seconds, capture_detector=False):
@@ -72,16 +153,45 @@ def run(output, deadline_seconds, capture_detector=False):
     deadline=time.monotonic()+deadline_seconds
     count=0
     completed=OrderedDict()
-    try:
-        while time.monotonic()<deadline:
-            if not pull.poll(1000):continue
-            frames=pull.recv_multipart()
+    pending=Pending()
+    inbox=deque();arrived=threading.Event();stop=threading.Event();failed=[]
+
+    def receive():
+        # Owns the PULL socket: drains it while a replay runs on the main thread.
+        try:
+            while not stop.is_set():
+                if pull.poll(500):
+                    inbox.append((time.monotonic(),pull.recv_multipart()));arrived.set()
+        except Exception as error:
+            failed.append(error);arrived.set()
+
+    def note(**event):
+        event['at']=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
+        with (output/'queue.jsonl').open('a') as stream:stream.write(json.dumps(event)+'\n')
+
+    def intake():
+        """Move what the reader received into the queue; answer exact repeats
+        of a completed Full at once, as before."""
+        while inbox:
+            at,frames=inbox.popleft()
             if len(frames)!=1:raise ValueError('Expected one native request frame')
             raw=frames[0];check_request(raw)
+            sha=hashlib.sha256(raw).hexdigest()
+            if sha in completed:
+                handle(raw,{'queuedSeconds':time.monotonic()-at,'queueDepth':len(pending)});continue
+            height,kind=request_fields(raw,pfunpack.unpack_validation_request,read_block_validation_fields)
+            dropped=pending.add(sha,raw,height,kind,at)
+            if dropped!='duplicate':
+                for entry in dropped:
+                    note(event='dropped',envelopeSha256=entry['sha'],height=entry['height'],kind=entry['kind'],
+                         waitedSeconds=round(time.monotonic()-entry['arrived'],1),green=pending.green)
+
+    def handle(raw,queued):
+            nonlocal count
             item=output/str(count);item.mkdir();count+=1
             (item/'request.bin').write_bytes(raw)
             result={'envelopeSha256':hashlib.sha256(raw).hexdigest(),'nodeEmittedEnvelope':True,
-                    'productionReady':False,'promptCalibrationApproved':False}
+                    'productionReady':False,'promptCalibrationApproved':False,**queued}
             started=time.monotonic()
             try:
                 request=pfunpack.unpack_validation_request(raw)
@@ -98,7 +208,7 @@ def run(output, deadline_seconds, capture_detector=False):
                         reusedExactEnvelope=True,computedResultDirectory=prior['computedResultDirectory'],
                         elapsedSeconds=time.monotonic()-started)
                     (item/'result.json').write_text(json.dumps(result,indent=2)+'\n')
-                    continue
+                    return result
                 body=request['request'];proof=body['pow_blob']
                 result.update(difficulty=body['difficulty'],model=proof['model_identifier'])
                 seed=replay_seed(secret,cache_key);result['replaySeed']=seed
@@ -151,18 +261,35 @@ def run(output, deadline_seconds, capture_detector=False):
                 result['responseCode']=code
                 result['responseSent']=True
                 # Native retries must not queue repeated model inference. Cache
-                # only completed Full verdicts, keyed by every envelope byte;
-                # changed proof/context/ruleset never reuses a prior decision.
-                if kind==2 and code in (6,8):
+                # completed GREEN/RED Full verdicts and Quick verdicts (the node
+                # re-sends a Quick every few seconds while it runs), keyed by
+                # every envelope byte: the same bytes get the same replay seed,
+                # and changed proof/context/ruleset never reuses a prior decision.
+                if (kind==2 and code in (6,8)) or kind in (0,1):
                     completed[cache_key]=(payload,envelope,{'responseCode':code,
-                        'fullVerdict':result['fullVerdict'],'computedResultDirectory':item.name})
-                    while len(completed)>32:completed.popitem(last=False)
+                        'fullVerdict':result.get('fullVerdict'),'computedResultDirectory':item.name})
+                    while len(completed)>64:completed.popitem(last=False)
                 del verifier
             except Exception as error:
                 result.update(exceptionType=type(error).__name__,exception=str(error)[:1500],responseSent=False)
             result['elapsedSeconds']=time.monotonic()-started
             (item/'result.json').write_text(json.dumps(result,indent=2,default=str)+'\n')
+            return result
+
+    reader=threading.Thread(target=receive,name='verifier-intake',daemon=True)
+    reader.start()
+    try:
+        while time.monotonic()<deadline:
+            if failed:raise failed[0]
+            intake()
+            entry=pending.pop()
+            if entry is None:
+                arrived.wait(1.0);arrived.clear();continue
+            result=handle(entry['raw'],{'queuedSeconds':time.monotonic()-entry['arrived'],'queueDepth':len(pending),
+                                        'queueGreenHeight':pending.green})
+            pending.answered(result.get('height'),result.get('requestType'),result.get('fullVerdict'))
     finally:
+        stop.set();reader.join(5)
         detector_gate.runtime().close()
         pull.close();push.close();context.term()
 

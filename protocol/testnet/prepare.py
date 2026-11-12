@@ -122,7 +122,8 @@ def applied_switch(net, test):
 
 
 FILES = ('src/kernel/chainparams.cpp', 'src/init.cpp', 'src/consensus/amount.h', 'src/consensus/params.h',
-         'src/validation.cpp', 'src/node/miner.cpp', 'src/modeldb.cpp', 'src/net_processing.cpp')
+         'src/validation.cpp', 'src/node/miner.cpp', 'src/modeldb.cpp', 'src/net_processing.cpp',
+         'src/validationapi.cpp')
 
 
 def replace_once(text, old, new):
@@ -391,6 +392,73 @@ def switch_modeldb(text):
     LogPrintf("[ModelDB] Initialized database''')
 
 
+# Quick requests the verifier never answered. Upstream writes a terminal Quick
+# fail once the retries run out (10 sends, ~17 minutes with the doubling delay)
+# when no local quick verifier runs, which is always the case with the ZMQ
+# verifier. That fail is stored in the quick cache and every later CheckBlock of
+# the block reads it: with a verifier hours behind, a Full-GREEN tip can turn
+# into "bad-fast-pow" and the node can no longer start. Silence
+# from the verifier says nothing about the block, so the request is dropped
+# with no verdict instead: nothing is stored, and the next CheckBlock of that
+# block asks again. Nothing waits on these answers (CheckPOWFast enqueues them
+# with ValidationResponseBehavior::Nothing and never blocks on them), Full
+# validation still gates acceptance, real verifier fails and the local
+# final-hash fail are untouched, and the tables stay bounded.
+QUICK_SILENCE = {  # kind: (request table, upstream default, indent of the scheduler branch)
+    'Quick': ('short_requests_', 'Quick_Fail', 24),
+    'Quick_Smell': ('short_smell_requests_', 'Quick_Fail_Smell_Fail', 28),
+}
+
+
+def quick_silence(text):
+    """Retry exhaustion of a Quick or Quick_Smell request drops it without a verdict."""
+    for kind, (table, status, indent) in QUICK_SILENCE.items():
+        pad = ' ' * indent
+        new = f'''// NOET: an unanswered request is not a verdict (testnet/prepare.py quick_silence).
+LogPrintf("VALIDATOR: {kind} %s unanswered after every retry; dropped without a verdict\\n",
+          it->first.ToString());
+if (m_http_mode) {{
+    ClearStatusQueueEntry(StatusKey{{it->first, ValidationReqType::{kind}}});
+}}
+it = requestTracker.{table}.erase(it);
+'''
+        text = replace_once(text, f'''{pad}to_default.push_back({{it->first, ValidationReqType::{kind}, ValidationResponseValue::{status}}});
+{pad}it++;
+''', ''.join(pad + line + '\n' for line in new.splitlines()))
+    return text
+
+
+# Fork choice between two blocks at one height, both Full-GREEN. Chain
+# selection breaks an equal-work tie by nSequenceId, the order in which the node
+# linked the block bodies. A block that arrives while a rival at its height is
+# still being validated is stored at once as Full-pending (zero local work) and
+# linked first; the rival is held until its verdict and linked later. When the
+# pending block's GREEN finally lands it is promoted to equal work and wins the
+# tie on that earlier number: the node reorganises to it although the rival had
+# been the verified tip for minutes, and the rival's next block reorganises it
+# back, and miners see a reorganisation at nearly every contested height.
+# A pending block that turns GREEN now takes a new sequence number, so on equal
+# work the block that was verified first stays the tip. Only the tie-break order
+# of an in-memory field changes: no block's validity or work changes, the
+# candidate set is cleared before the change (the pending bit is an ordering
+# key) and rebuilt after it, numbers are not stored (all are 0 after a restart,
+# as before), unlinked blocks keep 0 and preciousblock's negative numbers stay.
+VERIFIED_FIRST_ANCHOR = '''    pindex->nStatus &= ~(BLOCK_FULL_RED_LOCAL | BLOCK_FULL_GREEN_LOCAL | BLOCK_FULL_PENDING_LOCAL);
+    pindex->nStatus |= now_red ? BLOCK_FULL_RED_LOCAL : BLOCK_FULL_GREEN_LOCAL;
+    m_blockman.m_dirty_blockindex.insert(pindex);
+'''
+
+
+def verified_first(text):
+    """A pending block promoted to GREEN is ordered after blocks verified before it."""
+    return replace_once(text, VERIFIED_FIRST_ANCHOR, VERIFIED_FIRST_ANCHOR + '''    // NOET: on equal work the block verified first keeps the tip (testnet/prepare.py verified_first).
+    if (was_pending && !now_red && source != FullVerdictSource::IndexLoad &&
+        pindex->HaveNumChainTxs() && pindex->nSequenceId >= 0) {
+        pindex->nSequenceId = nBlockSequenceId++;
+    }
+''')
+
+
 def switch_relay(text):
     """A block rebuilt from a compact relay gets the model of its height."""
     return replace_once(text, '''    if (block.pow.model_identifier.empty()) {
@@ -467,6 +535,7 @@ def overlay(sources, test=False, net=TESTNET):
         'src/consensus/params.h': params(sources['src/consensus/params.h'], switch),
         'src/validation.cpp': validation(sources['src/validation.cpp'], net),
         'src/node/miner.cpp': miner(sources['src/node/miner.cpp'], net),
+        'src/validationapi.cpp': quick_silence(sources['src/validationapi.cpp']),
         f'src/noet_{n}.h': support(net),
         f'src/noet_{n}_allocations.h': allocation_header(outputs(net['keys']), n),
         # A network may set its own release rate; the shared tokenomics otherwise.
@@ -478,6 +547,7 @@ def overlay(sources, test=False, net=TESTNET):
         result['src/node/miner.cpp'] = switch_miner(result['src/node/miner.cpp'])
         result['src/modeldb.cpp'] = switch_modeldb(sources['src/modeldb.cpp'])
         result['src/net_processing.cpp'] = switch_relay(sources['src/net_processing.cpp'])
+    result['src/validation.cpp'] = verified_first(result['src/validation.cpp'])
     return result
 
 
